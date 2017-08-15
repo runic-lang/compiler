@@ -1,0 +1,14 @@
+name: runic-compiler
+version: 0.1.0
+
+authors:
+  - Julien Portalier <julien@portalier.com>
+
+description: |
+  Runic language compiler.
+
+development_dependencies:
+  minitest:
+    github: ysbaddaden/minitest.cr
+
+license: CeCILL-C
