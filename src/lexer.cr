@@ -63,7 +63,7 @@ module Runic
       when '.'
         skip
         Token.new(:call, ".", location)
-      when '\n'
+      when '\n', ';'
         skip_whitespace
         Token.new(:linefeed, "", location)
       when '#'
@@ -268,7 +268,7 @@ module Runic
       case peek_char
       when nil
         true
-      when '.', '=', '~', '!', '+', '-', '*', '/', '%', '&', '|', '^', '<', '>', ')', .ascii_whitespace?
+      when '.', '=', '~', '!', '+', '-', '*', '/', '%', '&', '|', '^', '<', '>', ')', ';', .ascii_whitespace?
         true
       else
         false
@@ -358,7 +358,8 @@ module Runic
     end
 
     private def skip_whitespace
-      while peek_char.try(&.ascii_whitespace?)
+      while char = peek_char
+        break unless char.ascii_whitespace? || char == ';'
         skip
       end
     end

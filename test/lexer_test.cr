@@ -8,6 +8,9 @@ module Runic
     end
 
     def test_linefeeds
+      assert_tokens [:linefeed], "\n"
+      assert_tokens [:linefeed], ";"
+      assert_tokens [:linefeed, :eof], ";\n;\n\n"
       assert_tokens [:identifier, :linefeed, :identifier, :linefeed, :eof], "a\nb\n"
       assert_tokens [:identifier, :linefeed, :identifier, :eof], "a \n  \n   c"
     end
