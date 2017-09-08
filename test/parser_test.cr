@@ -12,20 +12,20 @@ module Runic
       assert_expression AST::Integer, "123"
       assert_expression AST::Integer, "123129871928718729172"
 
-      assert_type "int", "2147483647"
-      assert_type "int", "-2147483648"
+      assert_type "int32", "2147483647"
+      assert_type "int32", "-2147483648"
       assert_type "int64", "9223372036854775807"
       assert_type "int64", "-9223372036854775808"
       assert_type "int128", "170141183460469231731687303715884105727"
       assert_type "int128", "-170141183460469231731687303715884105728"
 
-      assert_type "uint", "0xf000_0000"
+      assert_type "uint32", "0xf000_0000"
       assert_type "uint64", "0xffff_ffff_FFFF_ffff"
       assert_type "uint128", "0x000F_ffff_ffff_ffff_ffff"
       assert_type "uint128", "0xFFFF_ffff_ffff_ffff_ffff_ffff_ffff_ffff"
 
-      assert_type "uint", "0b#{"1" * 32}"
-      assert_type "uint", "0b#{"0" * 32}_1111"
+      assert_type "uint32", "0b#{"1" * 32}"
+      assert_type "uint32", "0b#{"0" * 32}_1111"
       assert_type "uint64", "0b#{"1" * 64}"
       assert_type "uint128", "0b#{"1" * 128}"
     end
@@ -36,8 +36,8 @@ module Runic
     #  assert_raises(SyntaxError) { lex("-0b01").next }
 
     #  # hexadecimal / binary representations may be signed if specified (if value fits):
-    #  assert_type "int", "-0b01_i"
-    #  assert_type "int", "-0x7f_i"
+    #  assert_type "int32", "-0b01_i"
+    #  assert_type "int32", "-0x7f_i"
 
     #  # value doesn't fit:
     #  assert_raises(SyntaxError) { lex("0x1_ff_u8").next }

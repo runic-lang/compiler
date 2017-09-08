@@ -8,8 +8,8 @@ module Runic
     NUMBER_SUFFIXES = {
       "l"    => "long",
       "ul"   => "ulong",
-      "i"    => "int",
-      "u"    => "uint",
+      "i"    => "int32",
+      "u"    => "uint32",
       "i8"   => "int8",
       "u8"   => "uint8",
       "i16"  => "int16",
