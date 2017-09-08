@@ -50,10 +50,16 @@ module Runic
     end
 
     class Integer < Number
-      # MAX_UINT32 = "4294967295"
-      # MAX_UINT64 = "18446744073709551615"
-      # MAX_UINT128 = "340282366920938463463374607431768211455"
+      MAX_UINT8 = "255"
+      MAX_UINT16 = "65535"
+      MAX_UINT32 = "4294967295"
+      MAX_UINT64 = "18446744073709551615"
+      MAX_UINT128 = "340282366920938463463374607431768211455"
 
+      MIN_INT8 = "128"
+      MAX_INT8 = "127"
+      MIN_INT16 = "32768"
+      MAX_INT16 = "32767"
       MIN_INT32 = "2147483648"
       MAX_INT32 = "2147483647"
       MIN_INT64 = "9223372036854775808"
@@ -61,6 +67,16 @@ module Runic
       MIN_INT128 = "170141183460469231731687303715884105728"
       MAX_INT128 = "170141183460469231731687303715884105727"
 
+      MAX_OCTAL_UINT8 = "0o377"
+      MAX_OCTAL_UINT16 = "0o177777"
+      MAX_OCTAL_UINT32 = "0o37777777777"
+      MAX_OCTAL_UINT64 = "0o1777777777777777777777"
+      MAX_OCTAL_UINT128 = "0o3777777777777777777777777777777777777777777"
+
+      MIN_OCTAL_INT8 = "0o200"
+      MAX_OCTAL_INT8 = "0o177"
+      MIN_OCTAL_INT16 = "0o100000"
+      MAX_OCTAL_INT16 = "0o77777"
       MIN_OCTAL_INT32 = "0o20000000000"
       MAX_OCTAL_INT32 = "0o17777777777"
       MIN_OCTAL_INT64 = "0o1000000000000000000000"
@@ -70,16 +86,16 @@ module Runic
 
       private def resolve_type
         case @value
-        when .starts_with?("0x") then resolve_hexadecimal_type
-        when .starts_with?("0b") then resolve_binary_type
-        when .starts_with?("0o") then resolve_octal_type
-        else                          resolve_decimal_type
+        when .starts_with?("0x") then infer_hexadecimal_type
+        when .starts_with?("0b") then infer_binary_type
+        when .starts_with?("0o") then infer_octal_type
+        else                          infer_decimal_type
         end
       end
 
-      private def resolve_hexadecimal_type
+      private def infer_hexadecimal_type
         if @value.size <= 10
-          "uint"
+          "uint32"
         elsif @value.size <= 18
           "uint64"
         elsif @value.size <= 34
@@ -87,9 +103,9 @@ module Runic
         end
       end
 
-      private def resolve_binary_type
+      private def infer_binary_type
         if @value.size <= 34
-          "uint"
+          "uint32"
         elsif @value.size <= 66
           "uint64"
         elsif @value.size <= 130
@@ -97,9 +113,9 @@ module Runic
         end
       end
 
-      private def resolve_octal_type
+      private def infer_octal_type
         if compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
-          "int"
+          "int32"
         elsif compare(negative ? MIN_OCTAL_INT64 : MAX_OCTAL_INT64)
           "int64"
         elsif compare(negative ? MIN_OCTAL_INT128 : MAX_OCTAL_INT128)
@@ -107,9 +123,9 @@ module Runic
         end
       end
 
-      private def resolve_decimal_type
+      private def infer_decimal_type
         if compare(negative ? MIN_INT32 : MAX_INT32)
-          "int"
+          "int32"
         elsif compare(negative ? MIN_INT64 : MAX_INT64)
           "int64"
         elsif compare(negative ? MIN_INT128 : MAX_INT128)
@@ -117,9 +133,79 @@ module Runic
         end
       end
 
-      private def compare(other)
-        @value.size < other.size ||
-          (@value.size == other.size && @value <= other)
+      def valid_type_definition?
+        case @value
+        when .starts_with?("0x") then valid_hexadecimal_type?
+        when .starts_with?("0b") then valid_binary_type?
+        when .starts_with?("0o") then valid_octal_type?
+        else                          valid_decimal_type?
+        end
+      end
+
+      private def valid_hexadecimal_type?
+        case type?
+        when "uint8"   then @value.size < 2+2
+        when "uint16"  then @value.size < 2+4
+        when "uint32"  then @value.size < 2+8
+        when "uint64"  then @value.size < 2+16
+        when "uint128" then @value.size < 2+32
+        when "int8"    then compare("0x7f", downcase: true)
+        when "int16"   then compare("0x7fff", downcase: true)
+        when "int32"   then compare("0x7fffffff", downcase: true)
+        when "int64"   then compare("0x7fffffffffffffff", downcase: true)
+        when "int128"  then compare("0x7fffffffffffffffffffffffffffffff", downcase: true)
+        end
+      end
+
+      private def valid_binary_type?
+        case type?
+        when "uint8"   then @value.size < 2+8
+        when "uint16"  then @value.size < 2+16
+        when "uint32"  then @value.size < 2+32
+        when "uint64"  then @value.size < 2+64
+        when "uint128" then @value.size < 2+128
+        when "int8"    then @value.size < 2+7
+        when "int16"   then @value.size < 2+15
+        when "int32"   then @value.size < 2+31
+        when "int64"   then @value.size < 2+63
+        when "int128"  then @value.size < 2+127
+        end
+      end
+
+      private def valid_octal_type?
+        case type?
+        when "int8"    then compare(negative ? MIN_OCTAL_INT8 : MAX_OCTAL_INT8)
+        when "int16"   then compare(negative ? MIN_OCTAL_INT16 : MAX_OCTAL_INT16)
+        when "int32"   then compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
+        when "int64"   then compare(negative ? MIN_OCTAL_INT64 : MAX_OCTAL_INT64)
+        when "int128"  then compare(negative ? MIN_OCTAL_INT128 : MAX_OCTAL_INT128)
+        when "uint8"   then compare(MAX_OCTAL_UINT8)
+        when "uint16"  then compare(MAX_OCTAL_UINT16)
+        when "uint32"  then compare(MAX_OCTAL_UINT32)
+        when "uint64"  then compare(MAX_OCTAL_UINT64)
+        when "uint128" then compare(MAX_OCTAL_UINT128)
+        end
+      end
+
+      private def valid_decimal_type?
+        case type?
+        when "int8"    then compare(negative ? MIN_INT8 : MAX_INT8)
+        when "int16"   then compare(negative ? MIN_INT16 : MAX_INT16)
+        when "int32"   then compare(negative ? MIN_INT32 : MAX_INT32)
+        when "int64"   then compare(negative ? MIN_INT64 : MAX_INT64)
+        when "int128"  then compare(negative ? MIN_INT128 : MAX_INT128)
+        when "uint8"   then compare(MAX_UINT8)
+        when "uint16"  then compare(MAX_UINT16)
+        when "uint32"  then compare(MAX_UINT32)
+        when "uint64"  then compare(MAX_UINT64)
+        when "uint128" then compare(MAX_UINT128)
+        end
+      end
+
+      private def compare(other, downcase = false)
+        value = downcase ? @value.downcase : @value
+        value.size < other.size ||
+          (value.size == other.size && value <= other)
       end
     end
 
