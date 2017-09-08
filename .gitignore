@@ -1,2 +1,5 @@
+/bin
+/dist
 /lib
+/libexec
 /.shards

@@ -1,0 +1,122 @@
+require "../parser"
+require "../semantic"
+require "../version"
+
+module Runic
+  module Command
+    struct AST
+      def self.semantic
+        @@semantic || false
+      end
+
+      def self.semantic=(@@semantic : Bool)
+      end
+
+      def self.print_help_message
+        STDERR.puts "<todo: ast command help message>"
+      end
+
+      @semantic : Semantic?
+
+      def initialize(source : IO, file : String, semantic = AST.semantic)
+        @parser = Parser.new(Lexer.new(source, file))
+        @nested = 0
+        @semantic = Semantic.new if semantic
+      end
+
+      def run
+        while node = @parser.next
+          @semantic.try(&.visit(node))
+          to_h(node)
+        end
+      end
+
+      def to_h(node : Runic::AST::Integer)
+        print "- integer: #{node.sign}#{node.value}#{to_type(node)}"
+      end
+
+      def to_h(node : Runic::AST::Float)
+        print "- float: #{node.sign}#{node.value}#{to_type(node)}"
+      end
+
+      def to_h(node : Runic::AST::Boolean)
+        print "- boolean: #{node.value}#{to_type(node)}"
+      end
+
+      def to_h(node : Runic::AST::Variable)
+        print "- variable: #{node.name}#{to_type(node)}"
+      end
+
+      def to_h(node : Runic::AST::Binary)
+        print "- binary: #{node.operator}#{to_type(node)}"
+        print "  lhs:"
+        nested { to_h(node.lhs) }
+        print "  rhs:"
+        nested { to_h(node.rhs) }
+      end
+
+      def to_h(node : Runic::AST::Unary)
+        print "- unary: #{node.operator}#{to_type(node)}"
+        nested { to_h(node.expression) }
+      end
+
+      def to_type(node : Runic::AST::Node)
+        " (#{node.type})" if @semantic
+      end
+
+      def print(string)
+        @nested.times { ::print ' ' }
+        ::puts string
+      end
+
+      def nested
+        @nested += 4
+        yield
+      ensure
+        @nested -= 4
+      end
+    end
+  end
+end
+
+filenames = [] of String
+
+ARGV.each_with_index do |arg|
+  case arg
+  when "--version", "version"
+    puts "runic-ast version #{Runic.version_string}"
+    exit 0
+  when "--help", "help"
+    Runic::Command::AST.print_help_message
+    exit 0
+  when "--semantic"
+    Runic::Command::AST.semantic = true
+  else
+    if arg.starts_with?('-')
+      STDERR.puts "Unknown option: #{arg}"
+      exit 1
+    else
+      filenames << arg
+    end
+  end
+end
+
+case filenames.size
+when 0
+  STDERR.puts "reading from stdin..."
+  Runic::Command::AST.new(STDIN, "<stdin>").run
+when 1
+  filename = filenames.first
+
+  if File.exists?(filename)
+    File.open(filename, "r") do |io|
+      Runic::Command::AST.new(io, filename).run
+    end
+  else
+    STDERR.puts "fatal: no such file or directory '#{filename}'."
+    exit 1
+  end
+else
+  STDERR.puts "fatal: you may only specify one file to parse."
+  exit 1
+end
