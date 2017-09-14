@@ -1,5 +1,4 @@
-require "minitest/autorun"
-require "../src/parser"
+require "./test_helper"
 
 module Runic
   class ParserTest < Minitest::Test
@@ -99,7 +98,7 @@ module Runic
       OPERATORS::ASSIGNMENT.each do |operator|
         assert_expression AST::Binary, "a #{operator} 2"
         assert_expression AST::Binary, "a #{operator}\n2"
-        assert_raises(SyntaxError) { parse("1 #{operator} 2").next }
+        assert_raises(SyntaxError) { parser("1 #{operator} 2").next }
         assert_raises(SyntaxError) { parse_all("a\n#{operator}2") }
       end
     end
@@ -110,23 +109,13 @@ module Runic
     end
 
     private def assert_expression(klass, source)
-      node = parse(source).next
+      node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }
     end
 
     private def assert_type(expected, source)
-      node = parse(source).next.not_nil!
+      node = parser(source).next.not_nil!
       assert expected == node.type, -> { "expected #{expected} but got #{node.type}" }
-    end
-
-    private def parse_all(source)
-      parse(source).parse {}
-    end
-
-    private def parse(source)
-      io = IO::Memory.new(source)
-      lexer = Lexer.new(io)
-      Parser.new(lexer)
     end
   end
 end

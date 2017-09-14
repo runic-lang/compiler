@@ -1,7 +1,4 @@
-require "minitest/autorun"
-require "../../src/lexer"
-require "../../src/parser"
-require "../../src/semantic/type_visitor"
+require "../test_helper"
 
 module Runic
   class Semantic
