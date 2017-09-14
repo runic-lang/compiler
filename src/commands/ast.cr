@@ -5,20 +5,23 @@ require "../version"
 module Runic
   module Command
     struct AST
-      def self.semantic
-        @@semantic || false
-      end
+      {% for option in %w(semantic location) %}
+        def self.{{option.id}}
+          @@{{option.id}} || false
+        end
 
-      def self.semantic=(@@semantic : Bool)
-      end
+        def self.{{option.id}}=(@@{{option.id}} : Bool)
+        end
+      {% end %}
 
       def self.print_help_message
         STDERR.puts "<todo: ast command help message>"
       end
 
       @semantic : Semantic?
+      @location : Bool
 
-      def initialize(source : IO, file : String, semantic = AST.semantic)
+      def initialize(source : IO, file : String, semantic = AST.semantic, @location = AST.location)
         @parser = Parser.new(Lexer.new(source, file))
         @nested = 0
         @semantic = Semantic.new if semantic
@@ -32,23 +35,23 @@ module Runic
       end
 
       def to_h(node : Runic::AST::Integer)
-        print "- integer: #{node.sign}#{node.value}#{to_type(node)}"
+        print "- integer: #{node.sign}#{node.value}#{to_options(node)}"
       end
 
       def to_h(node : Runic::AST::Float)
-        print "- float: #{node.sign}#{node.value}#{to_type(node)}"
+        print "- float: #{node.sign}#{node.value}#{to_options(node)}"
       end
 
       def to_h(node : Runic::AST::Boolean)
-        print "- boolean: #{node.value}#{to_type(node)}"
+        print "- boolean: #{node.value}#{to_options(node)}"
       end
 
       def to_h(node : Runic::AST::Variable)
-        print "- variable: #{node.name}#{to_type(node)}"
+        print "- variable: #{node.name}#{to_options(node)}"
       end
 
       def to_h(node : Runic::AST::Binary)
-        print "- binary: #{node.operator}#{to_type(node)}"
+        print "- binary: #{node.operator}#{to_options(node)}"
         print "  lhs:"
         nested { to_h(node.lhs) }
         print "  rhs:"
@@ -56,12 +59,22 @@ module Runic
       end
 
       def to_h(node : Runic::AST::Unary)
-        print "- unary: #{node.operator}#{to_type(node)}"
+        print "- unary: #{node.operator}#{to_options(node)}"
         nested { to_h(node.expression) }
       end
 
-      def to_type(node : Runic::AST::Node)
-        " (#{node.type})" if @semantic
+      def to_options(node : Runic::AST::Node)
+        String.build do |str|
+          if @semantic
+            str << " ("
+            node.type.to_s(str)
+            str << ')'
+          end
+          if @location
+            str << " at "
+            node.location.to_s(str)
+          end
+        end
       end
 
       def print(string)
@@ -91,6 +104,8 @@ ARGV.each_with_index do |arg|
     exit 0
   when "--semantic"
     Runic::Command::AST.semantic = true
+  when "--location"
+    Runic::Command::AST.location = true
   else
     if arg.starts_with?('-')
       STDERR.puts "Unknown option: #{arg}"
