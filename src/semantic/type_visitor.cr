@@ -36,7 +36,7 @@ module Runic
       def visit(node : AST::Variable) : Nil
         if named_var = @named_variables[node.name]?
           node.shadow = named_var.shadow
-          node.type = named_var.type
+          node.type = named_var.type unless node.type?
         else
           raise SemanticError.new("variable '#{node.name}' has no type", node.location)
         end

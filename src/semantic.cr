@@ -7,7 +7,7 @@ module Runic
     end
 
     DEFAULT_VISITORS = [
-      # TODO: add a sugar expander semantic visitor (e.g. 'a += 1' -> 'a = a + 1')
+      SugarExpanderVisitor,
       TypeVisitor,
     ]
 

@@ -265,9 +265,9 @@ module Runic
     end
 
     class Binary < Node
-      getter operator : String
+      property operator : String
       getter lhs : Node
-      getter rhs : Node
+      property rhs : Node
 
       def self.new(token : Token, lhs, rhs)
         new(token.value, lhs, rhs, token.location)
