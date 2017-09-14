@@ -123,6 +123,9 @@ module Runic
           when 'b'
             consume_binary_number(str)
           else
+            if peek_char.nil? || !('0'..'9').includes?(peek_char.not_nil!)
+              str << '0'
+            end
             consume_decimal_number(str)
           end
         else

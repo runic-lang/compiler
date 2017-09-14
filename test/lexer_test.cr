@@ -1,5 +1,4 @@
-require "minitest/autorun"
-require "../src/lexer"
+require "./test_helper"
 
 module Runic
   class LexerTest < Minitest::Test
@@ -22,6 +21,7 @@ module Runic
     end
 
     def test_decimal_integer_literals
+      assert_next :integer, "0"
       assert_next :integer, "1"
       assert_next :integer, "2147483647" # int32
       assert_next :integer, "18446744073709551615" # uint64
@@ -56,6 +56,7 @@ module Runic
     end
 
     def test_float_literals
+      assert_next :float, "0.0"
       assert_next :float, "1.0"
       assert_next :float, "8171.29732"
       assert_next :float, "2147.000001", "2_147.000_001" # int32
@@ -186,10 +187,6 @@ module Runic
 
     private def assert_location(position, token)
       assert_equal position, {token.location.line, token.location.column}
-    end
-
-    private def lex(source)
-      Lexer.new(IO::Memory.new(source))
     end
   end
 end
