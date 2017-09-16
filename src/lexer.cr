@@ -54,15 +54,8 @@ module Runic
         end
       when '~', '!', '+', '-', '*', '/', '<', '>', '=', '%', '&', '|', '^'
         Token.new(:operator, consume_operator, location)
-      when '('
-        skip
-        Token.new(:open_parenthesis, "(", location)
-      when ')'
-        skip
-        Token.new(:close_parenthesis, ")", location)
-      when '.'
-        skip
-        Token.new(:call, ".", location)
+      when '.', '(', ')', '{', '}', '[', ']'
+        Token.new(:mark, consume.to_s, location)
       when '\n', ';'
         skip_whitespace
         Token.new(:linefeed, "", location)

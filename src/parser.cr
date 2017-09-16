@@ -135,8 +135,12 @@ module Runic
         end
       #when :string
       #  parse_identifier_expression
-      when :open_parenthesis
-        parse_parenthesis_expression
+      when :mark
+        if peek.value == "("
+          parse_parenthesis_expression
+        else
+          raise SyntaxError.new("expected expression but got #{peek.value.inspect}", peek.location)
+        end
       when :linefeed
         skip
         parse_primary
@@ -148,15 +152,23 @@ module Runic
     private def parse_parenthesis_expression
       skip # (
       node = parse_expression
-      expect :close_parenthesis
+      expect ")"
       node
     end
 
-    private def expect(type)
+    private def expect(type : Symbol)
       if peek.type == type
         consume
       else
         raise SyntaxError.new("expected #{type} but got #{peek.type}", peek.location)
+      end
+    end
+
+    private def expect(value : String)
+      if peek.value == value
+        consume
+      else
+        raise SyntaxError.new("expected #{value} but got #{peek.value}", peek.location)
       end
     end
 

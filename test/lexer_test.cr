@@ -169,6 +169,12 @@ module Runic
       assert_next :comment, "foo\nbar  \n  baz", "# foo\n    # bar  \n#   baz"
     end
 
+    def test_mark
+      ["(", ")", "[", "]", "{", "}", "."].each do |mark|
+        assert_next :mark, mark
+      end
+    end
+
     private def assert_next(type, value, source = value)
       token = lex(source).next
       assert_equal type, token.type
