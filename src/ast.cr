@@ -260,7 +260,7 @@ module Runic
       end
 
       private def resolve_type
-        # can't be determined
+        # can't be determined (need semantic analysis)
       end
     end
 
@@ -298,6 +298,63 @@ module Runic
 
       private def resolve_type
         INTRINSICS.resolve(operator, expression.type)
+      end
+    end
+
+    class Prototype < Node
+      getter name : String
+      getter args : Array(AST::Variable)
+
+      def initialize(@name, @args, @type, @location)
+      end
+
+      def type=(@type : String)
+      end
+
+      def resolve_type
+        # extern: unreachable
+      end
+    end
+
+    class Function < Node
+      getter prototype : Prototype
+      getter body : Array(Node)
+
+      def initialize(@prototype, @body, @location)
+      end
+
+      def name
+        @prototype.name
+      end
+
+      def args
+        @prototype.args
+      end
+
+      def type=(@type : String)
+      end
+
+      private def resolve_type
+        prototype.type? || body.last?.try(&.type?)
+      end
+    end
+
+    class Call < Node
+      getter callee : String
+      getter args : Array(Node)
+
+      def self.new(identifier : Token, args)
+        new(identifier.value, args, identifier.location)
+      end
+
+      def initialize(@callee, @args, @location)
+      end
+
+      def type=(@type : String)
+      end
+
+      private def resolve_type
+        # can't be determined (need semantic analysis)
       end
     end
   end

@@ -11,6 +11,7 @@ module Runic
     class TypeVisitor < Visitor
       def initialize
         @named_variables = {} of String => AST::Variable
+        @prototypes = {} of String => AST::Prototype
       end
 
       # Validates that the integer literal's type fits its definition or its
@@ -96,6 +97,87 @@ module Runic
 
         unless node.type?
           raise SemanticError.new("invalid #{node.operator}#{node.expression.type}", node.location)
+        end
+      end
+
+      def visit(node : AST::Prototype) : Nil
+        node.args.each do |arg|
+          unless arg.type?
+            raise SemanticError.new("argument '#{arg.name}' in function '#{node.name}' has no type", node.location)
+          end
+        end
+
+        unless node.type?
+          raise SemanticError.new("function '#{node.name}' has no return type", node.location)
+        end
+
+        if previous = @prototypes[node.name]?
+          unless node.type == previous.type && node.args.map(&.type) == previous.args.map(&.type)
+            raise SemanticError.new("function '#{node.name}' doesn't match previous definition", node.location)
+          end
+        end
+
+        @prototypes[node.name] = node
+      end
+
+      def visit(node : AST::Function) : Nil
+        new_scope do
+          node.args.each do |arg|
+            @named_variables[arg.name] = arg
+          end
+
+          node.body.each do |n|
+            visit(n)
+          end
+
+          ret_type = node.body.last?.try(&.type?)
+
+          if type = node.type?
+            unless type == ret_type
+              message = "function '#{node.name}' must return #{type} but returns #{ret_type}"
+              raise SemanticError.new(message, node.location)
+            end
+          end
+
+          if ret_type
+            node.type ||= ret_type
+            node.prototype.type = ret_type
+          end
+        end
+
+        visit(node.prototype)
+      end
+
+      def visit(node : AST::Call) : Nil
+        node.args.each { |arg| visit(arg) }
+
+        unless prototype = @prototypes[node.callee]?
+          raise SemanticError.new("undefined function '#{node.callee}'", node.location)
+        end
+
+        unless node.args.size == prototype.args.size
+          message = "function '#{node.callee}' expects #{prototype.args.size} arguments but got #{node.args.size}"
+          raise SemanticError.new(message, node.args.first.location)
+        end
+
+        node.args.each_with_index do |arg, i|
+          expected = prototype.args[i]
+          unless arg.type == expected.type
+            message = "argument '#{expected.name}' of function '#{prototype.name}' expects #{expected.type} but got #{arg.type}"
+            raise SemanticError.new(message, arg.location)
+          end
+        end
+
+        node.type = prototype.type
+      end
+
+      private def new_scope
+        copy = @named_variables.dup
+        begin
+          @named_variables.clear
+          yield
+        ensure
+          @named_variables = copy
         end
       end
 

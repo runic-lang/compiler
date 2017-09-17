@@ -54,7 +54,7 @@ module Runic
         end
       when '~', '!', '+', '-', '*', '/', '<', '>', '=', '%', '&', '|', '^'
         Token.new(:operator, consume_operator, location)
-      when '.', '(', ')', '{', '}', '[', ']'
+      when '.', ',', ':', '(', ')', '{', '}', '[', ']'
         Token.new(:mark, consume.to_s, location)
       when '\n', ';'
         skip_whitespace
@@ -264,7 +264,7 @@ module Runic
       case peek_char
       when nil
         true
-      when '.', '=', '~', '!', '+', '-', '*', '/', '%', '&', '|', '^', '<', '>', ')', ';', .ascii_whitespace?
+      when '.', '=', '~', '!', '+', '-', '*', '/', '%', '&', '|', '^', '<', '>', ')', ';', ',', .ascii_whitespace?
         true
       else
         false

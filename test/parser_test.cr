@@ -108,6 +108,52 @@ module Runic
       assert_expression AST::Boolean, "# foo\n\n# bar\ntrue"
     end
 
+    def test_externs
+      assert_expression AST::Prototype, "extern foo(int32) : void"
+      assert_expression AST::Prototype, "extern foo() : void"
+      assert_expression AST::Prototype, "extern foo : void"
+      assert_expression AST::Prototype, "extern foo"
+      assert_expression AST::Prototype, "extern llvm.sadd.with.overflow.i32(int32, int32) : int32"
+
+      node = parser("extern foo(int32, int64, float32) : float").next.as(AST::Prototype)
+      assert_equal "foo", node.name
+      assert_equal "float64", node.type
+      assert_equal ["x1", "x2", "x3"], node.args.map(&.name)
+      assert_equal ["int32", "int64", "float32"], node.args.map(&.type)
+
+      parse_each("extern foo : void; extern bar : float32") do |node|
+        assert AST::Prototype === node
+      end
+    end
+
+    def test_defs
+      assert_expression AST::Function, "def foo() : int32; end"
+      assert_expression AST::Function, "def foo : float64; end"
+      assert_expression AST::Function, "def foo; end"
+      assert_expression AST::Function, "def foo(a : int32) : void; end"
+
+      node = parser("def bar(a : int, b : uint64, c : float64); a + b + c; end").next.as(AST::Function)
+      assert_equal "bar", node.name
+      assert_nil node.type? # need semantic analysis to determine the return type
+      assert_equal ["a", "b", "c"], node.args.map(&.name)
+      assert_equal ["int32", "uint64", "float64"], node.args.map(&.type)
+
+      parse_each("def foo; 1 + 2; end; def bar; 3 * 4; end") do |node|
+        assert AST::Function === node
+      end
+    end
+
+    def test_calls
+      assert_expression AST::Call, "foo()"
+      assert_expression AST::Call, "foo(1.2)"
+      assert_expression AST::Call, "bar(1, 2, abc)"
+      assert_expression AST::Call, "bar(1, foo(1), 2)"
+
+      node = parser("bar(1, 2)").next.as(AST::Call)
+      assert_equal "bar", node.callee
+      assert_equal 2, node.args.size
+    end
+
     private def assert_expression(klass, source)
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }

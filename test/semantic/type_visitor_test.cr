@@ -83,6 +83,52 @@ module Runic
         assert_equal "bool", node.as(AST::Unary).expression.type
       end
 
+      def test_types_calls
+        node = visit("def add(a : int, b : float) a + b; end")
+        assert_equal "float64", node.as(AST::Function).type
+
+        node = visit("add(1, add(2, 3.2))")
+        assert_equal "float64", node.type
+        assert_equal ["int32", "float64"], node.as(AST::Call).args.map(&.type)
+      end
+
+      def test_validates_call_arguments
+        visit("def add(a : int, b : float) a + b; end")
+        assert_raises(SemanticError) { visit("add(1.0, 2.0)") }
+        assert_raises(SemanticError) { visit("add(add(1, 2.0), 2.0)") }
+      end
+
+      def test_validates_def_return_type
+        ex = assert_raises(SemanticError) { visit("def add(a : int); end") }
+        assert_match "has no return type", ex.message
+
+        ex = assert_raises(SemanticError) { visit("def add(a : int) : int; 1.0; end") }
+        assert_match "must return int32 but returns float64", ex.message
+      end
+
+      def test_validates_previous_definitions
+        visit("extern add(a : int, b : float) : float64")
+        visit("def add(a : int, b : float); a + b; end")
+
+        # mismatch: return type
+        ex = assert_raises(SemanticError) do
+          visit("def add(a : int, b : float) : int; a; end")
+        end
+        assert_match "doesn't match previous definition", ex.message
+
+        # mismatch: arg type
+        ex = assert_raises(SemanticError) do
+          visit("def add(a : int, b : int) : float64; 1.0_f64; end")
+        end
+        assert_match "doesn't match previous definition", ex.message
+
+        # mismatch: arg number
+        ex = assert_raises(SemanticError) do
+          visit("def add(a : int, b : float, c : int8) : float64; b; end")
+        end
+        assert_match "doesn't match previous definition", ex.message
+      end
+
       private def visit(source)
         parse(source) do |node|
           visitor.visit(node)

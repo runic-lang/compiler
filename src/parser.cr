@@ -21,15 +21,15 @@ module Runic
         case peek.type
         when :eof
           return
-        #when :identifier
-        #  case peek.value
-        #  when "def"
-        #    return parse_definition
-        #  when "fun"
-        #    return parse_extern
-        #  else
-        #    return parse_top_level_expression
-        #  end
+        when :identifier
+          case peek.value
+          when "def"
+            return parse_definition
+          when "extern"
+            return parse_extern
+          else
+            return parse_top_level_expression
+          end
         when :linefeed
           skip
         else
@@ -38,14 +38,122 @@ module Runic
       end
     end
 
-    # private def parse_definition
-    # end
+    private def parse_definition
+      consume # def
+      location = peek.location
+      name = consume_prototype_name
+      args = consume_def_args
 
-    # private def parse_extern
-    # end
+      if peek.value == ":"
+        return_type = consume_type
+      end
 
-    # private def parse_prototype
-    # end
+      prototype = AST::Prototype.new(name, args, return_type, location)
+      body = [] of AST::Node
+
+      until peek.value == "end"
+        if peek.type == :linefeed
+          consume
+        else
+          body << parse_expression
+        end
+      end
+      consume # end
+
+      AST::Function.new(prototype, body, location)
+    end
+
+    private def consume_type
+      consume if peek.value == ":"
+      case type = expect(:identifier).value
+      when "int"
+        "int32"
+      when "float"
+        "float64"
+      else
+        type
+      end
+    end
+
+    private def parse_extern
+      consume # extern
+      location = peek.location
+      name = consume_prototype_name
+      args = consume_extern_args
+
+      if peek.value == ":"
+        return_type = consume_type
+      end
+      AST::Prototype.new(name, args, return_type || "void", location)
+    end
+
+    private def consume_prototype_name
+      String.build do |str|
+        loop do
+          break if %w{( :}.includes?(peek.value) || %i(eof linefeed).includes?(peek.type)
+          str << consume.value
+        end
+      end
+    end
+
+    private def consume_def_args
+      consume_args do
+        arg_name = expect(:identifier).value
+        expect ":"
+        {arg_name, consume_type}
+      end
+    end
+
+    private def consume_extern_args
+      index = 0
+      consume_args do
+        arg_name = expect(:identifier).value
+
+        if peek.value == ":"
+          {arg_name, consume_type}
+        else
+          {"x#{index += 1}", arg_name}
+        end
+      end
+    end
+
+    private def consume_args
+      args = [] of AST::Variable
+
+      if peek.type == :linefeed
+        consume
+        return args
+      end
+
+      if peek.value == ":" || peek.type == :eof
+        return args
+      end
+
+      expect "("
+
+      if peek.value == ")"
+        consume
+      else
+        loop do
+          location = peek.location
+          arg_name, arg_type = yield
+
+          arg = AST::Variable.new(arg_name, location)
+          arg.type = arg_type if arg_type
+          args << arg
+
+          case peek.value
+          when ")"
+            consume
+            break
+          when ","
+            consume
+          end
+        end
+      end
+
+      args
+    end
 
     private def parse_top_level_expression
       parse_expression
@@ -131,10 +239,8 @@ module Runic
         #when "nil"
         #  AST::Nil.new(consume)
         else
-          AST::Variable.new(consume)
+          parse_identifier_expression
         end
-      #when :string
-      #  parse_identifier_expression
       when :mark
         if peek.value == "("
           parse_parenthesis_expression
@@ -154,6 +260,29 @@ module Runic
       node = parse_expression
       expect ")"
       node
+    end
+
+    private def parse_identifier_expression
+      identifier = consume
+
+      # TODO: allow paren-less function calls
+      unless peek.value == "("
+        return AST::Variable.new(identifier)
+      end
+
+      consume # (
+      args = [] of AST::Node
+
+      unless peek.value == ")"
+        loop do
+          args << parse_expression
+          break if peek.value == ")"
+          expect ","
+        end
+      end
+
+      consume # )
+      AST::Call.new(identifier, args)
     end
 
     private def expect(type : Symbol)

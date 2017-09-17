@@ -63,11 +63,35 @@ module Runic
         nested { to_h(node.expression) }
       end
 
-      def to_options(node : Runic::AST::Node)
+      def to_h(node : Runic::AST::Prototype)
+        args = node.args.map { |arg| "#{arg.name} : #{arg.type}" }.join(", ")
+        print "- extern #{node.name}(#{args}) : #{node.type}#{to_options(node, type: false)}"
+      end
+
+      def to_h(node : Runic::AST::Function)
+        args = node.args.map { |arg| "#{arg.name} : #{arg.type?}" }.join(", ")
+        print "- def #{node.name}(#{args}) : #{node.type?}#{to_options(node, type: false)}"
+        print "  body:"
+        nested do
+          node.body.each { |n| to_h(n) }
+        end
+      end
+
+      def to_h(node : Runic::AST::Call)
+        print "- call #{node.callee}#{to_options(node)}"
+        print "  args:"
+        nested do
+          node.args.each do |arg|
+            to_h(arg)
+          end
+        end
+      end
+
+      def to_options(node : Runic::AST::Node, type = true)
         String.build do |str|
-          if @semantic
+          if type && @semantic
             str << " ("
-            node.type.to_s(str)
+            (node.type? || "??").to_s(str)
             str << ')'
           end
           if @location
