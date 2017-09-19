@@ -1,0 +1,121 @@
+# extern llvm.va_start(int8*) : void
+# extern llvm.va_end(int8*) : void
+# extern llvm.va_copy(int8*, int8*) : void
+
+# extern llvm.memcpy.p0i8.p0i8.i32(int8*,  int8*, int32, int32, bool) : void
+# extern llvm.memcpy.p0i8.p0i8.i64(int8*, int8*, int64, int32, bool) : void
+# extern llvm.memmove.p0i8.p0i8.i32(int8*, int8*, int32, int32, bool) : void
+# extern llvm.memmove.p0i8.p0i8.i64(int8*, int8*, int64, int32, bool) : void
+# extern llvm.memset.p0i8.i64(int8*, int8, int32, int32, bool) : void
+# extern llvm.memset.p0i8.i64(int8*, int8, int64, int32, bool) : void
+
+# declare void @llvm.memset.element.unordered.atomic.p0i8.i32(int8*, int8, int32, int32) : void
+# declare void @llvm.memset.element.unordered.atomic.p0i8.i64(int8*, int8, int64, int32) : void
+
+extern llvm.sqrt.f32(float32) : float32
+extern llvm.powi.f32(float32, int32) : float32
+extern llvm.sin.f32(float32) : float32
+extern llvm.cos.f32(float32) : float32
+extern llvm.pow.f32(float32, float32) : float32
+extern llvm.exp.f32(float32) : float32
+extern llvm.exp2.f32(float32) : float32
+extern llvm.log.f32(float32) : float32
+extern llvm.log10.f32(float32) : float32
+extern llvm.log2.f32(float32) : float32
+extern llvm.fma.f32(float32, float32, z : float32) : float32
+extern llvm.fabs.f32(float32) : float32
+extern llvm.minnum.f32(float32, float32) : float32
+extern llvm.maxnum.f32(float32, float32) : float32
+extern llvm.copysign.f32(float32, float32) : float32
+extern llvm.floor.f32(float32) : float32
+extern llvm.ceil.f32(float32) : float32
+extern llvm.trunc.f32(float32) : float32
+extern llvm.rint.f32(float32) : float32
+extern llvm.nearbyint.f32(float32) : float32
+extern llvm.round.f32(float32) : float32
+extern llvm.canonicalize.f32(float32) : float32
+extern llvm.fmuladd.f32(float32, float32, float32) : float32
+
+extern llvm.sqrt.f64(float64) : float64
+extern llvm.powi.f64(float64, int32) : float64
+extern llvm.sin.f64(float64) : float64
+extern llvm.cos.f64(float64) : float64
+extern llvm.pow.f64(float64, float64) : float64
+extern llvm.exp.f64(float64) : float64
+extern llvm.exp2.f64(float64) : float64
+extern llvm.log.f64(float64) : float64
+extern llvm.log10.f64(float64) : float64
+extern llvm.log2.f64(float64) : float64
+extern llvm.fma.f64(float64, float64, z : float64) : float64
+extern llvm.fabs.f64(float64) : float64
+extern llvm.minnum.f64(float64, float64) : float64
+extern llvm.maxnum.f64(float64, float64) : float64
+extern llvm.copysign.f64(float64, float64) : float64
+extern llvm.floor.f64(float64) : float64
+extern llvm.ceil.f64(float64) : float64
+extern llvm.trunc.f64(float64) : float64
+extern llvm.rint.f64(float64) : float64
+extern llvm.nearbyint.f64(float64) : float64
+extern llvm.round.f64(float64) : float64
+extern llvm.canonicalize.f64(float64) : float64
+extern llvm.fmuladd.f64(float64, float64, float64) : float64
+
+extern llvm.bitreverse.i8(int8) : int8
+extern llvm.bswap.i8(int8) : int8
+extern llvm.ctpop.i8(int8) : int8
+extern llvm.ctlz.i8(int8) : int8
+extern llvm.cttz.i8(int8) : int8
+# extern llvm.sadd.with.overflow.i8(int8, int8) : {int8, bool}
+# extern llvm.uadd.with.overflow.i8(int8, int8) : {int8, bool}
+# extern llvm.ssub.with.overflow.i8(int8, int8) : {int8, bool}
+# extern llvm.usub.with.overflow.i8(int8, int8) : {int8, bool}
+# extern llvm.smul.with.overflow.i8(int8, int8) : {int8, bool}
+# extern llvm.umul.with.overflow.i8(int8, int8) : {int8, bool}
+
+extern llvm.bitreverse.i16(int16) : int16
+extern llvm.bswap.i16(int16) : int16
+extern llvm.ctpop.i16(int16) : int16
+extern llvm.ctlz.i16(int16) : int16
+extern llvm.cttz.i16(int16) : int16
+# extern llvm.sadd.with.overflow.i16(int16, int16) : {int16, bool}
+# extern llvm.uadd.with.overflow.i16(int16, int16) : {int16, bool}
+# extern llvm.ssub.with.overflow.i16(int16, int16) : {int16, bool}
+# extern llvm.usub.with.overflow.i16(int16, int16) : {int16, bool}
+# extern llvm.smul.with.overflow.i16(int16, int16) : {int16, bool}
+# extern llvm.umul.with.overflow.i16(int16, int16) : {int16, bool}
+
+extern llvm.bitreverse.i32(int32) : int32
+extern llvm.bswap.i32(int32) : int32
+extern llvm.ctpop.i32(int32) : int32
+extern llvm.ctlz.i32(int32) : int32
+extern llvm.cttz.i32(int32) : int32
+# extern llvm.sadd.with.overflow.i32(int32, int32) : {int32, bool}
+# extern llvm.uadd.with.overflow.i32(int32, int32) : {int32, bool}
+# extern llvm.ssub.with.overflow.i32(int32, int32) : {int32, bool}
+# extern llvm.usub.with.overflow.i32(int32, int32) : {int32, bool}
+# extern llvm.smul.with.overflow.i32(int32, int32) : {int32, bool}
+# extern llvm.umul.with.overflow.i32(int32, int32) : {int32, bool}
+
+extern llvm.bitreverse.i64(int64) : int64
+extern llvm.bswap.i64(int64) : int64
+extern llvm.ctpop.i64(int64) : int64
+extern llvm.ctlz.i64(int64) : int64
+extern llvm.cttz.i64(int64) : int64
+# extern llvm.sadd.with.overflow.i64(int64, int64) : {int64, bool}
+# extern llvm.uadd.with.overflow.i64(int64, int64) : {int64, bool}
+# extern llvm.ssub.with.overflow.i64(int64, int64) : {int64, bool}
+# extern llvm.usub.with.overflow.i64(int64, int64) : {int64, bool}
+# extern llvm.smul.with.overflow.i64(int64, int64) : {int64, bool}
+# extern llvm.umul.with.overflow.i64(int64, int64) : {int64, bool}
+
+extern llvm.bitreverse.i128(int128) : int128
+extern llvm.bswap.i128(int128) : int128
+extern llvm.ctpop.i128(int128) : int128
+extern llvm.ctlz.i128(int128) : int128
+extern llvm.cttz.i128(int128) : int128
+# extern llvm.sadd.with.overflow.i128(int128, int128) : {int128, bool}
+# extern llvm.uadd.with.overflow.i128(int128, int128) : {int128, bool}
+# extern llvm.ssub.with.overflow.i128(int128, int128) : {int128, bool}
+# extern llvm.usub.with.overflow.i128(int128, int128) : {int128, bool}
+# extern llvm.smul.with.overflow.i128(int128, int128) : {int128, bool}
+# extern llvm.umul.with.overflow.i128(int128, int128) : {int128, bool}

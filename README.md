@@ -18,10 +18,11 @@ separated project.
 
 ## Status
 
-Basic lexer, parser and semantic analyzes (numbers only) are functional. Code
-generation hasn't been started.
+Basic lexer, parser and semantic analyzes are functional (thought limited to the
+available feature set). Preliminary code generation has been started.
 
-Only integer and floating point numbers are supported. Neither of functions,
+Only integer and floating point numbers are supported. External symbols,
+function defintions and calling symbols/functions is also supported. Neither
 pointers or data structures are available.
 
 ## Licences

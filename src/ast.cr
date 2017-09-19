@@ -21,6 +21,22 @@ module Runic
       end
 
       private abstract def resolve_type : String
+
+      def void?
+        type? == "void"
+      end
+
+      def float?
+        type?.try(&.starts_with?("float"))
+      end
+
+      def integer?
+        type?.try(&.starts_with?("int")) || type?.try(&.starts_with?("uint"))
+      end
+
+      def unsigned?
+        type?.try(&.starts_with?("uint"))
+      end
     end
 
     abstract class Number < Node
@@ -46,6 +62,10 @@ module Runic
 
       def negative
         sign == "-"
+      end
+
+      def unsigned
+        type.starts_with?("uint")
       end
     end
 

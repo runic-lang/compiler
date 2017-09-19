@@ -6,6 +6,7 @@ PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
 LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
 			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
+CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
 
 .PHONY: dist ext clean test
 
@@ -20,6 +21,7 @@ dist:
 	cd dist && ln -sf ../src .
 	cd dist && make -f ../Makefile CRFLAGS=--release
 	rm dist/src
+	mkdir dist/src && cp src/intrinsics.runic dist/src/
 
 bin/runic: src/runic.cr $(COMMON_SOURCES)
 	@mkdir -p bin

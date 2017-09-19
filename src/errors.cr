@@ -14,4 +14,7 @@ module Runic
       super "#{message} at #{@location}"
     end
   end
+
+  class CodegenError < Exception
+  end
 end
