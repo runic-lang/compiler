@@ -3,3 +3,4 @@
 /lib
 /libexec
 /.shards
+*.o

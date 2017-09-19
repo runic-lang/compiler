@@ -10,5 +10,6 @@ description: |
 development_dependencies:
   minitest:
     github: ysbaddaden/minitest.cr
+    branch: master
 
 license: CeCILL-C

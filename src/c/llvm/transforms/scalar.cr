@@ -1,0 +1,43 @@
+lib LibC
+  fun LLVMAddAggressiveDCEPass(LLVMPassManagerRef) : Void
+  fun LLVMAddBitTrackingDCEPass(LLVMPassManagerRef) : Void
+  fun LLVMAddAlignmentFromAssumptionsPass(LLVMPassManagerRef) : Void
+  fun LLVMAddCFGSimplificationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLateCFGSimplificationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddDeadStoreEliminationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddScalarizerPass(LLVMPassManagerRef) : Void
+  fun LLVMAddMergedLoadStoreMotionPass(LLVMPassManagerRef) : Void
+  fun LLVMAddGVNPass(LLVMPassManagerRef) : Void
+  fun LLVMAddNewGVNPass(LLVMPassManagerRef) : Void
+  fun LLVMAddIndVarSimplifyPass(LLVMPassManagerRef) : Void
+  fun LLVMAddInstructionCombiningPass(LLVMPassManagerRef) : Void
+  fun LLVMAddJumpThreadingPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLICMPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopDeletionPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopIdiomPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopRotatePass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopRerollPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopUnrollPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLoopUnswitchPass(LLVMPassManagerRef) : Void
+  fun LLVMAddMemCpyOptPass(LLVMPassManagerRef) : Void
+  fun LLVMAddPartiallyInlineLibCallsPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLowerSwitchPass(LLVMPassManagerRef) : Void
+  fun LLVMAddPromoteMemoryToRegisterPass(LLVMPassManagerRef) : Void
+  fun LLVMAddReassociatePass(LLVMPassManagerRef) : Void
+  fun LLVMAddSCCPPass(LLVMPassManagerRef) : Void
+  fun LLVMAddScalarReplAggregatesPass(LLVMPassManagerRef) : Void
+  fun LLVMAddScalarReplAggregatesPassSSA(LLVMPassManagerRef) : Void
+  fun LLVMAddScalarReplAggregatesPassWithThreshold(LLVMPassManagerRef, Int) : Void
+  fun LLVMAddSimplifyLibCallsPass(LLVMPassManagerRef) : Void
+  fun LLVMAddTailCallEliminationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddConstantPropagationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddDemoteMemoryToRegisterPass(LLVMPassManagerRef) : Void
+  fun LLVMAddVerifierPass(LLVMPassManagerRef) : Void
+  fun LLVMAddCorrelatedValuePropagationPass(LLVMPassManagerRef) : Void
+  fun LLVMAddEarlyCSEPass(LLVMPassManagerRef) : Void
+  fun LLVMAddEarlyCSEMemSSAPass(LLVMPassManagerRef) : Void
+  fun LLVMAddLowerExpectIntrinsicPass(LLVMPassManagerRef) : Void
+  fun LLVMAddTypeBasedAliasAnalysisPass(LLVMPassManagerRef) : Void
+  fun LLVMAddScopedNoAliasAAPass(LLVMPassManagerRef) : Void
+  fun LLVMAddBasicAliasAnalysisPass(LLVMPassManagerRef) : Void
+end

@@ -1,11 +1,18 @@
+CRYSTAL ?= crystal
+
 COMMON_SOURCES = src/version.cr
 LEXER_SOURCES = $(COMMON_SOURCES) src/definitions.cr src/errors.cr src/lexer.cr src/location.cr src/token.cr
 PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
+LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
+			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
 
-.PHONY: dist clean test
+.PHONY: dist ext clean test
+
 
 all: bin/runic libexec/runic-lex libexec/runic-ast
+ext:
+	cd src/ext && make
 
 dist:
 	mkdir -p dist
@@ -16,18 +23,19 @@ dist:
 
 bin/runic: src/runic.cr $(COMMON_SOURCES)
 	@mkdir -p bin
-	crystal build -o bin/runic src/runic.cr src/version.cr $(CRFLAGS)
+	$(CRYSTAL) build -o bin/runic src/runic.cr src/version.cr $(CRFLAGS)
 
 libexec/runic-lex: src/commands/lex.cr $(LEXER_SOURCES)
 	@mkdir -p libexec
-	crystal build -o libexec/runic-lex src/commands/lex.cr $(CRFLAGS)
+	$(CRYSTAL) build -o libexec/runic-lex src/commands/lex.cr $(CRFLAGS)
 
 libexec/runic-ast: src/commands/ast.cr $(SEMANTIC_SOURCES)
 	@mkdir -p libexec
-	crystal build -o libexec/runic-ast src/commands/ast.cr $(CRFLAGS)
+	$(CRYSTAL) build -o libexec/runic-ast src/commands/ast.cr $(CRFLAGS)
 
 clean:
 	rm -rf bin/runic libexec/runic-lex libexec/runic-ast dist
+	cd src/ext && make clean
 
 test:
-	crystal run `find test -iname "*_test.cr"` -- --verbose
+	$(CRYSTAL) run `find test -iname "*_test.cr"` -- --verbose
