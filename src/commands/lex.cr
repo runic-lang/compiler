@@ -35,8 +35,7 @@ ARGV.each_with_index do |arg|
     exit 0
   else
     if arg.starts_with?('-')
-      STDERR.puts "Unknown option: #{arg}"
-      exit 1
+      abort "Unknown option: #{arg}"
     else
       filenames << arg
     end
@@ -55,10 +54,8 @@ when 1
       Runic::Command::Lex.new(io, filename).run
     end
   else
-    STDERR.puts "fatal: no such file or directory '#{filename}'"
-    exit 1
+    abort "fatal : no such file or directory '#{filename}'"
   end
 else
-  STDERR.puts "fatal: you may only specify one file to parse."
-  exit 1
+  abort "fatal : you may only specify one file to parse."
 end

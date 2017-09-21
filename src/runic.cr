@@ -25,8 +25,7 @@ module Runic
         exit 0
       else
         if arg.starts_with?('-')
-          STDERR.puts "Unknown option: #{arg}"
-          exit 1
+          abort "Unknown option: #{arg}"
         else
           return {arg, args[(index + 1)..-1]}
         end
@@ -41,8 +40,9 @@ module Runic
     usage : runic [--version] [--help]
 
     Some available commands are:
-       lex   Lexes source then prints tokens
-       ast   Parses source then prints AST
+       compile   Compiles runic source into .o object files (or .ll LLVM IR)
+       lex       Lexes source then prints tokens
+       ast       Parses source then prints AST
     EOF
   end
 end
@@ -56,5 +56,5 @@ if File.exists?(executable)
     "PATH" => ":#{ENV["PATH"]}",
   })
 else
-  STDERR.puts "runic : '#{command}' is not a runic command. See 'runic help'."
+  abort "runic : '#{command}' is not a runic command. See 'runic help'."
 end

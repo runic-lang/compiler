@@ -22,28 +22,27 @@ opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault
 debug = Runic::DebugLevel::Default
 emit = "object"
 
-macro next_argument(name)
+macro argument_value(var, name)
   if idx = ARGV[i].index('=')
-    return ARGV[i][(idx + 1)..-1]
+    {{var}} = ARGV[i][(idx + 1)..-1]
   elsif value = ARGV[i += 1]?
-    return value unless value.starts_with?('-')
+    {{var}} = value unless value.starts_with?('-')
+  else
+    abort "fatal : missing value for {{name.id}}"
   end
-
-  STDERR.puts "fatal: missing value for {{name.id}}"
-  exit 1
 end
 
 i = -1
 while arg = ARGV[i += 1]?
   case arg
   when "-o", "--output"
-    output = next_argument("--output")
+    argument_value(output, "--output")
   when .starts_with?("--target")
-    target_triple = next_argument("--target")
+    argument_value(target_triple, "--target")
   when .starts_with?("--cpu")
-    cpu = next_argument("--cpu")
+    argument_value(cpu, "--cpu")
   when .starts_with?("--features")
-    features = next_argument("--features")
+    argument_value(features, "--features")
   when "-O0"
     opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelNone
   when "-O1"
@@ -57,7 +56,7 @@ while arg = ARGV[i += 1]?
   when "--no-debug"
     debug = Runic::DebugLevel::None
   when .starts_with?("--emit")
-    emit = next_argument("--emit")
+    argument_value(emit, "--emit")
   when "--version", "version"
     puts "runic-compile version #{Runic.version_string}"
     exit 0
@@ -66,8 +65,7 @@ while arg = ARGV[i += 1]?
     exit 0
   else
     if arg.starts_with?('-')
-      STDERR.puts "Unknown option: #{arg}"
-      exit 1
+      abort "Unknown option: #{arg}"
     else
       filenames << arg
     end
@@ -89,8 +87,7 @@ if filenames.size > 1
         compiler.parse(io, filename)
       end
     else
-      STDERR.puts "fatal: no such file or directory '#{filename}'."
-      exit 1
+      abort "fatal : no such file or directory '#{filename}'."
     end
   end
 
@@ -102,9 +99,8 @@ if filenames.size > 1
     output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".ll"
     compiler.emit_llvm(output)
   else
-    raise "unreachable"
+    abort "Unknown emit option '#{emit}'."
   end
 else
-  STDERR.puts "fatal: no input file."
-  exit 1
+  abort "fatal : no input file."
 end
