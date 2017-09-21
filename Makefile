@@ -5,7 +5,7 @@ LEXER_SOURCES = $(COMMON_SOURCES) src/definitions.cr src/errors.cr src/lexer.cr 
 PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
 LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
-			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
+			   src/ext/llvm/di_builder.cc src/ext/llvm/di_builder.cr
 CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
 
 .PHONY: dist ext clean test
