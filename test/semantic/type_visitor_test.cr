@@ -149,7 +149,7 @@ module Runic
       private def parse(source)
         io = IO::Memory.new(source)
         lexer = Lexer.new(io)
-        Parser.new(lexer).parse { |node| yield node }
+        Parser.new(lexer, top_level_expressions: true).parse { |node| yield node }
       end
 
       private def visitor

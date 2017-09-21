@@ -22,7 +22,8 @@ module Runic
       @location : Bool
 
       def initialize(source : IO, file : String, semantic = AST.semantic, @location = AST.location)
-        @parser = Parser.new(Lexer.new(source, file))
+        lexer = Lexer.new(source, file)
+        @parser = Parser.new(lexer, top_level_expressions: true)
         @nested = 0
         @semantic = Semantic.new if semantic
       end

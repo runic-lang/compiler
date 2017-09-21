@@ -37,7 +37,7 @@ module Runic
 
     def parse(io : IO, path : String) : Nil
       lexer = Lexer.new(io, path)
-      parser = Parser.new(lexer)
+      parser = Parser.new(lexer, top_level_expressions: false)
 
       @codegen.path = path
 

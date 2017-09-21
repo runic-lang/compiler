@@ -25,7 +25,7 @@ class Minitest::Test
   end
 
   protected def parser(source)
-    Runic::Parser.new(lex(source))
+    Runic::Parser.new(lex(source), top_level_expressions: true)
   end
 
   protected def lex(source)

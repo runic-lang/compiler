@@ -7,7 +7,7 @@ module Runic
     @token : Token?
     @previous_token : Token?
 
-    def initialize(@lexer : Lexer)
+    def initialize(@lexer : Lexer, @top_level_expressions = false)
     end
 
     def parse
@@ -156,6 +156,9 @@ module Runic
     end
 
     private def parse_top_level_expression
+      unless @top_level_expressions
+        raise SyntaxError.new("unexpected top level expression", peek.location)
+      end
       parse_expression
     end
 
