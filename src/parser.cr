@@ -304,7 +304,7 @@ module Runic
       end
     end
 
-    private def consume
+    protected def consume
       if token = @token
         @previous_token, @token = @token, nil
         token
@@ -314,14 +314,14 @@ module Runic
       end
     end
 
-    private def skip : Nil
+    protected def skip : Nil
       consume
     end
 
     # Peeks the next token, skipping comment tokens.
     #
     # TODO: memoize the previous token, including comment —it may be documentation.
-    private def peek
+    protected def peek
       @token ||= loop do
         token = @lexer.next
         break token unless token.type == :comment

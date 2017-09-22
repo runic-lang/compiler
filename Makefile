@@ -10,7 +10,7 @@ CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOU
 
 .PHONY: dist ext clean test
 
-all: bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile
+all: bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile libexec/runic-interactive
 
 ext:
 	cd src/ext && make
@@ -39,8 +39,12 @@ libexec/runic-compile: ext src/commands/compile.cr $(CODEGEN_SOURCES)
 	@mkdir -p libexec
 	$(CRYSTAL) build -o libexec/runic-compile src/commands/compile.cr $(CRFLAGS)
 
+libexec/runic-interactive: ext src/commands/interactive.cr $(CODEGEN_SOURCES)
+	@mkdir -p libexec
+	$(CRYSTAL) build -o libexec/runic-interactive src/commands/interactive.cr $(CRFLAGS)
+
 clean:
-	rm -rf bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile dist
+	rm -rf bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile libexec/runic-interactive dist
 	cd src/ext && make clean
 
 test:

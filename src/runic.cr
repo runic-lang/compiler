@@ -40,9 +40,10 @@ module Runic
     usage : runic [--version] [--help]
 
     Some available commands are:
-       compile   Compiles runic source into .o object files (or .ll LLVM IR)
-       lex       Lexes source then prints tokens
-       ast       Parses source then prints AST
+       compile       Compiles runic source into .o object files (or .ll LLVM IR)
+       interactive   Runs an interactive session
+       lex           Lexes source then prints tokens
+       ast           Parses source then prints AST
     EOF
   end
 end

@@ -23,7 +23,7 @@ module LLVM
 
   def self.init_native : Nil
     init String.new(LibC.LLVMGetDefaultTargetTriple)
-    LibC.LLVMLinkInMCJIT
+    LibC.LLVMLinkInMCJIT()
   end
 
   def self.init(triple : String) : Nil
