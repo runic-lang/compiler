@@ -27,7 +27,7 @@ module Runic
 
     @char : Char?
 
-    def initialize(@source : IO, file = "MEMORY")
+    def initialize(@source : IO, file = "MEMORY", @interactive = false)
       @location = Location.new(file, line: 1, column: 1)
     end
 
@@ -57,7 +57,14 @@ module Runic
       when '.', ',', ':', '(', ')', '{', '}', '[', ']'
         Token.new(:mark, consume.to_s, location)
       when '\n', ';'
-        skip_whitespace
+        if @interactive
+          # interactive mode: skip linefeed immediately, don't wait for
+          # potential future linefeeds:
+          skip
+        else
+          # compile mode: group has many linefeeds as possible:
+          skip_whitespace
+        end
         Token.new(:linefeed, "", location)
       when '#'
         Token.new(:comment, consume_comment, location)
