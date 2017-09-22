@@ -104,6 +104,15 @@ module Runic
       MIN_OCTAL_INT128 = "0o2000000000000000000000000000000000000000000"
       MAX_OCTAL_INT128 = "0o1777777777777777777777777777777777777777777"
 
+      def radix
+        case value
+        when .starts_with?("0x") then 16
+        when .starts_with?("0o") then 8
+        when .starts_with?("0b") then 2
+        else                          10
+        end
+      end
+
       private def resolve_type
         case @value
         when .starts_with?("0x") then infer_hexadecimal_type
@@ -164,11 +173,11 @@ module Runic
 
       private def valid_hexadecimal_type?
         case type?
-        when "uint8"   then @value.size < 2+2
-        when "uint16"  then @value.size < 2+4
-        when "uint32"  then @value.size < 2+8
-        when "uint64"  then @value.size < 2+16
-        when "uint128" then @value.size < 2+32
+        when "uint8"   then @value.size <= (2+2)
+        when "uint16"  then @value.size <= (2+4)
+        when "uint32"  then @value.size <= (2+8)
+        when "uint64"  then @value.size <= (2+16)
+        when "uint128" then @value.size <= (2+32)
         when "int8"    then compare("0x7f", downcase: true)
         when "int16"   then compare("0x7fff", downcase: true)
         when "int32"   then compare("0x7fffffff", downcase: true)
@@ -179,16 +188,16 @@ module Runic
 
       private def valid_binary_type?
         case type?
-        when "uint8"   then @value.size < 2+8
-        when "uint16"  then @value.size < 2+16
-        when "uint32"  then @value.size < 2+32
-        when "uint64"  then @value.size < 2+64
-        when "uint128" then @value.size < 2+128
-        when "int8"    then @value.size < 2+7
-        when "int16"   then @value.size < 2+15
-        when "int32"   then @value.size < 2+31
-        when "int64"   then @value.size < 2+63
-        when "int128"  then @value.size < 2+127
+        when "uint8"   then @value.size <= 2+8
+        when "uint16"  then @value.size <= 2+16
+        when "uint32"  then @value.size <= 2+32
+        when "uint64"  then @value.size <= 2+64
+        when "uint128" then @value.size <= 2+128
+        when "int8"    then @value.size <= 2+7
+        when "int16"   then @value.size <= 2+15
+        when "int32"   then @value.size <= 2+31
+        when "int64"   then @value.size <= 2+63
+        when "int128"  then @value.size <= 2+127
         end
       end
 

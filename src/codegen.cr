@@ -55,6 +55,15 @@ module Runic
       end
     end
 
+    def emit_llvm(value : LibC::LLVMValueRef)
+      ll = LibC.LLVMPrintValueToString(value)
+      begin
+        String.new(ll)
+      ensure
+        LibC.LLVMDisposeMessage(ll)
+      end
+    end
+
     def emit_object(target_machine, path)
       @debug.flush
 
@@ -71,6 +80,37 @@ module Runic
       end
     end
 
+    def execute(ret, func : LibC::LLVMValueRef)
+      # (re)inject module since it may have been removed
+      LibC.LLVMAddModule(execution_engine, @module)
+
+      # get pointer to compiled function, cast to proc and execute
+      if func_ptr = LibC.LLVMGetPointerToGlobal(execution_engine, func)
+        Proc(typeof(ret)).new(func_ptr, Pointer(Void).null).call
+      end
+    ensure
+      # remove module so next run will recompile code
+      if LibC.LLVMRemoveModule(execution_engine, @module, out mod, out err_msg) == 1
+        STDERR.puts(String.new(err_msg))
+        LibC.LLVMDisposeMessage(err_msg)
+        exit
+      end
+    end
+
+    @execution_engine : LibC::LLVMExecutionEngineRef?
+
+    private def execution_engine
+      if ee = @execution_engine
+        return ee
+      end
+      if LibC.LLVMCreateJITCompilerForModule(out engine, @module, 0, out err_msg) == 1
+        STDERR.puts(String.new(err_msg))
+        LibC.LLVMDisposeMessage(err_msg)
+        exit
+      end
+      @execution_engine = engine
+    end
+
     def codegen(node : AST::Boolean) : LibC::LLVMValueRef
       @debug.emit_location(node)
       LibC.LLVMConstInt(llvm_type(node), node.value == "true" ? 1 : 0, 0)
@@ -78,9 +118,12 @@ module Runic
 
     def codegen(node : AST::Integer) : LibC::LLVMValueRef
       @debug.emit_location(node)
-      value = node.negative ? "-#{node.value}" : node.value
-      sign_extend = node.unsigned ? 0 : 1
-      LibC.LLVMConstIntOfStringAndSize(llvm_type(node), value, value.bytesize, sign_extend)
+      if node.value.starts_with?('0')
+        value = node.value[2..-1]
+      else
+        value = node.negative ? "-#{node.value}" : node.value
+      end
+      LibC.LLVMConstIntOfStringAndSize(llvm_type(node), value, value.bytesize, node.radix)
     end
 
     def codegen(node : AST::Float) : LibC::LLVMValueRef
