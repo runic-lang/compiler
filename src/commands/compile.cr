@@ -18,7 +18,7 @@ output = nil
 target_triple = nil
 cpu = "generic"
 features = ""
-opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault
+opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault
 debug = Runic::DebugLevel::Default
 emit = "object"
 
@@ -44,13 +44,13 @@ while arg = ARGV[i += 1]?
   when .starts_with?("--features")
     argument_value(features, "--features")
   when "-O0"
-    opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelNone
+    opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelNone
   when "-O1"
-    opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelLess
+    opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelLess
   when "-O2"
-    opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault
+    opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault
   when "-O3"
-    opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelAggressive
+    opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelAggressive
   when "--debug"
     debug = Runic::DebugLevel::Full
   when "--no-debug"

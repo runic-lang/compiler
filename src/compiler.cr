@@ -17,9 +17,9 @@ module Runic
       target_triple = nil,
       @cpu = "generic",
       @features = "",
-      @opt_level = LibC::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
-      @reloc_mode = LibC::LLVMRelocMode::LLVMRelocPIC,
-      @code_model = LibC::LLVMCodeModel::LLVMCodeModelDefault,
+      @opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault,
+      @reloc_mode = LibC::LLVMRelocMode::RelocPIC,
+      @code_model = LibC::LLVMCodeModel::Default,
       @debug = DebugLevel::Default,
     )
       @target_triple = target_triple ||= String.new(LibC.LLVMGetDefaultTargetTriple())
@@ -27,7 +27,7 @@ module Runic
       @semantic = Semantic.new
       @codegen = Codegen.new(
         debug: @debug,
-        optimize: !opt_level.llvm_code_gen_level_none?
+        optimize: !opt_level.code_gen_level_none?
       )
 
       LLVM.init(target_triple)

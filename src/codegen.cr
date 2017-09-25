@@ -4,9 +4,9 @@ require "./errors"
 
 module Runic
   class Codegen
-    EXTERN_LINKAGE = LibC::LLVMLinkage::LLVMExternalLinkage
-    PUBLIC_LINKAGE = LibC::LLVMLinkage::LLVMExternalLinkage
-    PRIVATE_LINKAGE = LibC::LLVMLinkage::LLVMInternalLinkage
+    EXTERN_LINKAGE = LibC::LLVMLinkage::External
+    PUBLIC_LINKAGE = LibC::LLVMLinkage::External
+    PRIVATE_LINKAGE = LibC::LLVMLinkage::Internal
 
     @debug : Debug
 
@@ -67,13 +67,13 @@ module Runic
     def emit_object(target_machine, path)
       @debug.flush
 
-      if LibC.LLVMVerifyModule(@module, LibC::LLVMVerifierFailureAction::LLVMReturnStatusAction, nil) == 1
+      if LibC.LLVMVerifyModule(@module, LibC::LLVMVerifierFailureAction::ReturnStatus, nil) == 1
         raise CodegenError.new("module validation failed")
       end
 
       # write object file
       if LibC.LLVMTargetMachineEmitToFile(target_machine, @module, path,
-          LibC::LLVMCodeGenFileType::LLVMObjectFile, out emit_err_msg) == 1
+          LibC::LLVMCodeGenFileType::Object, out emit_err_msg) == 1
         msg = String.new(emit_err_msg)
         LibC.LLVMDisposeMessage(emit_err_msg)
         raise CodegenError.new(msg)
@@ -271,7 +271,7 @@ module Runic
 
       # FIXME: "fails with expected no forward declaration"
       @debug.flush
-      if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::LLVMPrintMessageAction) == 1
+      if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
         # STDERR.puts print(func)
         raise "function validation failed"
       end

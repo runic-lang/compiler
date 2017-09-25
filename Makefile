@@ -8,6 +8,8 @@ LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*
 			   src/ext/llvm/di_builder.cc src/ext/llvm/di_builder.cr
 CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
 
+C2CR = CFLAGS=`llvm-config-5.0 --cflags` lib/clang/bin/c2cr
+
 .PHONY: dist ext clean test
 
 all: bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile libexec/runic-interactive
@@ -44,8 +46,21 @@ libexec/runic-interactive: ext src/commands/interactive.cr $(CODEGEN_SOURCES)
 	$(CRYSTAL) build -o libexec/runic-interactive src/commands/interactive.cr $(CRFLAGS)
 
 clean:
-	rm -rf bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile libexec/runic-interactive dist
+	rm -rf bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile \
+	  libexec/runic-interactive dist src/c/llvm
 	cd src/ext && make clean
+
+src/c/llvm/*.cr:
+	cd lib/clang && make
+	@mkdir -p src/c/llvm/transforms
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Analysis.h > src/c/llvm/analysis.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Core.h > src/c/llvm/core.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/ErrorHandling.h > src/c/llvm/error_handling.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/ExecutionEngine.h > src/c/llvm/execution_engine.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Target.h > src/c/llvm/target.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/TargetMachine.h > src/c/llvm/target_machine.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Transforms/Scalar.h > src/c/llvm/transforms/scalar.cr
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Types.h > src/c/llvm/types.cr
 
 test:
 	$(CRYSTAL) run `find test -iname "*_test.cr"` -- --verbose

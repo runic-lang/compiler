@@ -3,5 +3,7 @@
 /lib
 /libexec
 /.shards
+/doc/man1
+/src/c/llvm
 *.o
 *.ll
