@@ -38,7 +38,17 @@ module Runic
       end
     end
 
+    private def parse_documentation
+      if (token = @previous_token) && token.type == :comment
+        token.value
+      else
+        ""
+      end
+    end
+
     private def parse_definition
+      documentation = parse_documentation
+
       consume # def
       location = peek.location
       name = consume_prototype_name
@@ -48,7 +58,7 @@ module Runic
         return_type = consume_type
       end
 
-      prototype = AST::Prototype.new(name, args, return_type, location)
+      prototype = AST::Prototype.new(name, args, return_type, documentation, location)
       body = [] of AST::Node
 
       until peek.value == "end"
@@ -76,6 +86,8 @@ module Runic
     end
 
     private def parse_extern
+      documentation = parse_documentation
+
       consume # extern
       location = peek.location
       name = consume_prototype_name
@@ -84,7 +96,7 @@ module Runic
       if peek.value == ":"
         return_type = consume_type
       end
-      AST::Prototype.new(name, args, return_type || "void", location)
+      AST::Prototype.new(name, args, return_type || "void", documentation, location)
     end
 
     private def consume_prototype_name
@@ -318,13 +330,17 @@ module Runic
       consume
     end
 
-    # Peeks the next token, skipping comment tokens.
-    #
-    # TODO: memoize the previous token, including comment —it may be documentation.
+    # Peeks the next token, skipping comment tokens (but still memorizing
+    # comments as previous token, for documentation purposes).
     protected def peek
       @token ||= loop do
         token = @lexer.next
-        break token unless token.type == :comment
+
+        if token.type == :comment
+          @previous_token = token
+        else
+          break token
+        end
       end
     end
   end

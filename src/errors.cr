@@ -1,5 +1,8 @@
 module Runic
-  class SyntaxError < Exception
+  class Error < Exception
+  end
+
+  class SyntaxError < Error
     getter location : Location
 
     def initialize(message, @location)
@@ -7,7 +10,7 @@ module Runic
     end
   end
 
-  class SemanticError < Exception
+  class SemanticError < Error
     getter location : Location
 
     def initialize(message, @location)
@@ -15,7 +18,7 @@ module Runic
     end
   end
 
-  class CompileError < Exception
+  class CompileError < Error
     getter location : Location
 
     def initialize(message, @location)
@@ -23,6 +26,6 @@ module Runic
     end
   end
 
-  class CodegenError < Exception
+  class CodegenError < Error
   end
 end

@@ -18,7 +18,7 @@ module Runic
 
     def to_s(io : IO)
       io << file
-      io << ' '
+      io << ':'
       line.to_s(io)
       io << ':'
       column.to_s(io)

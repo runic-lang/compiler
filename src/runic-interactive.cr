@@ -116,7 +116,7 @@ module Runic
       end
 
       private def wrap_expression(node : AST::Node)
-        prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, node.type, node.location)
+        prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, node.type, "", node.location)
         AST::Function.new(prototype, [node], node.location)
       end
 

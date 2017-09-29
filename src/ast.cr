@@ -333,8 +333,9 @@ module Runic
     class Prototype < Node
       getter name : String
       getter args : Array(AST::Variable)
+      getter documentation : String
 
-      def initialize(@name, @args, @type, @location)
+      def initialize(@name, @args, @type, @documentation, @location)
       end
 
       def type=(@type : String)

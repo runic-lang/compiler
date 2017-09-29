@@ -303,7 +303,10 @@ module Runic
           end
 
           consume_until(str) { |c| c == '\n' || c == '\r' || c.nil? }
-          skip_whitespace
+          break if peek_char.nil?
+
+          consume # '\n' '\r'
+          skip_space
 
           # multiline comment?
           if peek_char == '#'

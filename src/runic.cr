@@ -39,6 +39,7 @@ module Runic
     case command
     when "c" then "compile"
     when "i" then "interactive"
+    when "doc" then "documentation"
     else command
     end
   end
@@ -50,6 +51,7 @@ module Runic
     Some available commands are:
        c[ompile]         Compiles runic source into .o object files (or .ll LLVM IR)
        i[nteractive]     Starts an interactive session
+       doc[umentation]   Generates documentation
 
     You may type 'runic help <command>' to read about a specific command.
     EOF

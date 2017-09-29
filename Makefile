@@ -10,10 +10,12 @@ SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
 LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
 			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
 CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
+DOCUMENTATION_SOURCES = $(SEMANTIC_SOURCES) src/documentation.cr src/documentation/*.cr
 
 COMMANDS = bin/runic
 COMMANDS += libexec/runic-ast
 COMMANDS += libexec/runic-compile
+COMMANDS += libexec/runic-documentation
 COMMANDS += libexec/runic-interactive
 COMMANDS += libexec/runic-lex
 
@@ -50,12 +52,15 @@ libexec/runic-interactive: src/runic-interactive.cr $(CODEGEN_SOURCES)
 	@mkdir -p libexec
 	$(CRYSTAL) build -o libexec/runic-interactive src/runic-interactive.cr $(CRFLAGS)
 
+libexec/runic-documentation: src/runic-documentation.cr $(DOCUMENTATION_SOURCES)
+	@mkdir -p libexec
+	$(CRYSTAL) build -o libexec/runic-documentation src/runic-documentation.cr $(CRFLAGS)
+
 doc:
 	cd doc && make
 
 clean:
-	rm -rf bin/runic libexec/runic-lex libexec/runic-ast libexec/runic-compile \
-	  libexec/runic-interactive dist src/c/llvm
+	rm -rf $(COMMANDS) dist src/c/llvm
 	cd src/ext && make clean
 	cd doc && make clean
 
