@@ -27,12 +27,20 @@ module Runic
         if arg.starts_with?('-')
           abort "Unknown option: #{arg}"
         else
-          return {arg, args[(index + 1)..-1]}
+          return {aliased(arg), args[(index + 1)..-1]}
         end
       end
     end
 
     raise "unreachable"
+  end
+
+  private def self.aliased(command)
+    case command
+    when "c" then "compile"
+    when "i" then "interactive"
+    else command
+    end
   end
 
   def self.print_help_message

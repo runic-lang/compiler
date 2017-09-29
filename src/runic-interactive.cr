@@ -142,9 +142,6 @@ while arg = ARGV[i += 1]?
     debug = true
   when "--no-optimize"
     optimize = false
-  when "--version", "version"
-    puts "runic-compile version #{Runic.version_string}"
-    exit 0
   when "--help", "help"
     Runic::Command::Interactive.print_help_message
     exit 0

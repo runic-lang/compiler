@@ -1,5 +1,4 @@
 require "../compiler"
-require "../version"
 
 module Runic
   module Command
@@ -47,19 +46,16 @@ while arg = ARGV[i += 1]?
     opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelNone
   when "-O1"
     opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelLess
-  when "-O2"
+  when "-O", "-O2"
     opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault
   when "-O3"
     opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelAggressive
-  when "--debug"
+  when "-g", "--debug"
     debug = Runic::DebugLevel::Full
   when "--no-debug"
     debug = Runic::DebugLevel::None
   when .starts_with?("--emit")
     argument_value(emit, "--emit")
-  when "--version", "version"
-    puts "runic-compile version #{Runic.version_string}"
-    exit 0
   when "--help", "help"
     Runic::Command::Compile.print_help_message
     exit 0
