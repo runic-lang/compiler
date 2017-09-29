@@ -1,0 +1,32 @@
+runic-interactive(1)
+====================
+
+NAME
+----
+runic-interactive - interactive session.
+
+SYNOPSYS
+--------
+[verse]
+*runic interactive* [--debug] [--no-optimize] [--help]
+
+DESCRIPTION
+-----------
+
+Starts an interactive session where you can type runic code and execute it right
+away.
+
+OPTIONS
+-------
+
+--debug::
+    Print the generated LLVM IR whenever a function is generated.
+
+--no-optimize::
+    Don't run the LLVM Function Pass Manager to optimize generated functions.
+
+SEE ALSO
+--------
+
+_runic(1)_;;
+_runic-compile(1)_;;

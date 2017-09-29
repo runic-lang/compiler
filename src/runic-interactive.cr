@@ -1,8 +1,8 @@
-require "../lexer"
-require "../parser"
-require "../semantic"
-require "../codegen"
-require "../version"
+require "./lexer"
+require "./parser"
+require "./semantic"
+require "./codegen"
+require "./config"
 
 module Runic
   module Command
@@ -124,10 +124,6 @@ module Runic
         return unless @debug
         STDERR.puts @generator.emit_llvm(value)
       end
-
-      def self.print_help_message
-        STDERR.puts "<todo: interactive command help message>"
-      end
     end
   end
 end
@@ -142,9 +138,8 @@ while arg = ARGV[i += 1]?
     debug = true
   when "--no-optimize"
     optimize = false
-  when "--help", "help"
-    Runic::Command::Interactive.print_help_message
-    exit 0
+  when "--help"
+    Runic.open_manpage("interactive")
   else
     abort "Unknown option: #{arg}"
   end

@@ -1,0 +1,80 @@
+runic-compile(1)
+================
+
+NAME
+----
+runic-compile - compile object files
+
+SYNOPSYS
+--------
+[verse]
+*runic compile* [-O<n>] [--emit=<object|llvm>] [-g] [--debug] [--no-debug]
+              [--target=<triple>] [--cpu=<name>] [--features=<+opt+opt>]
+              [-o <file>] [--output=<file>] <file.runic>
+
+DESCRIPTION
+-----------
+
+Compiles a runic source program into machine code.
+
+
+OPTIONS
+-------
+
+-o <file>::
+--output=<file>::
+    Emit the compiled program to the specified file. Defaults to the original
+    filename without the _.runic_ extension but _.o_ or _.ll_, depending on
+    _--emit_.
+
+--emit=<name>::
+    You may want to generate something in particular, not always an object file:
+    _llvm_;;
+        Generate LLVM IR (_.ll_);
+    _object_;;
+        Generate an object file (_.o_), the default;
+
+-g::
+--debug::
+    Generate full debug information, including local variables names and
+    arguments, in addition to the default source code locations and function
+    names.
+
+--no-debug::
+    Don't generate any debug information, not even source code location
+    and function names.
+
+-O<n>::
+    Choose the optimization level to use:
+    _-O0_;;
+        means no optimization, fastest to compile, and most debuggable code.
+    _-O1_;;
+        enables only a few optimizations.
+    _-O_;;
+    _-O2_;;
+        enables most optimizations.
+    _-O3_;;
+        enable aggressive optimizations for the longest compilation time and
+        maybe generate larger code (for faster execution).
+
+Cross Compilation Options:
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+--target=<triple>::
+    You can set the target triple to compile the program for. For example
+    _--target=arm-unknown-linux-androideabi_. Defaults to the host target LLVM
+    was built on.
+
+--cpu=<name>::
+    You may specify a specific CPU to target. Supports any CPU that LLVM
+    supports. For example _--cpu=cortex-a12_
+
+--features=<options>::
+    You may specify additional features for the target. For example
+    _--features=+crypto+hf_.
+
+SEE ALSO
+--------
+
+_runic(1)_;;
+_runic-interactive(1)_;;

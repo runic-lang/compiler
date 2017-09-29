@@ -1,14 +1,5 @@
-require "../compiler"
-
-module Runic
-  module Command
-    module Compile
-      def self.print_help_message
-        STDERR.puts "<todo: compile command help message>"
-      end
-    end
-  end
-end
+require "./compiler"
+require "./config"
 
 filenames = [
   File.expand_path("../../src/intrinsics.runic", Process.executable_path)
@@ -56,9 +47,8 @@ while arg = ARGV[i += 1]?
     debug = Runic::DebugLevel::None
   when .starts_with?("--emit")
     argument_value(emit, "--emit")
-  when "--help", "help"
-    Runic::Command::Compile.print_help_message
-    exit 0
+  when "--help"
+    Runic.open_manpage("compile")
   else
     if arg.starts_with?('-')
       abort "Unknown option: #{arg}"

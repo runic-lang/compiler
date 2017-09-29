@@ -1,14 +1,7 @@
+require "./config"
 require "./version"
 
 module Runic
-  def self.root
-    File.expand_path("../..", Process.executable_path.not_nil!)
-  end
-
-  def self.libexec
-    File.join(root, "libexec")
-  end
-
   def self.process_options(args)
     if args.empty?
       print_help_message
@@ -20,9 +13,16 @@ module Runic
       when "--version", "version"
         puts "runic version #{version_string}"
         exit 0
-      when "--help", "help"
+      when "--help"
         print_help_message
         exit 0
+      when "help"
+        if command = args[index + 1]?
+          open_manpage(aliased(command))
+        else
+          print_help_message
+          exit 0
+        end
       else
         if arg.starts_with?('-')
           abort "Unknown option: #{arg}"
@@ -48,10 +48,10 @@ module Runic
     usage : runic [--version] [--help]
 
     Some available commands are:
-       compile       Compiles runic source into .o object files (or .ll LLVM IR)
-       interactive   Runs an interactive session
-       lex           Lexes source then prints tokens
-       ast           Parses source then prints AST
+       c[ompile]         Compiles runic source into .o object files (or .ll LLVM IR)
+       i[nteractive]     Starts an interactive session
+
+    You may type 'runic help <command>' to read about a specific command.
     EOF
   end
 end

@@ -1,6 +1,6 @@
-require "../parser"
-require "../semantic"
-require "../version"
+require "./parser"
+require "./semantic"
+require "./version"
 
 module Runic
   module Command
@@ -13,10 +13,6 @@ module Runic
         def self.{{option.id}}=(@@{{option.id}} : Bool)
         end
       {% end %}
-
-      def self.print_help_message
-        STDERR.puts "<todo: ast command help message>"
-      end
 
       @semantic : Semantic?
       @location : Bool
@@ -125,7 +121,7 @@ ARGV.each_with_index do |arg|
     puts "runic-ast version #{Runic.version_string}"
     exit 0
   when "--help", "help"
-    Runic::Command::AST.print_help_message
+    STDERR.puts "<todo: ast command help message>"
     exit 0
   when "--semantic"
     Runic::Command::AST.semantic = true

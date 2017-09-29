@@ -1,13 +1,9 @@
-require "../lexer"
-require "../version"
+require "./lexer"
+require "./version"
 
 module Runic
   module Command
     struct Lex
-      def self.print_help_message
-        STDERR.puts "<todo: lex command help message>"
-      end
-
       def initialize(io, filename)
         @lexer = Runic::Lexer.new(io, filename)
       end
@@ -31,7 +27,7 @@ ARGV.each_with_index do |arg|
     puts "runic-lex version #{Runic.version_string}"
     exit 0
   when "--help", "help"
-    Runic::Command::Lex.print_help_message
+    STDERR.puts "<todo: lex command help message>"
     exit 0
   else
     if arg.starts_with?('-')
