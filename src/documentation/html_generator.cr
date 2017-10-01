@@ -87,10 +87,10 @@ module Runic
           html.text ", " unless index == 0
           html.text arg.name
           html.text " : "
-          html.element("a", arg.type, class: "type")
+          html.element("a", arg.type.to_s, class: "type")
         end
         html.text ") : "
-        html.element("a", proto.type, class: "type")
+        html.element("a", proto.type.to_s, class: "type")
       end
 
       private def document(io : IO, title : String)

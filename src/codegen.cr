@@ -269,7 +269,6 @@ module Runic
         end
       end
 
-      # FIXME: "fails with expected no forward declaration"
       @debug.flush
       if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
         # STDERR.puts print(func)
@@ -388,7 +387,11 @@ module Runic
     end
 
     private def llvm_type(node : AST::Node)
-      llvm_type(node.type)
+      llvm_type(node.type.name)
+    end
+
+    private def llvm_type(type : Type)
+      llvm_type(type.name)
     end
 
     private def llvm_type(type : String)
@@ -405,13 +408,13 @@ module Runic
         LibC.LLVMInt64TypeInContext(@context)
       when "int128", "uint128"
         LibC.LLVMInt128TypeInContext(@context)
-      #when "long", "ulong"
-      #  LibC.LLVMInt32TypeInContext(@context)   # 32-bit: x86, arm, mips, ...
-      #  LibC.LLVMInt64TypeInContext(@context)   # 64-bit: x86_64, aarch64, mips64, ...
       when "float64"
         LibC.LLVMDoubleTypeInContext(@context)
       when "float32"
         LibC.LLVMFloatTypeInContext(@context)
+      #when "long", "ulong"
+      #  LibC.LLVMInt32TypeInContext(@context)   # 32-bit: x86, arm, mips, ...
+      #  LibC.LLVMInt64TypeInContext(@context)   # 64-bit: x86_64, aarch64, mips64, ...
       else
         raise CodegenError.new("unsupported #{type}")
       end

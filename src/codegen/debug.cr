@@ -197,7 +197,11 @@ module Runic
         #end
 
         private def di_type(node : AST::Node)
-          di_type(node.type)
+          di_type(node.type.name)
+        end
+
+        private def di_type(type : Type)
+          di_type(type.name)
         end
 
         # FIXME: alignments are probably TARGET DEPENDENT (and thus WRONG):

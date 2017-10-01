@@ -117,9 +117,9 @@ module Runic
 
       node = parser("extern foo(int32, int64, float32) : float").next.as(AST::Prototype)
       assert_equal "foo", node.name
-      assert_equal "float64", node.type
+      assert_equal "float64", node.type.name
       assert_equal ["x1", "x2", "x3"], node.args.map(&.name)
-      assert_equal ["int32", "int64", "float32"], node.args.map(&.type)
+      assert_equal ["int32", "int64", "float32"], node.args.map(&.type.name)
 
       parse_each("extern foo : void; extern bar : float32") do |node|
         assert AST::Prototype === node
@@ -136,7 +136,7 @@ module Runic
       assert_equal "bar", node.name
       assert_nil node.type? # need semantic analysis to determine the return type
       assert_equal ["a", "b", "c"], node.args.map(&.name)
-      assert_equal ["int32", "uint64", "float64"], node.args.map(&.type)
+      assert_equal ["int32", "uint64", "float64"], node.args.map(&.type.name)
 
       parse_each("def foo; 1 + 2; end; def bar; 3 * 4; end") do |node|
         assert AST::Function === node
@@ -161,7 +161,7 @@ module Runic
 
     private def assert_type(expected, source)
       node = parser(source).next.not_nil!
-      assert expected == node.type, -> { "expected #{expected} but got #{node.type}" }
+      assert expected == node.type.name, -> { "expected #{expected} but got #{node.type}" }
     end
   end
 end

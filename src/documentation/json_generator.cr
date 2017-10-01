@@ -36,13 +36,13 @@ module Runic
             proto.args.each do |arg|
               json.object do
                 json.scalar arg.name
-                json.scalar arg.type
+                json.scalar arg.type.to_s
               end
             end
           end
 
           json.scalar "return"
-          json.scalar proto.type
+          json.scalar proto.type.to_s
 
           json.scalar "location"
           json.scalar proto.location.to_s

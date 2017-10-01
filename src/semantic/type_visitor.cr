@@ -18,7 +18,7 @@ module Runic
       # declared type, an unsigned literal has a negative sign, ...
       def visit(node : AST::Integer) : Nil
         if node.negative && (type = node.type?)
-          if type.starts_with?('u')
+          if type.unsigned?
             raise SemanticError.new("invalid negative value -#{node.value} for #{type}", node.location)
           end
         end

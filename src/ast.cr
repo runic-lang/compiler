@@ -1,4 +1,5 @@
 require "./location"
+require "./type"
 
 module Runic
   module AST
@@ -7,36 +8,38 @@ module Runic
 
     abstract class Node
       getter location : Location
-      @type : String?
+      @type : Type?
 
       def initialize(@location)
       end
 
-      def type?
-        @type ||= resolve_type
+      def type? : Type?
+        if type = @type
+          type
+        elsif type = resolve_type
+          @type = Type.new(type)
+        end
       end
 
-      def type
-        @type ||= resolve_type.not_nil!
+      def type : Type
+        type? || raise SemanticError.new("expected #{self} to have a type but it doesn't.", location)
       end
 
-      private abstract def resolve_type : String
-
-      def void?
-        type? == "void"
+      def type=(type : String | Type | Nil)
+        @type = Type.new(type) if type
       end
 
-      def float?
-        type?.try(&.starts_with?("float"))
-      end
+      private abstract def resolve_type : Type
 
-      def integer?
-        type?.try(&.starts_with?("int")) || type?.try(&.starts_with?("uint"))
-      end
-
-      def unsigned?
-        type?.try(&.starts_with?("uint"))
-      end
+      {% for method in %w(primitive void bool integer unsigned float) %}
+        def {{method.id}}?
+          if type == type?
+            type.{{method.id}}?
+          else
+            false
+          end
+        end
+      {% end %}
     end
 
     abstract class Number < Node
@@ -49,15 +52,9 @@ module Runic
         new(token.value, token.location, type)
       end
 
-      def initialize(@value, @location, @type = nil)
+      def initialize(@value, @location, type = nil)
         @negative = false
-      end
-
-      def type?
-        @type ||= resolve_type
-      end
-
-      def type=(@type : String)
+        @type = Type.new(type) if type
       end
 
       def negative
@@ -172,7 +169,7 @@ module Runic
       end
 
       private def valid_hexadecimal_type?
-        case type?
+        case type?.try(&.name)
         when "uint8"   then @value.size <= (2+2)
         when "uint16"  then @value.size <= (2+4)
         when "uint32"  then @value.size <= (2+8)
@@ -187,7 +184,7 @@ module Runic
       end
 
       private def valid_binary_type?
-        case type?
+        case type?.try(&.name)
         when "uint8"   then @value.size <= 2+8
         when "uint16"  then @value.size <= 2+16
         when "uint32"  then @value.size <= 2+32
@@ -202,7 +199,7 @@ module Runic
       end
 
       private def valid_octal_type?
-        case type?
+        case type?.try(&.name)
         when "int8"    then compare(negative ? MIN_OCTAL_INT8 : MAX_OCTAL_INT8)
         when "int16"   then compare(negative ? MIN_OCTAL_INT16 : MAX_OCTAL_INT16)
         when "int32"   then compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
@@ -217,7 +214,7 @@ module Runic
       end
 
       private def valid_decimal_type?
-        case type?
+        case type?.try(&.name)
         when "int8"    then compare(negative ? MIN_INT8 : MAX_INT8)
         when "int16"   then compare(negative ? MIN_INT16 : MAX_INT16)
         when "int32"   then compare(negative ? MIN_INT32 : MAX_INT32)
@@ -285,9 +282,6 @@ module Runic
         @name
       end
 
-      def type=(@type : String)
-      end
-
       private def resolve_type
         # can't be determined (need semantic analysis)
       end
@@ -310,7 +304,8 @@ module Runic
       end
 
       private def resolve_type
-        INTRINSICS.resolve(operator, lhs.type?, rhs.type?)
+        type = INTRINSICS.resolve(operator, lhs.type?, rhs.type?)
+        Type.new(type) if type
       end
     end
 
@@ -326,7 +321,8 @@ module Runic
       end
 
       private def resolve_type
-        INTRINSICS.resolve(operator, expression.type)
+        type = INTRINSICS.resolve(operator, expression.type)
+        Type.new(type) if type
       end
     end
 
@@ -335,10 +331,8 @@ module Runic
       getter args : Array(AST::Variable)
       getter documentation : String
 
-      def initialize(@name, @args, @type, @documentation, @location)
-      end
-
-      def type=(@type : String)
+      def initialize(@name, @args, type, @documentation, @location)
+        @type = Type.new(type) if type
       end
 
       def resolve_type
@@ -361,9 +355,6 @@ module Runic
         @prototype.args
       end
 
-      def type=(@type : String)
-      end
-
       private def resolve_type
         prototype.type? || body.last?.try(&.type?)
       end
@@ -378,9 +369,6 @@ module Runic
       end
 
       def initialize(@callee, @args, @location)
-      end
-
-      def type=(@type : String)
       end
 
       private def resolve_type

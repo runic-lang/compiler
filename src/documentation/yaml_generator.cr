@@ -36,13 +36,13 @@ module Runic
             proto.args.each do |arg|
               yaml.mapping do
                 yaml.scalar arg.name
-                yaml.scalar arg.type
+                yaml.scalar arg.type.to_s
               end
             end
           end
 
           yaml.scalar "return"
-          yaml.scalar proto.type
+          yaml.scalar proto.type.to_s
 
           yaml.scalar "location"
           yaml.scalar proto.location.to_s

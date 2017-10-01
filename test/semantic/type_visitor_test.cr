@@ -4,21 +4,21 @@ module Runic
   class Semantic
     class TypeVisitorTest < Minitest::Test
       def test_infers_integer_literal_type
-        assert_equal "int32", visit("1").type
-        assert_equal "int64", visit("1126516251752").type
-        assert_equal "int128", visit("876121246541126516251752").type
+        assert_type "int32", visit("1")
+        assert_type "int64", visit("1126516251752")
+        assert_type "int128", visit("876121246541126516251752")
 
-        assert_equal "int32", visit("0o1").type
-        assert_equal "int64", visit("0o777777777777777777777").type
-        assert_equal "int128", visit("0o1777777777777777777777777777777777777777777").type
+        assert_type "int32", visit("0o1")
+        assert_type "int64", visit("0o777777777777777777777")
+        assert_type "int128", visit("0o1777777777777777777777777777777777777777777")
 
-        assert_equal "uint32", visit("0xff").type
-        assert_equal "uint64", visit("0x1234567890").type
-        assert_equal "uint128", visit("0x1234567890abcdef01234").type
+        assert_type "uint32", visit("0xff")
+        assert_type "uint64", visit("0x1234567890")
+        assert_type "uint128", visit("0x1234567890abcdef01234")
 
-        assert_equal "uint32", visit("0b1").type
-        assert_equal "uint64", visit("0b#{"1" * 60}").type
-        assert_equal "uint128", visit("0b#{"1" * 120}").type
+        assert_type "uint32", visit("0b1")
+        assert_type "uint64", visit("0b#{"1" * 60}")
+        assert_type "uint128", visit("0b#{"1" * 120}")
       end
 
       def test_validates_integer_literals
@@ -52,44 +52,44 @@ module Runic
 
       def test_recursively_types_binary_expressions
         node = visit("a = 1 * (2 + 4)").as(AST::Binary)
-        assert_equal "int32", node.type                          # whole expression
-        assert_equal "int32", node.lhs.type                      # variable 'a'
-        assert_equal "int32", node.rhs.type                      # value
-        assert_equal "int32", node.rhs.as(AST::Binary).rhs.type  # 2 + 4
+        assert_type "int32", node                          # whole expression
+        assert_type "int32", node.lhs                      # variable 'a'
+        assert_type "int32", node.rhs                      # value
+        assert_type "int32", node.rhs.as(AST::Binary).rhs  # 2 + 4
       end
 
       def test_shadows_variable_when_its_underlying_type_changes
         visit_each("a = 1; a = a + 2.0; b = a; a = 123_u64") do |node, index|
           case index
           when 0
-            assert_equal "int32", node.type
-            assert_equal "int32", node.as(AST::Binary).lhs.type    # infers 'a'
+            assert_type "int32", node
+            assert_type "int32", node.as(AST::Binary).lhs    # infers 'a'
           when 1
-            assert_equal "float64", node.type
-            assert_equal "float64", node.as(AST::Binary).lhs.type  # 'a' is shadowed
+            assert_type "float64", node
+            assert_type "float64", node.as(AST::Binary).lhs  # 'a' is shadowed
           when 2
-            assert_equal "float64", node.type
-            assert_equal "float64", node.as(AST::Binary).rhs.type  # 'a' refers to the tmp variable (not the shadowed)
+            assert_type "float64", node
+            assert_type "float64", node.as(AST::Binary).rhs  # 'a' refers to the tmp variable (not the shadowed)
           when 3
-            assert_equal "uint64", node.type
-            assert_equal "uint64", node.as(AST::Binary).rhs.type   # 'a' is shadowed again
+            assert_type "uint64", node
+            assert_type "uint64", node.as(AST::Binary).rhs   # 'a' is shadowed again
           end
         end
       end
 
       def test_recursively_types_unary_expressions
         node = visit("!!123)")
-        assert_equal "bool", node.type
-        assert_equal "bool", node.as(AST::Unary).expression.type
+        assert_type "bool", node
+        assert_type "bool", node.as(AST::Unary).expression
       end
 
       def test_types_calls
         node = visit("def add(a : int, b : float) a + b; end")
-        assert_equal "float64", node.as(AST::Function).type
+        assert_type "float64", node.as(AST::Function)
 
         node = visit("add(1, add(2, 3.2))")
-        assert_equal "float64", node.type
-        assert_equal ["int32", "float64"], node.as(AST::Call).args.map(&.type)
+        assert_type "float64", node
+        assert_types ["int32", "float64"], node.as(AST::Call).args
       end
 
       def test_validates_call_arguments
@@ -127,6 +127,14 @@ module Runic
           visit("def add(a : int, b : float, c : int8) : float64; b; end")
         end
         assert_match "doesn't match previous definition", ex.message
+      end
+
+      private def assert_type(name : String, node : AST::Node)
+        assert_equal name, node.type.name
+      end
+
+      private def assert_types(names : Array(String), nodes : Array(AST::Node))
+        assert_equal names, nodes.map(&.type.name)
       end
 
       private def visit(source)

@@ -1,32 +1,38 @@
 module Runic
   module INTRINSICS
-    INTEGERS = %w(int uint long ulong int8 uint8 int16 uint16 int32 uint32 int64 uint64 int128 uint128)
-    FLOATS = %w(float float16 float32 float64) # float128
     BOOLS = %w(bool)
+    SIGNED = %w(int long int8 int16 int32 int64 int128)
+    UNSIGNED = %w(uint ulong uint8 uint16 uint32 uint64 uint128)
+    INTEGERS = SIGNED + UNSIGNED
+    FLOATS = %w(float32 float64) # float16, float32, float128
 
     # Resolves the return type of a binary expression, depending on the operator
     # and both LHS and RHS types.
-    def self.resolve(operator, lhs, rhs)
+    def self.resolve(operator : String, lhs : Type, rhs : Type)
       case operator
       when "/", "/="
         # float division always evaluates to a floating point
-        if INTEGERS.includes?(lhs)
-          if FLOATS.includes?(rhs)
+        if lhs.integer?
+          if rhs.float?
             rhs
-          elsif INTEGERS.includes?(rhs)
+          elsif rhs.integer?
             "float64"
           end
-        elsif FLOATS.includes?(lhs)
+        elsif lhs.float?
           lhs
         end
       else
         # LHS is significant unless RHS is a floating point
-        if INTEGERS.includes?(lhs)
-          FLOATS.includes?(rhs) ? rhs : lhs
-        elsif FLOATS.includes?(lhs)
+        if lhs.integer?
+          rhs.float? ? rhs : lhs
+        elsif lhs.float?
           lhs
         end
       end
+    end
+
+    # :nodoc:
+    def self.resolve(operator : String, lhs, rhs) : Nil
     end
 
     # Resolves the return type of an unary expression.
