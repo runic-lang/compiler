@@ -51,31 +51,70 @@ end
 module Runic
   class Documentation
     struct HTMLGenerator < Generator
+      @git_hash : String
+      @git_remote : String?
+
+      def initialize(output : String)
+        super output
+        @git_hash = `git log -1 --pretty=format:%H 2>/dev/null`
+        @git_remote = search_git_remote if $?.success?
+      end
+
+      private def search_git_remote
+        `git remote -v`.split('\n').each do |remote|
+          if idx = remote.index("github.com")
+            if stop = remote.index('/', idx)
+              if stop = remote.index('.', stop + 1)
+                return remote[idx...stop].sub(':', '/')
+              else
+                return remote[idx..-1].sub(':', '/')
+              end
+            end
+          end
+        end
+      end
+
       def generate(file : String, functions : Array(AST::Prototype))
         output = File.basename(file, ".runic") + ".html"
 
         File.open(output, "w") do |io|
           document(io, title: File.basename(file)) do |html|
             html.element("div", id: "contents") do
-              html.element("h1", File.basename(file))
+              html.element("div") do
+                html.element("h1", File.basename(file))
 
-              html.element("h2", "Functions", id: "#functions")
+                # html.element("h2", "Functions", id: "#functions")
 
-              functions.each do |proto|
-                html.element("article", id: "function-#{proto.name}") do
-                  html.element("h3") do
-                    html.element("code") { signature(html, proto) }
+                functions.each do |proto|
+                  html.element("article", id: "function-#{proto.name}") do
+                    html.element("h3") do
+                      html.element("code") { signature(html, proto) }
+                      location(html, proto)
+                    end
+                    html.element("p") { html.text proto.documentation }
                   end
-                  html.element("p") { html.text proto.documentation }
                 end
               end
             end
 
             sidebar(html) do
-              html.element("h2", "Functions")
+              html.element("h2", "functions")
               functions.each { |proto| sidebar_entry(html, proto) }
             end
           end
+        end
+      end
+
+      private def location(html : HTML::Builder, proto : AST::Prototype)
+        if (commit = @git_hash) && (remote = @git_remote)
+          if remote.starts_with?("github.com")
+            href = "https://#{remote}/blob/#{commit}/#{proto.location.file}#L#{proto.location.line}"
+          end
+        end
+        if href
+          html.element("a", "</>", href: href, class: "view-source", title: proto.location.to_s)
+        else
+          html.element("a", "</>", class: "view-source", title: proto.location.to_s)
         end
       end
 
@@ -106,30 +145,48 @@ module Runic
                   min-height: 100vh;
                   padding: 0;
                   margin: 0;
-                  font: 16px/1.4 normal normal Georgia, serif;
+                  font: 16px/26px Georgia, serif;
                 }
-                code { font-family: Menlo, Consolas, Monaco, monospace; }
-                h1 { font-size: 2em; }
-                h2 { font-size: 1.4em; }
-                h3, p { font-size: 1em; margin: 0 0 1em; }
-                article { margin-bottom: 2em; }
+                code {
+                  font-family: Menlo, monospace;
+                  font-size: 0.8em;
+                }
+                h1 { font-size: 26px; margin-bottom: 1em; }
+                h2 { font-size: 20px; }
+                h3 { font-size: 16px; }
+                h3, p { margin: 1em 0; }
+                article {
+                  margin: 1em 0 2em;
+                  padding: 0 1em;
+                }
+                a { color: #78ab00; }
+
                 #main {
                   display: flex;
                   flex: 1;
+                  padding: 1em;
                 }
                 #contents {
                   flex: 1;
-                  padding: 1em;
+                  margin: 0 auto;
+                  max-width: 50em;
                 }
-                #contents h1:first-child {
-                  margin-top: 0;
+                #contents h3 {
+                  background: #f8f8f8;
+                  padding: 0.5em 1em;
+                  margin: -0.5em -1em;
                 }
+
                 #sidebar {
-                  flex: 0 0 12em;
+                  flex: 0 0 15%;
                   order: -1;
-                  background: #EEE;
+                  background: #383838;
+                  color: #d8d8d8;
+                  margin: -1em 1em -1em -1em;
                 }
-                #sidebar h2 { text-align: center; }
+                #sidebar h2 {
+                  text-align: center;
+                }
                 #sidebar ul {
                   list-style: none;
                   padding-left: 0;
@@ -138,6 +195,21 @@ module Runic
                 #sidebar a {
                   display: block;
                   padding: 0 1em;
+                  color: #bacf00;
+                }
+
+                .view-source {
+                  float: right;
+                  font-size: 14px;
+                  color: #aaa;
+                  text-decoration: none;
+                }
+                .view-source:hover {
+                  color: #666;
+                }
+
+                .type {
+                  color: #00bacf;
                 }
                 CSS
             end
