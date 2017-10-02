@@ -14,7 +14,9 @@ module Runic
     end
 
     def bits
-      if unsigned? || float?
+      if float?
+        name[5..-1].to_i
+      elsif unsigned?
         name[4..-1].to_i
       elsif integer?
         name[3..-1].to_i

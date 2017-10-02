@@ -103,7 +103,7 @@ module Runic
         assert_match "has no return type", ex.message
 
         ex = assert_raises(SemanticError) { visit("def add(a : int) : int; 1.0; end") }
-        assert_match "must return int32 but returns float64", ex.message
+        assert_match "must return int but returns float", ex.message
       end
 
       def test_validates_previous_definitions

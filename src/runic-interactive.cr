@@ -77,7 +77,7 @@ module Runic
         debug func
 
         begin
-          case node.type
+          case node.type.name
           when "bool"
             result = @generator.execute(true, func)
 
