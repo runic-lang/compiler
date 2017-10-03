@@ -154,14 +154,14 @@ module Runic
       assert_equal 2, node.args.size
     end
 
-    private def assert_expression(klass, source)
+    private def assert_expression(klass, source, file = __FILE__, line = __LINE__)
       node = parser(source).next
-      assert klass === node, -> { "expected #{klass} but got #{node.class}" }
+      assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line
     end
 
-    private def assert_type(expected, source)
+    private def assert_type(expected, source, file = __FILE__, line = __LINE__)
       node = parser(source).next.not_nil!
-      assert expected == node.type.name, -> { "expected #{expected} but got #{node.type}" }
+      assert expected == node.type.name, -> { "expected #{expected} but got #{node.type}" }, file, line
     end
   end
 end

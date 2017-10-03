@@ -175,24 +175,24 @@ module Runic
       end
     end
 
-    private def assert_next(type, value, source = value)
+    private def assert_next(type, value, source = value, file = __FILE__, line = __LINE__)
       token = lex(source).next
-      assert_equal type, token.type
-      assert_equal value, token.value
+      assert_equal type, token.type, nil, file, line
+      assert_equal value, token.value, nil, file, line
     end
 
-    private def assert_tokens(tokens : Array(Symbol), source)
+    private def assert_tokens(tokens : Array(Symbol), source, file = __FILE__, line = __LINE__)
       lexer = lex(source)
-      assert_equal tokens, tokens.size.times.map { lexer.next.type }.to_a
+      assert_equal tokens, tokens.size.times.map { lexer.next.type }.to_a, nil, file, line
     end
 
-    private def assert_tokens(tokens : Array(String), source)
+    private def assert_tokens(tokens : Array(String), source, file = __FILE__, line = __LINE__)
       lexer = lex(source)
-      assert_equal tokens, tokens.size.times.map { lexer.next.value }.to_a
+      assert_equal tokens, tokens.size.times.map { lexer.next.value }.to_a, nil, file, line
     end
 
-    private def assert_location(position, token)
-      assert_equal position, {token.location.line, token.location.column}
+    private def assert_location(position, token, file = __FILE__, line = __LINE__)
+      assert_equal position, {token.location.line, token.location.column}, nil, file, line
     end
   end
 end
