@@ -4,21 +4,21 @@ module Runic
   class Semantic
     class TypeVisitorTest < Minitest::Test
       def test_infers_integer_literal_type
-        assert_type "int32", visit("1")
-        assert_type "int64", visit("1126516251752")
-        assert_type "int128", visit("876121246541126516251752")
+        assert_type "i32", visit("1")
+        assert_type "i64", visit("1126516251752")
+        assert_type "i128", visit("876121246541126516251752")
 
-        assert_type "int32", visit("0o1")
-        assert_type "int64", visit("0o777777777777777777777")
-        assert_type "int128", visit("0o1777777777777777777777777777777777777777777")
+        assert_type "i32", visit("0o1")
+        assert_type "i64", visit("0o777777777777777777777")
+        assert_type "i128", visit("0o1777777777777777777777777777777777777777777")
 
-        assert_type "uint32", visit("0xff")
-        assert_type "uint64", visit("0x1234567890")
-        assert_type "uint128", visit("0x1234567890abcdef01234")
+        assert_type "u32", visit("0xff")
+        assert_type "u64", visit("0x1234567890")
+        assert_type "u128", visit("0x1234567890abcdef01234")
 
-        assert_type "uint32", visit("0b1")
-        assert_type "uint64", visit("0b#{"1" * 60}")
-        assert_type "uint128", visit("0b#{"1" * 120}")
+        assert_type "u32", visit("0b1")
+        assert_type "u64", visit("0b#{"1" * 60}")
+        assert_type "u128", visit("0b#{"1" * 120}")
       end
 
       def test_validates_integer_literals
@@ -50,31 +50,82 @@ module Runic
         {% end %}
       end
 
+      def test_types_binary_expressions
+        %w(+ - * ** // %).each do |op|
+          assert_type "i32", visit("1 #{op} 2")
+          assert_type "i32", visit("1 #{op} 0x7")
+          assert_type "u32", visit("0xf #{op} 2")
+          assert_type "u32", visit("0xf #{op} 0x7_u8")
+          assert_type "u8", visit("0xf_u8 #{op} 0x7")
+          assert_type "f64", visit("1 #{op} 1.0")
+          assert_type "f32", visit("1 #{op} 1_f32")
+          assert_type "f32", visit("1_f32 #{op} 1_f64")
+        end
+
+        assert_type "f64", visit("1 / 2")
+        assert_type "f64", visit("1 / 0x7")
+        assert_type "f64", visit("0xf / 2")
+        assert_type "f64", visit("0xf / 0x7_u8")
+        assert_type "f64", visit("0xf_u8 / 0x7")
+        assert_type "f64", visit("1 / 1.0")
+        assert_type "f32", visit("1 / 1_f32")
+      end
+
+      def test_forbids_mixed_signed_unsigned_logical_expressions
+        %w(< <= > >=).each do |op|
+          assert_raises(SemanticError) { visit("1 #{op} 2_u32") }
+          assert_raises(SemanticError) { visit("1_u64 #{op} 2") }
+        end
+      end
+
+      def test_types_bitwise_expressions
+        %w(& | ^ << >>).each do |op|
+          assert_type "i32", visit("1 #{op} 2")
+          assert_type "i32", visit("1 #{op} 0x7")
+          assert_type "u32", visit("0xf #{op} 2")
+          assert_type "u32", visit("0xf #{op} 0x7_u8")
+          assert_type "u8", visit("0xf_u8 #{op} 0x7")
+
+          assert_raises(SemanticError) { visit("1.0 & 1") }
+          assert_raises(SemanticError) { visit("1 & 1.0") }
+        end
+      end
+
       def test_recursively_types_binary_expressions
         node = visit("a = 1 * (2 + 4)").as(AST::Binary)
-        assert_type "int32", node                          # whole expression
-        assert_type "int32", node.lhs                      # variable 'a'
-        assert_type "int32", node.rhs                      # value
-        assert_type "int32", node.rhs.as(AST::Binary).rhs  # 2 + 4
+        assert_type "i32", node                          # whole expression
+        assert_type "i32", node.lhs                      # variable 'a'
+        assert_type "i32", node.rhs                      # value
+        assert_type "i32", node.rhs.as(AST::Binary).rhs  # 2 + 4
       end
 
       def test_shadows_variable_when_its_underlying_type_changes
         visit_each("a = 1; a = a + 2.0; b = a; a = 123_u64") do |node, index|
           case index
           when 0
-            assert_type "int32", node
-            assert_type "int32", node.as(AST::Binary).lhs    # infers 'a'
+            assert_type "i32", node
+            assert_type "i32", node.as(AST::Binary).lhs    # infers 'a'
           when 1
-            assert_type "float64", node
-            assert_type "float64", node.as(AST::Binary).lhs  # 'a' is shadowed
+            assert_type "f64", node
+            assert_type "f64", node.as(AST::Binary).lhs  # 'a' is shadowed
           when 2
-            assert_type "float64", node
-            assert_type "float64", node.as(AST::Binary).rhs  # 'a' refers to the tmp variable (not the shadowed)
+            assert_type "f64", node
+            assert_type "f64", node.as(AST::Binary).rhs  # 'a' refers to the tmp variable (not the shadowed)
           when 3
-            assert_type "uint64", node
-            assert_type "uint64", node.as(AST::Binary).rhs   # 'a' is shadowed again
+            assert_type "u64", node
+            assert_type "u64", node.as(AST::Binary).rhs   # 'a' is shadowed again
           end
         end
+      end
+
+      def test_types_unary_expressions
+        assert_type "i32", visit("-(123))")
+        assert_type "bool", visit("!123)")
+        assert_type "u8", visit("~1_u8)")
+        assert_type "i32", visit("~1_i32)")
+        assert_raises(SemanticError) { visit("~false)") }
+        assert_raises(SemanticError) { visit("~1.0)") }
+        assert_raises(SemanticError) { visit("-true)") }
       end
 
       def test_recursively_types_unary_expressions
@@ -83,13 +134,29 @@ module Runic
         assert_type "bool", node.as(AST::Unary).expression
       end
 
+      def test_types_logical_operators
+        OPERATORS::LOGICAL.each do |op|
+          rty = (op == "<=>") ? "i32" : "bool"
+          assert_type rty, visit("1 #{op} 2")
+          assert_type rty, visit("2.0 #{op} 2")
+          assert_type rty, visit("2 #{op} 1.0")
+        end
+
+        %w(== != || &&).each do |op|
+          assert_type "bool", visit("true #{op} false")
+          assert_type "bool", visit("true #{op} 2")
+          assert_type "bool", visit("true #{op} 2.0")
+          assert_type "bool", visit("2 #{op} false")
+        end
+      end
+
       def test_types_calls
         node = visit("def add(a : int, b : float) a + b; end")
-        assert_type "float64", node.as(AST::Function)
+        assert_type "f64", node.as(AST::Function)
 
         node = visit("add(1, add(2, 3.2))")
-        assert_type "float64", node
-        assert_types ["int32", "float64"], node.as(AST::Call).args
+        assert_type "f64", node
+        assert_types ["i32", "f64"], node.as(AST::Call).args
       end
 
       def test_validates_call_arguments
@@ -103,11 +170,11 @@ module Runic
         assert_match "has no return type", ex.message
 
         ex = assert_raises(SemanticError) { visit("def add(a : int) : int; 1.0; end") }
-        assert_match "must return int but returns float", ex.message
+        assert_match "must return i32 but returns f64", ex.message
       end
 
       def test_validates_previous_definitions
-        visit("extern add(a : int, b : float) : float64")
+        visit("extern add(a : int, b : float) : f64")
         visit("def add(a : int, b : float); a + b; end")
 
         # mismatch: return type
@@ -118,23 +185,23 @@ module Runic
 
         # mismatch: arg type
         ex = assert_raises(SemanticError) do
-          visit("def add(a : int, b : int) : float64; 1.0_f64; end")
+          visit("def add(a : int, b : int) : f64; 1.0_f64; end")
         end
         assert_match "doesn't match previous definition", ex.message
 
         # mismatch: arg number
         ex = assert_raises(SemanticError) do
-          visit("def add(a : int, b : float, c : int8) : float64; b; end")
+          visit("def add(a : int, b : float, c : i8) : f64; b; end")
         end
         assert_match "doesn't match previous definition", ex.message
       end
 
-      private def assert_type(name : String, node : AST::Node)
-        assert_equal name, node.type.name
+      private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)
+        assert_equal name, node.type.name, file: file, line: line
       end
 
-      private def assert_types(names : Array(String), nodes : Array(AST::Node))
-        assert_equal names, nodes.map(&.type.name)
+      private def assert_types(names : Array(String), nodes : Array(AST::Node), file = __FILE__, line = __LINE__)
+        assert_equal names, nodes.map(&.type.name), file: file, line: line
       end
 
       private def visit(source)

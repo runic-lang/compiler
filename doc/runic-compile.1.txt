@@ -8,7 +8,7 @@ runic-compile - compile object files
 SYNOPSYS
 --------
 [verse]
-*runic compile* [-O<n>] [--emit=<object|llvm>] [-g] [--debug] [--no-debug]
+*runic c[ompile]* [-O<n>] [--emit=<object|llvm>] [-g] [--debug] [--no-debug]
               [--target=<triple>] [--cpu=<name>] [--features=<+opt+opt>]
               [-o <file>] [--output=<file>] <file.runic>
 

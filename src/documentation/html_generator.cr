@@ -26,9 +26,9 @@ module HTML
         HTML.escape(value, io)
         io << '"'
       end
-      io << ">"
+      io << '>'
       yield
-      io << "</" << name << ">"
+      io << "</" << name << '>'
     end
 
     def text(content : String)
@@ -140,18 +140,21 @@ module Runic
               html.raw <<-CSS
                 * { font-family: inherit; }
                 body {
-                  display: flex;
-                  flex-direction: column;
+                  display: grid;
                   min-height: 100vh;
                   padding: 0;
                   margin: 0;
+                  -ms-grid-template-rows: 1fr;
+                  -ms-grid-template-columns: 15% 1fr;
+                  grid-template-rows: 1fr;
+                  grid-template-columns: 15% 1fr;
                   font: 16px/26px Georgia, serif;
                 }
                 code {
                   font-family: Menlo, monospace;
                   font-size: 0.8em;
                 }
-                h1 { font-size: 26px; margin-bottom: 1em; }
+                h1 { font-size: 26px; margin: 0 0 1em; }
                 h2 { font-size: 20px; }
                 h3 { font-size: 16px; }
                 h3, p { margin: 1em 0; }
@@ -161,28 +164,15 @@ module Runic
                 }
                 a { color: #78ab00; }
 
-                #main {
-                  display: flex;
-                  flex: 1;
-                  padding: 1em;
-                }
-                #contents {
-                  flex: 1;
-                  margin: 0 auto;
-                  max-width: 50em;
-                }
-                #contents h3 {
-                  background: #f8f8f8;
-                  padding: 0.5em 1em;
-                  margin: -0.5em -1em;
-                }
-
                 #sidebar {
-                  flex: 0 0 15%;
+                  -ms-grid-row: 1;
+                  -ms-grid-column: 1;
+                  grid-row: 1;
+                  grid-column: 1 / 2;
                   order: -1;
                   background: #383838;
                   color: #d8d8d8;
-                  margin: -1em 1em -1em -1em;
+                  padding: 0 0 1em;
                 }
                 #sidebar h2 {
                   text-align: center;
@@ -196,6 +186,20 @@ module Runic
                   display: block;
                   padding: 0 1em;
                   color: #bacf00;
+                }
+
+                #contents {
+                  -ms-grid-row: 1;
+                  -ms-grid-column: 2;
+                  grid-row: 1;
+                  grid-column: 2 / 3;
+                  max-width: 50em;
+                  padding: 1em;
+                }
+                #contents h3 {
+                  background: #f8f8f8;
+                  padding: 0.5em 1em;
+                  margin: -0.5em -1em;
                 }
 
                 .view-source {
@@ -216,7 +220,7 @@ module Runic
           end
 
           html.element("body") do
-            html.element("div", id: "main") { yield html }
+            yield html
           end
         end
       end

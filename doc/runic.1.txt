@@ -31,7 +31,7 @@ RUNIC COMMANDS
 --------------
 
 Any binary starting with _runic-_ and accessible in your _PATH_ may be invoked
-as a _runic_ command. For example a _runic-foo_ binary may be invoked invoked as
+as a _runic_ command. For example a _runic-foo_ binary can be invoked as
 _runic foo_.
 
 Main commands
@@ -39,6 +39,10 @@ Main commands
 
 _runic-compile_(1)::
     Compile a runic source program to an object file.
+
+_runic-documentation_(1)::
+    Generate documentation for a runic source program to different formats, for
+    example HTML and JSON.
 
 _runic-interactive_(1)::
     Start an interactive session.

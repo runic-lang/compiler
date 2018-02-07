@@ -20,16 +20,23 @@ module Runic
       assert_tokens ["foo", "bar", "Baz", "BAZ", "fOo"], source
     end
 
+    def test_keywords
+      Lexer::KEYWORDS.each do |keyword|
+        assert_tokens [:keyword], keyword
+        assert_tokens [keyword], keyword
+      end
+    end
+
     def test_decimal_integer_literals
       assert_next :integer, "0"
       assert_next :integer, "1"
-      assert_next :integer, "2147483647" # int32
-      assert_next :integer, "18446744073709551615" # uint64
-      assert_next :integer, "340282366920938463463374607431768211455" # uint128
-      assert_next :integer, "115792089237316195423570985008687907853269984665640564039457584007913129639935" # uint256
-      assert_next :integer, "2147483", "2_14_7_483" # int32
-      assert_next :integer, "2147483647", "2_147_483_647" # int32
-      assert_next :integer, "18446744073709551615", "18_446_744_073_709_551_615" # uint64
+      assert_next :integer, "2147483647" # i32
+      assert_next :integer, "18446744073709551615" # u64
+      assert_next :integer, "340282366920938463463374607431768211455" # u128
+      assert_next :integer, "115792089237316195423570985008687907853269984665640564039457584007913129639935" # u256
+      assert_next :integer, "2147483", "2_14_7_483" # i32
+      assert_next :integer, "2147483647", "2_147_483_647" # i32
+      assert_next :integer, "18446744073709551615", "18_446_744_073_709_551_615" # u64
     end
 
     def test_hexadecimal_integer_literals
@@ -59,7 +66,7 @@ module Runic
       assert_next :float, "0.0"
       assert_next :float, "1.0"
       assert_next :float, "8171.29732"
-      assert_next :float, "2147.000001", "2_147.000_001" # int32
+      assert_next :float, "2147.000001", "2_147.000_001" # i32
       assert_tokens ["123.456", ".", "789"], "123.456.789"
     end
 

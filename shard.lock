@@ -6,5 +6,5 @@ shards:
 
   minitest:
     github: ysbaddaden/minitest.cr
-    commit: e528eb983944c58e0ce884768d452b600ae3153e
+    commit: 7fcb2dbba54d14ed693d76dfd6da2a4b220d1259
 

@@ -31,7 +31,7 @@ module Runic
 
       private abstract def resolve_type : Type
 
-      {% for method in %w(primitive void bool integer unsigned float) %}
+      {% for method in %w(primitive void bool integer unsigned signed float) %}
         def {{method.id}}?
           if type == type?
             type.{{method.id}}?
@@ -53,7 +53,6 @@ module Runic
       end
 
       def initialize(@value, @location, type = nil)
-        @negative = false
         @type = Type.new(type) if type
       end
 
@@ -61,8 +60,12 @@ module Runic
         sign == "-"
       end
 
-      def unsigned
-        type.starts_with?("uint")
+      def signed?
+        type.signed?
+      end
+
+      def unsigned?
+        type.unsigned?
       end
     end
 
@@ -121,41 +124,41 @@ module Runic
 
       private def infer_hexadecimal_type
         if @value.size <= 10
-          "uint32"
+          "u32"
         elsif @value.size <= 18
-          "uint64"
+          "u64"
         elsif @value.size <= 34
-          "uint128"
+          "u128"
         end
       end
 
       private def infer_binary_type
         if @value.size <= 34
-          "uint32"
+          "u32"
         elsif @value.size <= 66
-          "uint64"
+          "u64"
         elsif @value.size <= 130
-          "uint128"
+          "u128"
         end
       end
 
       private def infer_octal_type
         if compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
-          "int32"
+          "i32"
         elsif compare(negative ? MIN_OCTAL_INT64 : MAX_OCTAL_INT64)
-          "int64"
+          "i64"
         elsif compare(negative ? MIN_OCTAL_INT128 : MAX_OCTAL_INT128)
-          "int128"
+          "i128"
         end
       end
 
       private def infer_decimal_type
         if compare(negative ? MIN_INT32 : MAX_INT32)
-          "int32"
+          "i32"
         elsif compare(negative ? MIN_INT64 : MAX_INT64)
-          "int64"
+          "i64"
         elsif compare(negative ? MIN_INT128 : MAX_INT128)
-          "int128"
+          "i128"
         end
       end
 
@@ -170,61 +173,61 @@ module Runic
 
       private def valid_hexadecimal_type?
         case type?.try(&.name)
-        when "uint8"   then @value.size <= (2+2)
-        when "uint16"  then @value.size <= (2+4)
-        when "uint32"  then @value.size <= (2+8)
-        when "uint64"  then @value.size <= (2+16)
-        when "uint128" then @value.size <= (2+32)
-        when "int8"    then compare("0x7f", downcase: true)
-        when "int16"   then compare("0x7fff", downcase: true)
-        when "int32"   then compare("0x7fffffff", downcase: true)
-        when "int64"   then compare("0x7fffffffffffffff", downcase: true)
-        when "int128"  then compare("0x7fffffffffffffffffffffffffffffff", downcase: true)
+        when "u8"   then @value.size <= (2+2)
+        when "u16"  then @value.size <= (2+4)
+        when "u32"  then @value.size <= (2+8)
+        when "u64"  then @value.size <= (2+16)
+        when "u128" then @value.size <= (2+32)
+        when "i8"   then compare("0x7f", downcase: true)
+        when "i16"  then compare("0x7fff", downcase: true)
+        when "i32"  then compare("0x7fffffff", downcase: true)
+        when "i64"  then compare("0x7fffffffffffffff", downcase: true)
+        when "i128" then compare("0x7fffffffffffffffffffffffffffffff", downcase: true)
         end
       end
 
       private def valid_binary_type?
         case type?.try(&.name)
-        when "uint8"   then @value.size <= 2+8
-        when "uint16"  then @value.size <= 2+16
-        when "uint32"  then @value.size <= 2+32
-        when "uint64"  then @value.size <= 2+64
-        when "uint128" then @value.size <= 2+128
-        when "int8"    then @value.size <= 2+7
-        when "int16"   then @value.size <= 2+15
-        when "int32"   then @value.size <= 2+31
-        when "int64"   then @value.size <= 2+63
-        when "int128"  then @value.size <= 2+127
+        when "u8"   then @value.size <= 2+8
+        when "u16"  then @value.size <= 2+16
+        when "u32"  then @value.size <= 2+32
+        when "u64"  then @value.size <= 2+64
+        when "u128" then @value.size <= 2+128
+        when "i8"   then @value.size <= 2+7
+        when "i16"  then @value.size <= 2+15
+        when "i32"  then @value.size <= 2+31
+        when "i64"  then @value.size <= 2+63
+        when "i128" then @value.size <= 2+127
         end
       end
 
       private def valid_octal_type?
         case type?.try(&.name)
-        when "int8"    then compare(negative ? MIN_OCTAL_INT8 : MAX_OCTAL_INT8)
-        when "int16"   then compare(negative ? MIN_OCTAL_INT16 : MAX_OCTAL_INT16)
-        when "int32"   then compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
-        when "int64"   then compare(negative ? MIN_OCTAL_INT64 : MAX_OCTAL_INT64)
-        when "int128"  then compare(negative ? MIN_OCTAL_INT128 : MAX_OCTAL_INT128)
-        when "uint8"   then compare(MAX_OCTAL_UINT8)
-        when "uint16"  then compare(MAX_OCTAL_UINT16)
-        when "uint32"  then compare(MAX_OCTAL_UINT32)
-        when "uint64"  then compare(MAX_OCTAL_UINT64)
-        when "uint128" then compare(MAX_OCTAL_UINT128)
+        when "i8"   then compare(negative ? MIN_OCTAL_INT8 : MAX_OCTAL_INT8)
+        when "i16"  then compare(negative ? MIN_OCTAL_INT16 : MAX_OCTAL_INT16)
+        when "i32"  then compare(negative ? MIN_OCTAL_INT32 : MAX_OCTAL_INT32)
+        when "i64"  then compare(negative ? MIN_OCTAL_INT64 : MAX_OCTAL_INT64)
+        when "i128" then compare(negative ? MIN_OCTAL_INT128 : MAX_OCTAL_INT128)
+        when "u8"   then compare(MAX_OCTAL_UINT8)
+        when "u16"  then compare(MAX_OCTAL_UINT16)
+        when "u32"  then compare(MAX_OCTAL_UINT32)
+        when "u64"  then compare(MAX_OCTAL_UINT64)
+        when "u128" then compare(MAX_OCTAL_UINT128)
         end
       end
 
       private def valid_decimal_type?
         case type?.try(&.name)
-        when "int8"    then compare(negative ? MIN_INT8 : MAX_INT8)
-        when "int16"   then compare(negative ? MIN_INT16 : MAX_INT16)
-        when "int32"   then compare(negative ? MIN_INT32 : MAX_INT32)
-        when "int64"   then compare(negative ? MIN_INT64 : MAX_INT64)
-        when "int128"  then compare(negative ? MIN_INT128 : MAX_INT128)
-        when "uint8"   then compare(MAX_UINT8)
-        when "uint16"  then compare(MAX_UINT16)
-        when "uint32"  then compare(MAX_UINT32)
-        when "uint64"  then compare(MAX_UINT64)
-        when "uint128" then compare(MAX_UINT128)
+        when "i8"   then compare(negative ? MIN_INT8 : MAX_INT8)
+        when "i16"  then compare(negative ? MIN_INT16 : MAX_INT16)
+        when "i32"  then compare(negative ? MIN_INT32 : MAX_INT32)
+        when "i64"  then compare(negative ? MIN_INT64 : MAX_INT64)
+        when "i128" then compare(negative ? MIN_INT128 : MAX_INT128)
+        when "u8"   then compare(MAX_UINT8)
+        when "u16"  then compare(MAX_UINT16)
+        when "u32"  then compare(MAX_UINT32)
+        when "u64"  then compare(MAX_UINT64)
+        when "u128" then compare(MAX_UINT128)
         end
       end
 
@@ -237,7 +240,7 @@ module Runic
 
     class Float < Number
       private def resolve_type
-        "float64"
+        "f64"
       end
     end
 
@@ -303,9 +306,14 @@ module Runic
         OPERATORS::ASSIGNMENT.includes?(operator)
       end
 
+      def logical?
+        OPERATORS::LOGICAL.includes?(operator)
+      end
+
       private def resolve_type
-        type = INTRINSICS.resolve(operator, lhs.type?, rhs.type?)
-        Type.new(type) if type
+        if lhs.type? && rhs.type?
+          INTRINSICS.resolve(operator, lhs.type, rhs.type)
+        end
       end
     end
 

@@ -8,6 +8,14 @@ module Runic
     # raising a `SemanticError` when an expression type can't be inferred, or
     # there is a type mismatch, or a number literal doesn't fit into its defined
     # or inferred type, ...
+    #
+    # TODO: Requires prototypes to be forward declared before they're called.
+    # We could consider:
+    # - collecting prototype definitions (even incomplete) while parsing;
+    # - building a dependency tree of functions (maybe types, later);
+    # - forward visit/type functions as they are used;
+    # - warning: recursive calls (foo calls itself);
+    # - warning: circular calls (foo calls bar that calls foo)
     class TypeVisitor < Visitor
       def initialize
         @named_variables = {} of String => AST::Variable
@@ -47,13 +55,13 @@ module Runic
       #
       # In case of an assignment, only the righ-hand-side sub-expression is
       # visited, and the left-hand-side variable's type will be defined and
-      # memorized for the current scope. The visitor will the know the type of a
+      # memorized for the current scope. The visitor will know the type of a
       # variable when it's accessed later on.
       #
       # Variables will be shadowed with a temporary variable when their type
       # changes in the current scope, so `a = 1; a += 2.0` is valid and `a`
-      # is first inferred as an `int` then shadowed as a `float64`; further
-      # accesses to `a` will refer to the `float64` variable.
+      # is first inferred as an `i32` then shadowed as a `f64`; further
+      # accesses to `a` will refer to the `f64` variable.
       def visit(node : AST::Binary) : Nil
         lhs, rhs = node.lhs, node.rhs
 
@@ -100,6 +108,10 @@ module Runic
         end
       end
 
+      # Makes sure the prototype is fully typed (arguments, return type).
+      # Verifies that the definition matches any previous definition (forward
+      # declaration, redefinition). Eventually memoizes the prototype
+      # definition, overwriting any previous definition.
       def visit(node : AST::Prototype) : Nil
         node.args.each do |arg|
           unless arg.type?
@@ -120,6 +132,10 @@ module Runic
         @prototypes[node.name] = node
       end
 
+      # Creates a new scope to hold local variables, initialized to the function
+      # arguments. Visits the body, determining the actual return type.
+      # Eventually types the function if it wasn't, or verifies the return type
+      # matches the definition. Eventually visits the prototype to be memoized.
       def visit(node : AST::Function) : Nil
         new_scope do
           node.args.each do |arg|
@@ -148,6 +164,10 @@ module Runic
         visit(node.prototype)
       end
 
+      # Visits passed arguments, so they're typed. Makes sure that a prototype
+      # has been defined for the called function (extern or def), then verifies
+      # that passed arguments match the prototype (same number of arguments,
+      # same types). Eventually types the expression.
       def visit(node : AST::Call) : Nil
         node.args.each { |arg| visit(arg) }
 
@@ -171,18 +191,18 @@ module Runic
         node.type = prototype.type
       end
 
-      private def new_scope
-        copy = @named_variables.dup
-        begin
-          @named_variables.clear
-          yield
-        ensure
-          @named_variables = copy
-        end
-      end
-
       # Other nodes don't need to be visited (e.g. boolean literals).
       def visit(node : AST::Node) : Nil
+      end
+
+      private def new_scope
+        original = @named_variables.dup
+        begin
+          @named_variables = {} of String => AST::Variable
+          yield
+        ensure
+          @named_variables = original
+        end
       end
     end
   end

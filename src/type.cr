@@ -14,12 +14,8 @@ module Runic
     end
 
     def bits
-      if float?
-        name[5..-1].to_i
-      elsif unsigned?
-        name[4..-1].to_i
-      elsif integer?
-        name[3..-1].to_i
+      if float? || integer?
+        name[1..-1].to_i
       elsif bool?
         1
       else
@@ -59,19 +55,29 @@ module Runic
       INTRINSICS::UNSIGNED.includes?(name)
     end
 
+    def signed?
+      INTRINSICS::SIGNED.includes?(name)
+    end
+
     def float?
       INTRINSICS::FLOATS.includes?(name)
     end
 
+    def number?
+      integer? || float?
+    end
+
     def to_s(io : IO)
-      case name
-      when "int32"
-        io << "int"
-      when "float64"
-        io << "float"
-      else
+      #case name
+      #when "i32"
+      #  io << "int"
+      #when "u32"
+      #  io << "uint"
+      #when "f64"
+      #  io << "float"
+      #else
         io << name
-      end
+      #end
     end
   end
 end

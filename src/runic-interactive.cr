@@ -81,27 +81,27 @@ module Runic
           when "bool"
             result = @generator.execute(true, func)
 
-          when "int8"
+          when "i8"
             result = @generator.execute(1_i8, func)
-          when "int16"
+          when "i16"
             result = @generator.execute(1_i16, func)
-          when "int32"
+          when "i32"
             result = @generator.execute(1_i32, func)
-          when "int64"
+          when "i64"
             result = @generator.execute(1_i64, func)
 
-          when "uint8"
+          when "u8"
             result = @generator.execute(1_u8, func)
-          when "uint16"
+          when "u16"
             result = @generator.execute(1_u16, func)
-          when "uint32"
+          when "u32"
             result = @generator.execute(1_u32, func)
-          when "uint64"
+          when "u64"
             result = @generator.execute(1_u64, func)
 
-          when "float32"
+          when "f32"
             result = @generator.execute(1_f32, func)
-          when "float64"
+          when "f64"
             result = @generator.execute(1_f64, func)
 
           else

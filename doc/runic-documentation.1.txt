@@ -1,0 +1,41 @@
+runic-documentation(1)
+======================
+
+NAME
+----
+runic-documentation - generate documentation from runic programs
+
+SYNOPSYS
+--------
+[verse]
+*runic doc[umentation]* [-f <format>] [--format=<format>] [--help]
+    [-o <directory>] [--output=<directory>] [<file.runic>...] [ <directory>...]
+
+DESCRIPTION
+-----------
+
+Generates human (HTML) or machine (YAML, JSON) documentation from a runic source
+code program.
+
+If one or many runic source files are specified, generates a documentation file
+for one each of them. If one or many directories are specified, recursively
+searches the directory for _.runic_ source files then generates a documentation
+file for each found file. If no source file or directory are specified, searches
+the _src_ folder for _.runic_ source files.
+
+OPTIONS
+-------
+
+-o <directory>::
+--output=<directory>::
+    Emit the generated documentation to the specified folder. Defaults to _doc_.
+
+-f <format>::
+--format=<format>::
+    Emit the generated documentation in the specified format. Supports _html_
+    (default), _json_ and _yaml_.
+
+SEE ALSO
+--------
+
+_runic(1)_;;

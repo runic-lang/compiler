@@ -8,7 +8,7 @@ runic-interactive - interactive session.
 SYNOPSYS
 --------
 [verse]
-*runic interactive* [--debug] [--no-optimize] [--help]
+*runic i[nteractive]* [--debug] [--no-optimize] [--help]
 
 DESCRIPTION
 -----------

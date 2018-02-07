@@ -21,7 +21,7 @@ module Runic
         case peek.type
         when :eof
           return
-        when :identifier
+        when :keyword
           case peek.value
           when "def"
             return parse_definition
@@ -77,9 +77,11 @@ module Runic
       consume if peek.value == ":"
       case type = expect(:identifier).value
       when "int"
-        "int32"
+        "i32"
+      when "uint"
+        "u32"
       when "float"
-        "float64"
+        "f64"
       else
         type
       end
@@ -214,10 +216,12 @@ module Runic
           # number sign: -1, +1.2
           case expression
           when AST::Integer, AST::Float
-            case operator.value
-            when "+", "-"
-              expression.sign = operator.value
-              return expression
+            unless expression.sign
+              case operator.value
+              when "+", "-"
+                expression.sign = operator.value
+                return expression
+              end
             end
           end
 
@@ -265,6 +269,8 @@ module Runic
       when :linefeed
         skip
         parse_primary
+      when :keyword
+        raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
       else
         raise SyntaxError.new("expected expression but got #{peek.type.inspect}", peek.location)
       end

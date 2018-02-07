@@ -10,7 +10,17 @@ module Runic
     def initialize(@type, @value, @location, @literal_type = nil)
     end
 
-    {% for type in %i(eof identifier float integer operator call linefeed comment) %}
+    {% for type in %i(
+       call
+       comment
+       eof
+       float
+       identifier
+       integer
+       keyword
+       linefeed
+       operator
+     ) %}
       def {{type.id}}?
         @type == {{type}}
       end

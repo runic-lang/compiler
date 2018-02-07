@@ -8,22 +8,48 @@ module Runic
     NUMBER_SUFFIXES = {
       "l"    => "long",
       "ul"   => "ulong",
-      "i"    => "int32",
-      "u"    => "uint32",
-      "i8"   => "int8",
-      "u8"   => "uint8",
-      "i16"  => "int16",
-      "u16"  => "uint16",
-      "i32"  => "int32",
-      "u32"  => "uint32",
-      "i64"  => "int64",
-      "u64"  => "uint64",
-      "i128" => "int128",
-      "u128" => "uint128",
-      "f16"  => "float16",
-      "f32"  => "float32",
-      "f64"  => "float64",
+      "i"    => "i32",
+      "u"    => "u32",
+      "i8"   => "i8",
+      "u8"   => "u8",
+      "i16"  => "i16",
+      "u16"  => "u16",
+      "i32"  => "i32",
+      "u32"  => "u32",
+      "i64"  => "i64",
+      "u64"  => "u64",
+      "i128" => "i128",
+      "u128" => "u128",
+      "f"    => "f64",
+      "f16"  => "f16",
+      "f32"  => "f32",
+      "f64"  => "f64",
     }
+
+    KEYWORDS = %w(
+      alias
+      case
+      class
+      def
+      do
+      if
+      else
+      elsif
+      end
+      extern
+      match
+      module
+      mutable
+      private
+      protected
+      public
+      struct
+      then
+      unless
+      until
+      when
+      while
+    )
 
     @char : Char?
 
@@ -41,11 +67,15 @@ module Runic
       when nil
         Token.new(:eof, "", location)
       when .ascii_letter?
-        # keywords are reported as mere identifiers
-        Token.new(:identifier, consume_identifier, location)
+        identifier = consume_identifier
+        if KEYWORDS.includes?(identifier)
+          Token.new(:keyword, identifier, location)
+        else
+          Token.new(:identifier, identifier, location)
+        end
       when .number?
         value, type = consume_number, consume_optional_number_suffix
-        if type.try(&.starts_with?("float")) ||
+        if type.try(&.starts_with?("f")) ||
             value.includes?('.') ||
             (!value.starts_with?('0') && value.includes?('e'))
           Token.new(:float, value, location, type)

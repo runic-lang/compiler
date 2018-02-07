@@ -1,49 +1,69 @@
 module Runic
   module INTRINSICS
     BOOLS = %w(bool)
-    SIGNED = %w(int long int8 int16 int32 int64 int128)
-    UNSIGNED = %w(uint ulong uint8 uint16 uint32 uint64 uint128)
+    SIGNED = %w(int long i8 i16 i32 i64 i128)
+    UNSIGNED = %w(uint ulong u8 u16 u32 u64 u128)
     INTEGERS = SIGNED + UNSIGNED
-    FLOATS = %w(float32 float64) # float16, float32, float128
+    FLOATS = %w(float f32 f64) # f16, f128
 
     # Resolves the return type of a binary expression, depending on the operator
     # and both LHS and RHS types.
-    def self.resolve(operator : String, lhs : Type, rhs : Type)
+    #
+    # NOTE: shall eventually be removed when types can be defined automatically,
+    #       functions accept overloads, explicit type casts, ...
+    def self.resolve(operator : String, lty : Type, rty : Type)
       case operator
       when "/", "/="
         # float division always evaluates to a floating point
-        if lhs.integer?
-          if rhs.float?
-            rhs
-          elsif rhs.integer?
-            "float64"
+        if lty.integer?
+          if rty.float?
+            rty
+          elsif rty.integer?
+            "f64"
           end
-        elsif lhs.float?
-          lhs
+        elsif lty.float?
+          lty
+        end
+      when "==", "!=", "||", "&&"
+        "bool"
+      when "<", "<=", ">", ">="
+        if (lty.float? && rty.number?) ||
+            (lty.number? && rty.float?) ||
+            (lty.unsigned? && rty.unsigned?) ||
+            (lty.signed? && rty.signed?)
+          "bool"
+        end
+      when "<=>"
+        if (lty.float? && rty.number?) ||
+            (lty.number? && rty.float?) ||
+            (lty.unsigned? && rty.unsigned?) ||
+            (lty.signed? && rty.signed?)
+          "i32"
+        end
+      when "&", "|", "^", "<<", ">>"
+        # bitwise operators are only valid on integers
+        if lty.integer? && rty.integer?
+          lty
         end
       else
         # LHS is significant unless RHS is a floating point
-        if lhs.integer?
-          rhs.float? ? rhs : lhs
-        elsif lhs.float?
-          lhs
+        if lty.integer?
+          rty.float? ? rty : lty
+        elsif lty.float?
+          lty
         end
       end
     end
 
-    # :nodoc:
-    def self.resolve(operator : String, lhs, rhs) : Nil
-    end
-
     # Resolves the return type of an unary expression.
-    def self.resolve(operator, expression)
+    def self.resolve(operator : String, ety : Type)
       case operator
       when "!"
         "bool"
       when "~"
-        expression if INTEGERS.includes?(expression)
-      else
-        expression
+        ety if INTEGERS.includes?(ety.name)
+      when "-", "+"
+        ety if ety.integer? || ety.float?
       end
     end
   end

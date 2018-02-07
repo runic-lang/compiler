@@ -1,5 +1,6 @@
 MANPAGES += man1/runic.1
 MANPAGES += man1/runic-compile.1
+MANPAGES += man1/runic-documentation.1
 MANPAGES += man1/runic-interactive.1
 
 .PHONY: clean

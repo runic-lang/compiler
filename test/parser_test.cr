@@ -11,22 +11,22 @@ module Runic
       assert_expression AST::Integer, "123"
       assert_expression AST::Integer, "123129871928718729172"
 
-      assert_type "int32", "2147483647"
-      assert_type "int32", "-2147483648"
-      assert_type "int64", "9223372036854775807"
-      assert_type "int64", "-9223372036854775808"
-      assert_type "int128", "170141183460469231731687303715884105727"
-      assert_type "int128", "-170141183460469231731687303715884105728"
+      assert_type "i32", "2147483647"
+      assert_type "i32", "-2147483648"
+      assert_type "i64", "9223372036854775807"
+      assert_type "i64", "-9223372036854775808"
+      assert_type "i128", "170141183460469231731687303715884105727"
+      assert_type "i128", "-170141183460469231731687303715884105728"
 
-      assert_type "uint32", "0xf000_0000"
-      assert_type "uint64", "0xffff_ffff_FFFF_ffff"
-      assert_type "uint128", "0x000F_ffff_ffff_ffff_ffff"
-      assert_type "uint128", "0xFFFF_ffff_ffff_ffff_ffff_ffff_ffff_ffff"
+      assert_type "u32", "0xf000_0000"
+      assert_type "u64", "0xffff_ffff_FFFF_ffff"
+      assert_type "u128", "0x000F_ffff_ffff_ffff_ffff"
+      assert_type "u128", "0xFFFF_ffff_ffff_ffff_ffff_ffff_ffff_ffff"
 
-      assert_type "uint32", "0b#{"1" * 32}"
-      assert_type "uint32", "0b#{"0" * 32}_1111"
-      assert_type "uint64", "0b#{"1" * 64}"
-      assert_type "uint128", "0b#{"1" * 128}"
+      assert_type "u32", "0b#{"1" * 32}"
+      assert_type "u32", "0b#{"0" * 32}_1111"
+      assert_type "u64", "0b#{"1" * 64}"
+      assert_type "u128", "0b#{"1" * 128}"
     end
 
     #def test_validates_integer_fit_representation_size
@@ -35,8 +35,8 @@ module Runic
     #  assert_raises(SyntaxError) { lex("-0b01").next }
 
     #  # hexadecimal / binary representations may be signed if specified (if value fits):
-    #  assert_type "int32", "-0b01_i"
-    #  assert_type "int32", "-0x7f_i"
+    #  assert_type "i32", "-0b01_i"
+    #  assert_type "i32", "-0x7f_i"
 
     #  # value doesn't fit:
     #  assert_raises(SyntaxError) { lex("0x1_ff_u8").next }
@@ -72,6 +72,9 @@ module Runic
       assert_expression AST::Integer, "-123"
       assert_expression AST::Float, "+123.02"
       assert_expression AST::Float, "-123.02"
+
+      assert_expression AST::Unary, "- -123"
+      assert_expression AST::Unary, "-(-123)"
     end
 
     def test_binary_operators
@@ -109,34 +112,34 @@ module Runic
     end
 
     def test_externs
-      assert_expression AST::Prototype, "extern foo(int32) : void"
+      assert_expression AST::Prototype, "extern foo(i32) : void"
       assert_expression AST::Prototype, "extern foo() : void"
       assert_expression AST::Prototype, "extern foo : void"
       assert_expression AST::Prototype, "extern foo"
-      assert_expression AST::Prototype, "extern llvm.sadd.with.overflow.i32(int32, int32) : int32"
+      assert_expression AST::Prototype, "extern llvm.sadd.with.overflow.i32(int, int) : int"
 
-      node = parser("extern foo(int32, int64, float32) : float").next.as(AST::Prototype)
+      node = parser("extern foo(i32, i64, f32) : float").next.as(AST::Prototype)
       assert_equal "foo", node.name
-      assert_equal "float64", node.type.name
+      assert_equal "f64", node.type.name
       assert_equal ["x1", "x2", "x3"], node.args.map(&.name)
-      assert_equal ["int32", "int64", "float32"], node.args.map(&.type.name)
+      assert_equal ["i32", "i64", "f32"], node.args.map(&.type.name)
 
-      parse_each("extern foo : void; extern bar : float32") do |node|
+      parse_each("extern foo : void; extern bar : f32") do |node|
         assert AST::Prototype === node
       end
     end
 
     def test_defs
-      assert_expression AST::Function, "def foo() : int32; end"
-      assert_expression AST::Function, "def foo : float64; end"
+      assert_expression AST::Function, "def foo() : int; end"
+      assert_expression AST::Function, "def foo : float; end"
       assert_expression AST::Function, "def foo; end"
-      assert_expression AST::Function, "def foo(a : int32) : void; end"
+      assert_expression AST::Function, "def foo(a : int) : void; end"
 
-      node = parser("def bar(a : int, b : uint64, c : float64); a + b + c; end").next.as(AST::Function)
+      node = parser("def bar(a : int, b : u64, c : f64); a + b + c; end").next.as(AST::Function)
       assert_equal "bar", node.name
       assert_nil node.type? # need semantic analysis to determine the return type
       assert_equal ["a", "b", "c"], node.args.map(&.name)
-      assert_equal ["int32", "uint64", "float64"], node.args.map(&.type.name)
+      assert_equal ["i32", "u64", "f64"], node.args.map(&.type.name)
 
       parse_each("def foo; 1 + 2; end; def bar; 3 * 4; end") do |node|
         assert AST::Function === node
