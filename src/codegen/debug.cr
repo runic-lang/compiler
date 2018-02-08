@@ -1,3 +1,4 @@
+require "../codegen"
 require "../ext/llvm/di_builder"
 
 module Runic
