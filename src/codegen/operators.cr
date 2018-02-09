@@ -2,8 +2,6 @@ require "../codegen"
 
 module Runic
   class Codegen
-    # FIXME: ASSUMEs that lhs.type == rhs.type but we MUST transform each
-    #        operand so it matches node.type !
     def codegen(node : AST::Binary) : LibC::LLVMValueRef
       if node.assignment?
         rhs = codegen(node.rhs)
@@ -12,9 +10,26 @@ module Runic
 
         case node.operator
         when "="
-          lhse = node.lhs.as(AST::Variable)
-          alloca = @named_values[lhse.name] ||= build_alloca(lhse)
-          LibC.LLVMBuildStore(@builder, rhs, alloca)
+          case node.lhs
+
+          when AST::Variable
+            # store value on the stack
+            lhse = node.lhs.as(AST::Variable)
+            alloca = @named_values[lhse.name] ||= build_alloca(lhse)
+            LibC.LLVMBuildStore(@builder, rhs, alloca)
+
+          when AST::Constant
+            # memorize constant value
+            lhse = node.lhs.as(AST::Constant)
+            if @constant_values[lhse.name]?
+              raise CodegenError.new("constant #{lhse.name} has already been initialized")
+            end
+            @constant_values[lhse.name] = rhs
+
+          else
+            raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
+          end
+
           return rhs
         else
           unsupported_operation!(node)

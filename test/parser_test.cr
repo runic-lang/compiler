@@ -106,6 +106,19 @@ module Runic
       end
     end
 
+    def test_constant_assignments
+      assert_expression AST::Binary, "FOO = 1"
+      assert_expression AST::Binary, "BAR = 1.0"
+      assert_expression AST::Binary, "FOOBAR = FOO"
+
+      node = parser("FOO = 1").next.as(AST::Binary)
+      assert AST::Constant === node.lhs
+
+      assert_raises(SyntaxError) do
+        parser("def foo; FOO = 1; end", top_level_expressions: false).next
+      end
+    end
+
     def test_skips_comments
       assert_expression AST::Boolean, "# foo\ntrue"
       assert_expression AST::Boolean, "# foo\n\n# bar\ntrue"

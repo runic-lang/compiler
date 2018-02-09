@@ -118,6 +118,18 @@ module Runic
         end
       end
 
+      def test_types_constants
+        assert_type "i32", visit("FOO = 1")
+
+        visit_each("FOO = 1; BAR = FOO") do |node|
+          assert_type "i32", node
+        end
+
+        assert_raises(SemanticError) { visit("FOO = UNKNOWN") }
+        assert_raises(SemanticError) { visit("value = WHAT") }
+        assert_raises(SemanticError) { visit("2 + INCREMENT") }
+      end
+
       def test_types_unary_expressions
         assert_type "i32", visit("-(123))")
         assert_type "bool", visit("!123)")
@@ -205,7 +217,7 @@ module Runic
       end
 
       private def visit(source)
-        parse(source) do |node|
+        parse_each(source) do |node|
           visitor.visit(node)
           return node
         end
@@ -214,17 +226,11 @@ module Runic
 
       private def visit_each(source)
         index = 0
-        parse(source) do |node|
+        parse_each(source) do |node|
           visitor.visit(node)
           yield node, index
           index += 1
         end
-      end
-
-      private def parse(source)
-        io = IO::Memory.new(source)
-        lexer = Lexer.new(io)
-        Parser.new(lexer, top_level_expressions: true).parse { |node| yield node }
       end
 
       private def visitor

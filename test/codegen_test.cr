@@ -394,30 +394,62 @@ module Runic
       assert expected.class === actual, "Expected #{expected.class.name} but got #{actual.class.name}", file, line
     end
 
+    def test_function_definition
+      source = <<-RUNIC
+      def runic_add(a : int, b : int)
+        a + b
+      end
+      runic_add(1, 2)
+      RUNIC
+      assert_equal 3, execute(source)
+    end
+
+    def test_constant_definition
+      source = <<-RUNIC
+      INCREMENT = 1
+
+      def increment(a : int)
+        a + INCREMENT
+      end
+
+      increment(10)
+      RUNIC
+      assert_equal 11, execute(source)
+    end
+
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
-      function = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))
+      main = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))
 
       semantic = Semantic.new
+      functions = [] of AST::Function
 
       generator = Codegen.new(debug: DebugLevel::None, optimize: true)
       parse_each(intrinsics) { |node| generator.codegen(node) }
 
       parse_each(source) do |node|
-        case node
-        when AST::Function
+        if node.is_a?(AST::Function)
           semantic.visit(node)
-          generator.codegen(node)
+          functions << node
         else
-          function.body << node
+          if node.is_a?(AST::Binary)
+            if node.lhs.is_a?(AST::Constant)
+              semantic.visit(node)
+              generator.codegen(node)
+              next
+            end
+          end
+          main.body << node
         end
       end
 
-      semantic.visit(function)
-      func = generator.codegen(function)
+      semantic.visit(main)
+
+      functions.each { |node| generator.codegen(node) }
+      func = generator.codegen(main)
 
       begin
-        case function.type.name
+        case main.type.name
         when "bool" then return generator.execute(true, func)
         when "i8" then return generator.execute(1_i8, func)
         when "i16" then return generator.execute(1_i16, func)
@@ -429,7 +461,7 @@ module Runic
         when "u64" then return generator.execute(1_u64, func)
         when "f32" then return generator.execute(1_f32, func)
         when "f64" then return generator.execute(1_f64, func)
-        else raise "unsupported return type '#{function.type}' (yet)"
+        else raise "unsupported return type '#{main.type}' (yet)"
         end
       ensure
         LibC.LLVMDeleteFunction(func)

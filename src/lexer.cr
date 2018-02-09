@@ -28,6 +28,7 @@ module Runic
 
     KEYWORDS = %w(
       alias
+      begin
       case
       class
       def
@@ -43,6 +44,9 @@ module Runic
       private
       protected
       public
+      raise
+      rescue
+      return
       struct
       then
       unless

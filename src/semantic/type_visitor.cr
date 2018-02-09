@@ -18,6 +18,7 @@ module Runic
     # - warning: circular calls (foo calls bar that calls foo)
     class TypeVisitor < Visitor
       def initialize
+        @named_constants = {} of String => AST::Constant
         @named_variables = {} of String => AST::Variable
         @prototypes = {} of String => AST::Prototype
       end
@@ -51,6 +52,16 @@ module Runic
         end
       end
 
+      # Makes sure the constant has been defined, accessing the previously
+      # memorized assignment.
+      def visit(node : AST::Constant) : Nil
+        if named_const = @named_constants[node.name]?
+          node.type = named_const.type unless node.type?
+        else
+          raise SemanticError.new("constant '#{node.name}' has no type", node.location)
+        end
+      end
+
       # Visits the sub-expressions, then types the binary expression.
       #
       # In case of an assignment, only the righ-hand-side sub-expression is
@@ -69,23 +80,31 @@ module Runic
           # make sure RHS is typed
           visit(rhs)
 
-          # type LHS from RHS
-          lhs = lhs.as(AST::Variable)
-          lhs.type = rhs.type
+          case lhs
+          when AST::Variable
+            # type LHS from RHS
+            lhs.type = rhs.type
 
-          if named_var = @named_variables[lhs.name]?
-            if named_var.type == lhs.type
-              # make sure to refer to the variable (or its shadow)
-              visit(lhs)
+            if named_var = @named_variables[lhs.name]?
+              if named_var.type == lhs.type
+                # make sure to refer to the variable (or its shadow)
+                visit(lhs)
+              else
+                # shadow the variable
+                name = lhs.name
+                lhs.shadow = named_var.shadow + 1
+                @named_variables[name] = lhs
+              end
             else
-              # shadow the variable
-              name = lhs.name
-              lhs.shadow = named_var.shadow + 1
-              @named_variables[name] = lhs
+              # memorize the variable (so we know its type later)
+              @named_variables[lhs.name] = lhs
             end
+          when AST::Constant
+            # type LHS from RHS
+            lhs.type = rhs.type
+            @named_constants[lhs.name] = lhs
           else
-            # memorize the variable (so we know its type later)
-            @named_variables[lhs.name] = lhs
+            raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
           end
         else
           # make sure LHS and RHS are typed

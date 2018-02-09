@@ -261,6 +261,21 @@ module Runic
       end
     end
 
+    class Constant < Node
+      getter name : String
+
+      def self.new(token : Token)
+        new(token.value, token.location)
+      end
+
+      def initialize(@name, @location)
+      end
+
+      private def resolve_type
+        # can't be determined (need semantic analysis)
+      end
+    end
+
     class Variable < Node
       @name : String
       property shadow : Int32

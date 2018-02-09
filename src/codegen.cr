@@ -24,6 +24,7 @@ module Runic
         @debug = Debug::DWARF.new(@module, @builder, @context, debug)
       end
 
+      @constant_values = {} of String => LibC::LLVMValueRef
       @named_values = {} of String => LibC::LLVMValueRef
     end
 

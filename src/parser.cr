@@ -28,12 +28,16 @@ module Runic
           when "extern"
             return parse_extern
           else
-            return parse_top_level_expression
+            raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
           end
         when :linefeed
           skip
         else
-          return parse_top_level_expression
+          if @top_level_expressions
+            return parse_top_level_expression
+          elsif peek.type == :identifier
+            return parse_constant_assignment
+          end
         end
       end
     end
@@ -169,6 +173,24 @@ module Runic
       args
     end
 
+    private def parse_constant_assignment
+      unless peek.value =~ /^[A-Z_][A-Z0-9_]*$/
+        raise SyntaxError.new("expected constant but got identifier #{peek.value.inspect}", peek.location)
+      end
+
+      lhs = AST::Constant.new(consume)
+      op = expect("=")
+
+      while peek.type == :whitespace
+        skip
+      end
+      rhs = parse_literal do
+        raise SyntaxError.new("expected literal but got #{peek.type.inspect}", peek.location)
+      end
+
+      AST::Binary.new(op.value, lhs, rhs, op.location)
+    end
+
     private def parse_top_level_expression
       unless @top_level_expressions
         raise SyntaxError.new("unexpected top level expression", peek.location)
@@ -191,9 +213,11 @@ module Runic
 
         binary_operator = consume
 
-        # NOTE: other LHS nodes may be assignable
-        if binary_operator.assignment? && !lhs.is_a?(AST::Variable)
-          raise SyntaxError.new("only variables may be assigned a value", binary_operator.location)
+        if binary_operator.assignment?
+          # TODO: detect whether we are in a dynamic context to forbid constant definitions
+          unless lhs.is_a?(AST::Variable) || (@top_level_expressions && lhs.is_a?(AST::Constant))
+            raise SyntaxError.new("only variables may be assigned a value in a dynamic context", binary_operator.location)
+          end
         end
 
         rhs = parse_unary
@@ -247,6 +271,28 @@ module Runic
       #  parse_while_expression
       #when :until
       #  parse_until_expression
+      when :mark
+        if peek.value == "("
+          parse_parenthesis_expression
+        else
+          raise SyntaxError.new("expected expression but got #{peek.value.inspect}", peek.location)
+        end
+      when :linefeed
+        skip
+        parse_primary
+      when :identifier
+        parse_literal { parse_identifier_expression }
+      when :keyword
+        raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
+      else
+        parse_literal do
+          raise SyntaxError.new("expected expression but got #{peek.type.inspect}", peek.location)
+        end
+      end
+    end
+
+    private def parse_literal
+      case peek.type
       when :integer
         AST::Integer.new(consume)
       when :float
@@ -257,22 +303,15 @@ module Runic
           AST::Boolean.new(consume)
         #when "nil"
         #  AST::Nil.new(consume)
+        when /^[A-Z_][A-Z0-9_]*$/
+          AST::Constant.new(consume)
         else
-          parse_identifier_expression
+          yield
         end
-      when :mark
-        if peek.value == "("
-          parse_parenthesis_expression
-        else
-          raise SyntaxError.new("expected expression but got #{peek.value.inspect}", peek.location)
-        end
-      when :linefeed
-        skip
-        parse_primary
       when :keyword
-        raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
+        raise SyntaxError.new("expected literal but got #{peek.value.inspect} keyword", peek.location)
       else
-        raise SyntaxError.new("expected expression but got #{peek.type.inspect}", peek.location)
+        yield
       end
     end
 
@@ -283,6 +322,8 @@ module Runic
       node
     end
 
+    # Parses either a variable accessor, or a function call if immediately
+    # followed by an opening parenthesis.
     private def parse_identifier_expression
       identifier = consume
 
