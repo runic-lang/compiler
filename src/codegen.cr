@@ -1,3 +1,4 @@
+require "./codegen/control_flow"
 require "./codegen/debug"
 require "./codegen/functions"
 require "./codegen/literals"
@@ -136,6 +137,9 @@ module Runic
       end
     end
 
+    def codegen(nodes : Array(AST::Node)) : LibC::LLVMValueRef
+      nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
+    end
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)
@@ -193,6 +197,14 @@ module Runic
       end
     end
 
+    # The `codegen` methods must return a value, but sometimes they must return
+    # void, that is nothing, in this case we return a zero value. We could pass
+    # a NULL pointer because semantic analysis should prevent using a void
+    # value, but better safe than sorry.
+    private def llvm_void_value
+      LibC.LLVMConstInt(llvm_type("i32"), 0, 0)
+    end
+
     private def llvm_type(node : AST::Node)
       llvm_type(node.type.name)
     end
@@ -222,6 +234,8 @@ module Runic
       #when "long", "ulong"
       #  LibC.LLVMInt32TypeInContext(@context)   # 32-bit: x86, arm, mips, ...
       #  LibC.LLVMInt64TypeInContext(@context)   # 64-bit: x86_64, aarch64, mips64, ...
+      when "void"
+        LibC.LLVMVoidTypeInContext(@context)
       else
         raise CodegenError.new("unsupported #{type}")
       end

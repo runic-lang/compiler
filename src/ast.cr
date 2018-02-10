@@ -398,5 +398,30 @@ module Runic
         # can't be determined (need semantic analysis)
       end
     end
+
+    class If < Node
+      getter condition : Node
+      getter body : Array(Node)
+      getter alternative : Array(Node)?
+
+      def initialize(@condition, @body, @alternative, @location)
+      end
+
+      def resolve_type
+        # could be determined, but we postpone to semantic analysis
+      end
+    end
+
+    class Unless < Node
+      getter condition : Node
+      getter body : Array(Node)
+
+      def initialize(@condition, @body, @location)
+      end
+
+      def resolve_type
+        # could be determined, but we postpone to semantic analysis
+      end
+    end
   end
 end

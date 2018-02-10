@@ -88,6 +88,39 @@ module Runic
         end
       end
 
+      def to_h(node : Runic::AST::If)
+        print "- if : #{node.type?}#{to_options(node, type: false)}"
+
+        print "  condition:"
+        nested do
+          to_h(node.condition)
+        end
+
+        print "  body:"
+        nested do
+          node.body.each { |n| to_h(n) }
+        end
+
+        print "  alternate:"
+        nested do
+          node.body.each { |n| to_h(n) }
+        end
+      end
+
+      def to_h(node : Runic::AST::Unless)
+        print "- unless : #{node.type?}#{to_options(node, type: false)}"
+
+        print "  condition:"
+        nested do
+          to_h(node.condition)
+        end
+
+        print "  body:"
+        nested do
+          node.body.each { |n| to_h(n) }
+        end
+      end
+
       def to_options(node : Runic::AST::Node, type = true)
         String.build do |str|
           if type && @semantic

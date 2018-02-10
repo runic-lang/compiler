@@ -210,6 +210,23 @@ module Runic
         assert_match "doesn't match previous definition", ex.message
       end
 
+      def test_types_if_expressions
+        assert_type "void", visit("if true; 1; end")
+        assert_type "i32", visit("if false; 1; else; 2; end")
+        assert_type "f64", visit("if false; 123.456; else; 789.1; end")
+        assert_type "void", visit("if true; 1; else; 789.1; end")
+      end
+
+      def test_types_unless_expressions
+        assert_type "void", visit("if true; 1; end")
+      end
+
+      def test_validates_flow_conditions
+        visit("def foo() : void; 123; end")
+        assert_raises(SemanticError) { visit("if foo(); 1; end") }
+        assert_raises(SemanticError) { visit("unless foo(); 1; end") }
+      end
+
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)
         assert_equal name, node.type.name, file: file, line: line
       end

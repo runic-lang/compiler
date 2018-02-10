@@ -417,6 +417,41 @@ module Runic
       assert_equal 11, execute(source)
     end
 
+    def test_if_expressions
+      assert_equal 20, execute <<-RUNIC
+      def foo(a : int)
+        if a > 10
+          a - 2
+        else
+          a + 1
+        end
+      end
+      foo(1) + foo(20)
+      RUNIC
+
+      assert_equal 19, execute <<-RUNIC
+      def foo(a : int)
+        if a > 10
+          a = a - 2
+        end
+        a
+      end
+      foo(1) + foo(20)
+      RUNIC
+    end
+
+    def test_unless_expression
+      assert_equal 22, execute <<-RUNIC
+      def foo(a : int)
+        unless a > 10
+          a = a + 1
+        end
+        a
+      end
+      foo(1) + foo(20)
+      RUNIC
+    end
+
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
       main = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))

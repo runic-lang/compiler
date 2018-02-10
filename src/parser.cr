@@ -63,18 +63,24 @@ module Runic
       end
 
       prototype = AST::Prototype.new(name, args, return_type, documentation, location)
+      body = parse_body("end")
+      consume # end
+
+      AST::Function.new(prototype, body, location)
+    end
+
+    private def parse_body(*stops)
       body = [] of AST::Node
 
-      until peek.value == "end"
+      until stops.includes?(peek.value)
         if peek.type == :linefeed
           consume
         else
           body << parse_expression
         end
       end
-      consume # end
 
-      AST::Function.new(prototype, body, location)
+      body
     end
 
     private def consume_type
@@ -261,16 +267,6 @@ module Runic
 
     private def parse_primary
       case peek.type
-      #when :if
-      #  parse_if_expression
-      #when :unless
-      #  parse_unless_expression
-      #when :case
-      #  parse_case_expression
-      #when :while
-      #  parse_while_expression
-      #when :until
-      #  parse_until_expression
       when :mark
         if peek.value == "("
           parse_parenthesis_expression
@@ -283,7 +279,20 @@ module Runic
       when :identifier
         parse_literal { parse_identifier_expression }
       when :keyword
-        raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
+        case peek.value
+        when "if"
+          parse_if_expression
+        when "unless"
+          parse_unless_expression
+        #when "case"
+        #  parse_case_expression
+        #when "while"
+        #  parse_while_expression
+        #when "until"
+        #  parse_until_expression
+        else
+          raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
+        end
       else
         parse_literal do
           raise SyntaxError.new("expected expression but got #{peek.type.inspect}", peek.location)
@@ -345,6 +354,31 @@ module Runic
 
       consume # )
       AST::Call.new(identifier, args)
+    end
+
+    private def parse_if_expression
+      location = consume.location # if
+
+      condition = parse_expression
+      body = parse_body("end", "else")
+
+      if peek.value == "else"
+        consume # else
+        alternative = parse_body("end")
+      end
+      consume # end
+
+      AST::If.new(condition, body, alternative, location)
+    end
+
+    private def parse_unless_expression
+      location = consume.location # unless
+
+      condition = parse_expression
+      body = parse_body("end")
+      consume # end
+
+      AST::Unless.new(condition, body, location)
     end
 
     private def expect(type : Symbol)

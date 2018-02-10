@@ -170,9 +170,37 @@ module Runic
       assert_equal 2, node.args.size
     end
 
+    def test_ifs
+      node = assert_expression AST::If, "if test; end"
+      assert_empty node.as(AST::If).body
+      assert_nil node.as(AST::If).alternative
+
+      node = assert_expression AST::If, <<-RUNIC
+      if test
+        something()
+        more()
+        again()
+      end
+      RUNIC
+      assert_equal 3, node.as(AST::If).body.size
+      assert_nil node.as(AST::If).alternative
+
+      node = assert_expression AST::If, <<-RUNIC
+      if a < 10 || b > 10
+        foo()
+      else
+        more()
+        bar()
+      end
+      RUNIC
+      assert_equal 1, node.as(AST::If).body.size
+      assert_equal 2, node.as(AST::If).alternative.try(&.size)
+    end
+
     private def assert_expression(klass, source, file = __FILE__, line = __LINE__)
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line
+      node
     end
 
     private def assert_type(expected, source, file = __FILE__, line = __LINE__)

@@ -211,6 +211,38 @@ module Runic
         node.type = prototype.type
       end
 
+      # Makes sure to visit inner nodes (condition, body, alternate body if
+      # present), then tries to type the expression, which requires an alternate
+      # body and both the body and the alternate one to evaluate to the same
+      # type, otherwise the returned type is left undefined.
+      #
+      # TODO: return a nilable type if there is no alternate branch.
+      def visit(node : AST::If) : Nil
+        visit_condition(node.condition)
+        visit(node.body)
+
+        if alt_body = node.alternative
+          visit(alt_body)
+        end
+
+        if (last = node.body.last?) && (alt_last = node.alternative.try(&.last?))
+          if last.type == alt_last.type
+            node.type = last.type
+            return
+          end
+        end
+
+        node.type = "void"
+      end
+
+      # Visits inner nodes (condition, body). The returned type is always void.
+      #
+      # TODO: return a nilable type.
+      def visit(node : AST::Unless) : Nil
+        visit_condition(node.condition)
+        visit(node.body)
+        node.type = "void"
+      end
 
       # These nodes don't need to be visited.
       def visit(node : AST::Float | AST::Boolean) : Nil
@@ -219,6 +251,14 @@ module Runic
       # Simple helper to visit bodies (functions, ifs, ...).
       def visit(node : Array(AST::Node)) : Nil
         node.each { |child| visit(child) }
+      end
+
+      private def visit_condition(node : AST::Node) : Nil
+        visit(node)
+
+        if node.type == "void"
+          raise SemanticError.new("void value isn't ignored as it ought to be", node)
+        end
       end
 
       private def new_scope
