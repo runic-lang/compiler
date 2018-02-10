@@ -28,6 +28,7 @@ module Runic
           when "extern"
             return parse_extern
           else
+            return parse_top_level_expression if @top_level_expressions
             raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
           end
         when :linefeed
@@ -53,8 +54,7 @@ module Runic
     private def parse_definition
       documentation = parse_documentation
 
-      consume # def
-      location = peek.location
+      location = consume.location # def
       name = consume_prototype_name
       args = consume_def_args
 

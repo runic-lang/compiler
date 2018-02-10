@@ -1,9 +1,15 @@
+require "./ast"
+
 module Runic
   class Error < Exception
   end
 
   class SyntaxError < Error
     getter location : Location
+
+    def self.new(message, node : AST::Node)
+      new(message, node.location)
+    end
 
     def initialize(message, @location)
       super "#{message} at #{@location}"
@@ -13,13 +19,9 @@ module Runic
   class SemanticError < Error
     getter location : Location
 
-    def initialize(message, @location)
-      super "#{message} at #{@location}"
+    def self.new(message, node : AST::Node)
+      new(message, node.location)
     end
-  end
-
-  class CompileError < Error
-    getter location : Location
 
     def initialize(message, @location)
       super "#{message} at #{@location}"

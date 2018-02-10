@@ -183,6 +183,8 @@ module Runic
 
         ex = assert_raises(SemanticError) { visit("def add(a : int) : int; 1.0; end") }
         assert_match "must return i32 but returns f64", ex.message
+
+        assert_type "void", visit("def foo(a : int) : void; 1.0; end")
       end
 
       def test_validates_previous_definitions

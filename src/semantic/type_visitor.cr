@@ -16,6 +16,10 @@ module Runic
     # - forward visit/type functions as they are used;
     # - warning: recursive calls (foo calls itself);
     # - warning: circular calls (foo calls bar that calls foo)
+    #
+    # TODO: the void type can't be accessed, that is semantic analysis must
+    # prevent assigning void to a variable or constant, or using a void member
+    # in a binary or unary expression, ...
     class TypeVisitor < Visitor
       def initialize
         @named_constants = {} of String => AST::Constant
@@ -56,7 +60,7 @@ module Runic
       # memorized assignment.
       def visit(node : AST::Constant) : Nil
         if named_const = @named_constants[node.name]?
-          node.type = named_const.type unless node.type?
+          node.type = named_const.type
         else
           raise SemanticError.new("constant '#{node.name}' has no type", node.location)
         end
@@ -153,7 +157,7 @@ module Runic
 
       # Creates a new scope to hold local variables, initialized to the function
       # arguments. Visits the body, determining the actual return type.
-      # Eventually types the function if it wasn't, or verifies the return type
+      # Types the function if it wasn't, otherwise ensures the return type
       # matches the definition. Eventually visits the prototype to be memoized.
       def visit(node : AST::Function) : Nil
         new_scope do
@@ -161,20 +165,17 @@ module Runic
             @named_variables[arg.name] = arg
           end
 
-          node.body.each do |n|
-            visit(n)
-          end
+          visit(node.body)
 
           ret_type = node.body.last?.try(&.type?)
 
           if type = node.type?
-            unless type == ret_type
+            unless type == "void" || type == ret_type
               message = "function '#{node.name}' must return #{type} but returns #{ret_type}"
               raise SemanticError.new(message, node.location)
             end
-          end
-
-          if ret_type
+            node.prototype.type = type
+          elsif ret_type
             node.type ||= ret_type
             node.prototype.type = ret_type
           end
@@ -188,7 +189,7 @@ module Runic
       # that passed arguments match the prototype (same number of arguments,
       # same types). Eventually types the expression.
       def visit(node : AST::Call) : Nil
-        node.args.each { |arg| visit(arg) }
+        visit(node.args)
 
         unless prototype = @prototypes[node.callee]?
           raise SemanticError.new("undefined function '#{node.callee}'", node.location)
@@ -210,8 +211,14 @@ module Runic
         node.type = prototype.type
       end
 
-      # Other nodes don't need to be visited (e.g. boolean literals).
-      def visit(node : AST::Node) : Nil
+
+      # These nodes don't need to be visited.
+      def visit(node : AST::Float | AST::Boolean) : Nil
+      end
+
+      # Simple helper to visit bodies (functions, ifs, ...).
+      def visit(node : Array(AST::Node)) : Nil
+        node.each { |child| visit(child) }
       end
 
       private def new_scope
