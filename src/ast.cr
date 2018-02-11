@@ -423,5 +423,29 @@ module Runic
         # could be determined, but we postpone to semantic analysis
       end
     end
+
+    class While < Node
+      getter condition : Node
+      getter body : Array(Node)
+
+      def initialize(@condition, @body, @location)
+      end
+
+      def resolve_type
+        "void"
+      end
+    end
+
+    class Until < Node
+      getter condition : Node
+      getter body : Array(Node)
+
+      def initialize(@condition, @body, @location)
+      end
+
+      def resolve_type
+        "void"
+      end
+    end
   end
 end

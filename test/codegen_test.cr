@@ -452,6 +452,30 @@ module Runic
       RUNIC
     end
 
+    def test_while_expression
+      assert_equal 10, execute <<-RUNIC
+      def foo(a : int)
+        while a < 10
+          a = a + 1
+        end
+        a
+      end
+      foo(1)
+      RUNIC
+    end
+
+    def test_until_expression
+      assert_equal 0, execute <<-RUNIC
+      def foo(a : int)
+        until a == 0
+          a = a - 1
+        end
+        a
+      end
+      foo(10)
+      RUNIC
+    end
+
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
       main = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))

@@ -221,10 +221,20 @@ module Runic
         assert_type "void", visit("if true; 1; end")
       end
 
+      def test_types_while_expressions
+        assert_type "void", visit("while true; 1; end")
+      end
+
+      def test_types_until_expressions
+        assert_type "void", visit("until true; 1; end")
+      end
+
       def test_validates_flow_conditions
         visit("def foo() : void; 123; end")
         assert_raises(SemanticError) { visit("if foo(); 1; end") }
         assert_raises(SemanticError) { visit("unless foo(); 1; end") }
+        assert_raises(SemanticError) { visit("while foo(); 1; end") }
+        assert_raises(SemanticError) { visit("until foo(); 1; end") }
       end
 
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)

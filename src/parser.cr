@@ -286,10 +286,10 @@ module Runic
           parse_unless_expression
         #when "case"
         #  parse_case_expression
-        #when "while"
-        #  parse_while_expression
-        #when "until"
-        #  parse_until_expression
+        when "while"
+          parse_while_expression
+        when "until"
+          parse_until_expression
         else
           raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
         end
@@ -379,6 +379,26 @@ module Runic
       consume # end
 
       AST::Unless.new(condition, body, location)
+    end
+
+    private def parse_while_expression
+      location = consume.location # while
+
+      condition = parse_expression
+      body = parse_body("end")
+      consume # end
+
+      AST::While.new(condition, body, location)
+    end
+
+    private def parse_until_expression
+      location = consume.location # until
+
+      condition = parse_expression
+      body = parse_body("end")
+      consume # end
+
+      AST::Until.new(condition, body, location)
     end
 
     private def expect(type : Symbol)

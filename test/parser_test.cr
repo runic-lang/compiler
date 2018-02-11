@@ -197,6 +197,32 @@ module Runic
       assert_equal 2, node.as(AST::If).alternative.try(&.size)
     end
 
+    def test_while
+      node = assert_expression AST::While, "while true; end"
+      assert_empty node.as(AST::While).body
+
+      node = assert_expression AST::While, <<-RUNIC
+      while a < 10 || b > 10
+        foo()
+        bar()
+      end
+      RUNIC
+      assert_equal 2, node.as(AST::While).body.size
+    end
+
+    def test_until
+      node = assert_expression AST::Until, "until true; end"
+      assert_empty node.as(AST::Until).body
+
+      node = assert_expression AST::Until, <<-RUNIC
+      until a < 10 || b > 10
+        foo()
+        bar()
+      end
+      RUNIC
+      assert_equal 2, node.as(AST::Until).body.size
+    end
+
     private def assert_expression(klass, source, file = __FILE__, line = __LINE__)
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line

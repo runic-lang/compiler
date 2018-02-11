@@ -74,5 +74,63 @@ module Runic
 
       llvm_void_value
     end
+
+    def codegen(node : AST::While) : LibC::LLVMValueRef
+      @debug.emit_location(node)
+
+      entry = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      loop_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "while")
+      do_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "do")
+      end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
+
+      LibC.LLVMBuildBr(@builder, loop_block)
+
+      # -> loop
+      LibC.LLVMPositionBuilderAtEnd(@builder, loop_block)
+      condition = build_condition(node.condition)
+
+      # true -> do, false -> end
+      LibC.LLVMBuildCondBr(@builder, condition, do_block, end_block)
+
+      # do block:
+      LibC.LLVMPositionBuilderAtEnd(@builder, do_block)
+      value = codegen(node.body)
+      LibC.LLVMBuildBr(@builder, loop_block)
+
+      # merge block:
+      LibC.LLVMPositionBuilderAtEnd(@builder, end_block)
+
+      llvm_void_value
+    end
+
+    def codegen(node : AST::Until) : LibC::LLVMValueRef
+      @debug.emit_location(node)
+
+      entry = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      loop_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "until")
+      do_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "do")
+      end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
+
+      LibC.LLVMBuildBr(@builder, loop_block)
+
+      # -> loop
+      LibC.LLVMPositionBuilderAtEnd(@builder, loop_block)
+      condition = build_condition(node.condition)
+
+      # true -> end, false -> do
+      LibC.LLVMBuildCondBr(@builder, condition, end_block, do_block)
+
+      # do block:
+      LibC.LLVMPositionBuilderAtEnd(@builder, do_block)
+      value = codegen(node.body)
+      LibC.LLVMBuildBr(@builder, loop_block)
+
+      # merge block:
+      LibC.LLVMPositionBuilderAtEnd(@builder, end_block)
+
+      llvm_void_value
+    end
   end
 end

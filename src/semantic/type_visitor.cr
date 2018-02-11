@@ -244,6 +244,11 @@ module Runic
         node.type = "void"
       end
 
+      def visit(node : AST::While | AST::Until) : Nil
+        visit_condition(node.condition)
+        visit(node.body)
+      end
+
       # These nodes don't need to be visited.
       def visit(node : AST::Float | AST::Boolean) : Nil
       end
