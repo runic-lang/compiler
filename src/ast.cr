@@ -447,5 +447,30 @@ module Runic
         "void"
       end
     end
+
+    class When < Node
+      getter conditions : Array(Node)
+      getter body : Array(Node)
+
+      def initialize(@conditions, @body, @location)
+      end
+
+      def resolve_type
+        body.last?.try(&.type)
+      end
+    end
+
+    class Case < Node
+      getter value : Node
+      getter cases : Array(When)
+      getter alternative : Array(Node)?
+
+      def initialize(@value, @cases, @alternative, @location)
+      end
+
+      def resolve_type
+        # could be determined, but postpone to semantic analysis
+      end
+    end
   end
 end

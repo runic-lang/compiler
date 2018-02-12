@@ -229,12 +229,22 @@ module Runic
         assert_type "void", visit("until true; 1; end")
       end
 
+      def test_types_case_expressions
+        assert_type "void", visit("case 1; when 1; 2.0; end")
+        assert_type "void", visit("case 1; when 1; 1.0; when 2; 2.0; end")
+        assert_type "void", visit("case 1; when 1; 1_u8; else; 2_u16; end")
+        assert_type "u8", visit("case 1; when 1; 1_u8; else; 3_u8; end")
+        assert_type "f64", visit("case 1; when 1; 1.0; when 2; 2.0; else; 3.0; end")
+      end
+
       def test_validates_flow_conditions
         visit("def foo() : void; 123; end")
         assert_raises(SemanticError) { visit("if foo(); 1; end") }
         assert_raises(SemanticError) { visit("unless foo(); 1; end") }
         assert_raises(SemanticError) { visit("while foo(); 1; end") }
         assert_raises(SemanticError) { visit("until foo(); 1; end") }
+        assert_raises(SemanticError) { visit("case foo(); when 1; end") }
+        assert_raises(SemanticError) { visit("case 1; when foo(); end") }
       end
 
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)

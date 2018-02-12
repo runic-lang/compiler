@@ -284,8 +284,8 @@ module Runic
           parse_if_expression
         when "unless"
           parse_unless_expression
-        #when "case"
-        #  parse_case_expression
+        when "case"
+          parse_case_expression
         when "while"
           parse_while_expression
         when "until"
@@ -381,6 +381,47 @@ module Runic
       AST::Unless.new(condition, body, location)
     end
 
+    private def parse_case_expression
+      location = consume.location # case
+      value = parse_expression
+      skip if peek.type == :linefeed
+
+      cases = [] of AST::When
+
+      loop do
+        when_location = expect_keyword("when").location
+
+        conditions = [] of AST::Node
+        loop do
+          conditions << parse_expression
+          break unless peek.value == ","
+          skip # ,
+        end
+
+        if peek.type == :linefeed
+          skip
+        else
+          expect_keyword("then")
+        end
+
+        body = parse_body("when", "else", "end")
+        cases << AST::When.new(conditions, body, when_location)
+
+        if peek.value == "else" || peek.value == "end"
+          break
+        end
+      end
+
+      if peek.value == "else"
+        skip
+        alternative = parse_body("end")
+      end
+
+      expect_keyword("end")
+
+      AST::Case.new(value, cases, alternative, location)
+    end
+
     private def parse_while_expression
       location = consume.location # while
 
@@ -411,6 +452,14 @@ module Runic
 
     private def expect(value : String)
       if peek.value == value
+        consume
+      else
+        raise SyntaxError.new("expected #{value} but got #{peek}", peek.location)
+      end
+    end
+
+    private def expect_keyword(value : String)
+      if peek.type == :keyword && peek.value == value
         consume
       else
         raise SyntaxError.new("expected #{value} but got #{peek}", peek.location)

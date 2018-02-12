@@ -149,6 +149,40 @@ module Runic
         end
       end
 
+      def to_h(node : Runic::AST::Case)
+        print "- case : #{node.type?}#{to_options(node, type: false)}"
+
+        print "  value:"
+        nested do
+          to_h(node.value)
+        end
+
+        nested do
+          node.cases.each { |n| to_h(n) }
+        end
+
+        if body = node.alternative
+          print "  else:"
+          nested do
+            body.each { |n| to_h(n) }
+          end
+        end
+      end
+
+      def to_h(node : Runic::AST::When)
+        print "when : #{node.type?}#{to_options(node, type: false)}"
+
+        print "  conditions:"
+        nested do
+          node.conditions.each { |n| to_h(n) }
+        end
+
+        print "  body:"
+        nested do
+          node.body.each { |n| to_h(n) }
+        end
+      end
+
       def to_options(node : Runic::AST::Node, type = true)
         String.build do |str|
           if type && @semantic

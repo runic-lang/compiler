@@ -75,6 +75,7 @@ module Runic
       @debug.flush
 
       if LibC.LLVMVerifyModule(@module, LibC::LLVMVerifierFailureAction::ReturnStatus, nil) == 1
+        emit_llvm("dump.ll")
         raise CodegenError.new("module validation failed")
       end
 

@@ -197,6 +197,19 @@ module Runic
       assert_equal 2, node.as(AST::If).alternative.try(&.size)
     end
 
+    def test_unless
+      node = assert_expression AST::Unless, "unless true; end"
+      assert_empty node.as(AST::Unless).body
+
+      node = assert_expression AST::Unless, <<-RUNIC
+      unless a < 10 || b > 10
+        foo()
+        bar()
+      end
+      RUNIC
+      assert_equal 2, node.as(AST::Unless).body.size
+    end
+
     def test_while
       node = assert_expression AST::While, "while true; end"
       assert_empty node.as(AST::While).body
@@ -221,6 +234,32 @@ module Runic
       end
       RUNIC
       assert_equal 2, node.as(AST::Until).body.size
+    end
+
+    def test_case
+      node = assert_expression AST::Case, "case a; when 1; end"
+      assert_nil node.as(AST::Case).alternative
+      assert_equal 1, node.as(AST::Case).cases.size
+      assert_equal 1, node.as(AST::Case).cases.first.conditions.size
+      assert_empty node.as(AST::Case).cases.first.body
+
+      node = assert_expression AST::Case, <<-RUNIC
+      case foo(a, b + 10)
+      when 1
+        foo()
+      when 2, 3, 4
+        foo()
+        bar()
+      else
+        bar()
+      end
+      RUNIC
+      assert node.as(AST::Case).alternative
+      assert_equal 1, node.as(AST::Case).alternative.try(&.size)
+      assert_equal 2, node.as(AST::Case).cases.size
+      assert_equal 3, node.as(AST::Case).cases[1].conditions.size
+
+      assert_raises(SyntaxError) { parser("case a; end").next }
     end
 
     private def assert_expression(klass, source, file = __FILE__, line = __LINE__)

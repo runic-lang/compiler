@@ -249,6 +249,29 @@ module Runic
         visit(node.body)
       end
 
+      def visit(node : AST::Case) : Nil
+        visit_condition(node.value)
+        visit(node.cases)
+
+        if body = node.alternative
+          visit(body)
+
+          if type = body.last?.try(&.type)
+            if node.cases.all? { |n| n.type == type }
+              node.type = type
+              return
+            end
+          end
+        end
+
+        node.type = "void"
+      end
+
+      def visit(node : AST::When) : Nil
+        node.conditions.each { |n| visit_condition(n) }
+        visit(node.body)
+      end
+
       # These nodes don't need to be visited.
       def visit(node : AST::Float | AST::Boolean) : Nil
       end

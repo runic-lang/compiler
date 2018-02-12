@@ -132,5 +132,66 @@ module Runic
 
       llvm_void_value
     end
+
+    def codegen(node : AST::Case) : LibC::LLVMValueRef
+      @debug.emit_location(node)
+
+      count = node.cases.size
+      blocks = Array(LibC::LLVMBasicBlockRef).new(count)
+      values = Array(LibC::LLVMValueRef).new(count)
+
+      entry = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
+
+      value = codegen(node.value)
+
+      if body = node.alternative
+        else_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "else")
+        LibC.LLVMPositionBuilderAtEnd(@builder, else_block)
+        else_value = codegen(body)
+        LibC.LLVMBuildBr(@builder, end_block)
+
+        LibC.LLVMPositionBuilderAtEnd(@builder, entry)
+        switch = LibC.LLVMBuildSwitch(@builder, value, else_block, count)
+      else
+        switch = LibC.LLVMBuildSwitch(@builder, value, end_block, count)
+      end
+
+      node.cases.each do |n|
+        block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "when")
+        LibC.LLVMMoveBasicBlockBefore(block, end_block)
+        blocks << block
+
+        LibC.LLVMPositionBuilderAtEnd(@builder, block)
+        values << codegen(n.body)
+        LibC.LLVMBuildBr(@builder, end_block)
+
+        n.conditions.each do |condition|
+          LibC.LLVMAddCase(switch, codegen(condition), block)
+        end
+      end
+
+      LibC.LLVMPositionBuilderAtEnd(@builder, end_block)
+
+      if else_block
+        LibC.LLVMMoveBasicBlockBefore(else_block, end_block)
+        blocks << else_block
+        values << else_value.not_nil!
+        count += 1
+      end
+
+      if node.type == "void"
+        return llvm_void_value
+      end
+
+      phi = LibC.LLVMBuildPhi(@builder, llvm_type(node), "")
+      LibC.LLVMAddIncoming(phi, values, blocks, count)
+      phi
+    end
+
+    def codegen(node : AST::When) : LibC::LLVMValueRef
+      raise CodegenError.new("#{node.class.name} can't be generated directly")
+    end
   end
 end

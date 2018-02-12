@@ -476,6 +476,24 @@ module Runic
       RUNIC
     end
 
+    def test_case_expression
+      assert_equal 25, execute <<-RUNIC
+      def foo(a : int)
+        case a
+        when 1, 2
+          a + 1
+        when 3
+          a + 2
+        when 4, 5, 6
+          a + 3
+        else
+          a
+        end
+      end
+      foo(10) + foo(1) + foo(3) + foo(5)
+      RUNIC
+    end
+
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
       main = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))
