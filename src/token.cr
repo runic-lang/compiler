@@ -30,6 +30,29 @@ module Runic
       operator? && OPERATORS::ASSIGNMENT.includes?(value)
     end
 
+    def to_s(io)
+      case type
+      when :call
+        super
+      when :comment
+        io << "comment"
+      when :eof
+        io << "EOF"
+      when :integer, :float
+        value.inspect(io)
+      when :identifier
+        value.inspect(io)
+      when :keyword
+        value.inspect(io)
+      when :linefeed
+        io << "LF"
+      when :operator
+        io << value
+      else
+        super
+      end
+    end
+
     def inspect(io)
       value.to_s(io)
       io << ' '

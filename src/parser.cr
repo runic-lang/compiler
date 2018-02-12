@@ -405,7 +405,7 @@ module Runic
       if peek.type == type
         consume
       else
-        raise SyntaxError.new("expected #{type} but got #{peek.type}", peek.location)
+        raise SyntaxError.new("expected #{type} but got #{peek}", peek.location)
       end
     end
 
@@ -413,7 +413,7 @@ module Runic
       if peek.value == value
         consume
       else
-        raise SyntaxError.new("expected #{value} but got #{peek.value}", peek.location)
+        raise SyntaxError.new("expected #{value} but got #{peek}", peek.location)
       end
     end
 
