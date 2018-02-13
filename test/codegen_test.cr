@@ -496,7 +496,8 @@ module Runic
 
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
-      main = AST::Function.new(prototype, [] of AST::Node, Location.new("<test>"))
+      body = AST::Body.new([] of AST::Node, Location.new("<test>"))
+      main = AST::Function.new(prototype, body, Location.new("<test>"))
 
       semantic = Semantic.new
       functions = [] of AST::Function

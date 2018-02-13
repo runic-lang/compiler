@@ -349,6 +349,32 @@ module Runic
       end
     end
 
+    class Body < Node
+      include Indexable(Node)
+      include Enumerable(Node)
+
+      getter expressions : Array(Node)
+
+      def initialize(@expressions, @location)
+      end
+
+      def each
+        expressions.each { |node| yield node }
+      end
+
+      def <<(node : AST::Node)
+        expressions << node
+      end
+
+      def unsafe_at(i)
+        expressions.unsafe_at(i)
+      end
+
+      def resolve_type
+        expressions.last?.try(&.type)
+      end
+    end
+
     class Prototype < Node
       getter name : String
       getter args : Array(AST::Variable)
@@ -365,7 +391,7 @@ module Runic
 
     class Function < Node
       getter prototype : Prototype
-      getter body : Array(Node)
+      getter body : Body
 
       def initialize(@prototype, @body, @location)
       end
@@ -401,8 +427,8 @@ module Runic
 
     class If < Node
       getter condition : Node
-      getter body : Array(Node)
-      getter alternative : Array(Node)?
+      getter body : Body
+      getter alternative : Body?
 
       def initialize(@condition, @body, @alternative, @location)
       end
@@ -414,7 +440,7 @@ module Runic
 
     class Unless < Node
       getter condition : Node
-      getter body : Array(Node)
+      getter body : Body
 
       def initialize(@condition, @body, @location)
       end
@@ -426,7 +452,7 @@ module Runic
 
     class While < Node
       getter condition : Node
-      getter body : Array(Node)
+      getter body : Body
 
       def initialize(@condition, @body, @location)
       end
@@ -438,7 +464,7 @@ module Runic
 
     class Until < Node
       getter condition : Node
-      getter body : Array(Node)
+      getter body : Body
 
       def initialize(@condition, @body, @location)
       end
@@ -450,7 +476,7 @@ module Runic
 
     class When < Node
       getter conditions : Array(Node)
-      getter body : Array(Node)
+      getter body : Body
 
       def initialize(@conditions, @body, @location)
       end
@@ -463,7 +489,7 @@ module Runic
     class Case < Node
       getter value : Node
       getter cases : Array(When)
-      getter alternative : Array(Node)?
+      getter alternative : Body?
 
       def initialize(@value, @cases, @alternative, @location)
       end

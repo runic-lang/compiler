@@ -69,7 +69,7 @@ module Runic
       AST::Function.new(prototype, body, location)
     end
 
-    private def parse_body(*stops)
+    private def parse_body(*stops, location = peek.location)
       body = [] of AST::Node
 
       until stops.includes?(peek.value)
@@ -80,7 +80,7 @@ module Runic
         end
       end
 
-      body
+      AST::Body.new(body, location)
     end
 
     private def consume_type

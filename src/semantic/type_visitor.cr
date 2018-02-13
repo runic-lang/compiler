@@ -189,7 +189,7 @@ module Runic
       # that passed arguments match the prototype (same number of arguments,
       # same types). Eventually types the expression.
       def visit(node : AST::Call) : Nil
-        visit(node.args)
+        node.args.each { |arg| visit(arg) }
 
         unless prototype = @prototypes[node.callee]?
           raise SemanticError.new("undefined function '#{node.callee}'", node.location)
@@ -251,7 +251,7 @@ module Runic
 
       def visit(node : AST::Case) : Nil
         visit_condition(node.value)
-        visit(node.cases)
+        node.cases.each { |n| visit(n) }
 
         if body = node.alternative
           visit(body)
@@ -277,8 +277,8 @@ module Runic
       end
 
       # Simple helper to visit bodies (functions, ifs, ...).
-      def visit(node : Array(AST::Node)) : Nil
-        node.each { |child| visit(child) }
+      def visit(body : AST::Body) : Nil
+        body.each { |node| visit(node) }
       end
 
       private def visit_condition(node : AST::Node) : Nil

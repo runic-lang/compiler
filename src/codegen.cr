@@ -138,9 +138,13 @@ module Runic
       end
     end
 
-    def codegen(nodes : Array(AST::Node)) : LibC::LLVMValueRef
+    def codegen(nodes : AST::Body) : LibC::LLVMValueRef
       nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
     end
+
+    #def codegen(nodes : Array(AST::Node)) : LibC::LLVMValueRef
+    #  nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
+    #end
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)
