@@ -33,7 +33,7 @@ module Runic
           when :linefeed
             @parser.skip
             return
-          when :identifier
+          when :keyword
             case token.value
             when "def"
               handle_definition
