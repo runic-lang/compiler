@@ -26,7 +26,7 @@ module Runic
     end
 
     def codegen(node : AST::Variable) : LibC::LLVMValueRef
-      if alloca = @named_values[node.name]?
+      if alloca = @scope.get(node.name)
         @debug.emit_location(node)
         LibC.LLVMBuildLoad(@builder, alloca, node.name)
       else

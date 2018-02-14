@@ -351,7 +351,7 @@ module Runic
 
     class Body < Node
       include Indexable(Node)
-      include Enumerable(Node)
+      # include Enumerable(Node)
 
       getter expressions : Array(Node)
 

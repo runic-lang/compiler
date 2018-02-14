@@ -5,6 +5,7 @@ require "./codegen/literals"
 require "./codegen/operators"
 require "./llvm"
 require "./errors"
+require "./scope"
 
 module Runic
   class Codegen
@@ -26,7 +27,7 @@ module Runic
       end
 
       @constant_values = {} of String => LibC::LLVMValueRef
-      @named_values = {} of String => LibC::LLVMValueRef
+      @scope = Scope(LibC::LLVMValueRef).new
     end
 
     def finalize

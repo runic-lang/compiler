@@ -15,7 +15,7 @@ module Runic
           when AST::Variable
             # store value on the stack
             lhse = node.lhs.as(AST::Variable)
-            alloca = @named_values[lhse.name] ||= build_alloca(lhse)
+            alloca = @scope.fetch(lhse.name) { build_alloca(lhse) }
             LibC.LLVMBuildStore(@builder, rhs, alloca)
 
           when AST::Constant

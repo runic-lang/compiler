@@ -43,32 +43,31 @@ module Runic
       @debug.emit_location(node)
 
       # bind func params as named variables
-      @named_values.clear
+      @scope.nest(:function) do
+        node.args.each_with_index do |arg, arg_no|
+          @debug.emit_location(arg)
 
-      node.args.each_with_index do |arg, arg_no|
-        @debug.emit_location(arg)
+          # create alloca (stack pointer)
+          param = LibC.LLVMGetParam(func, arg_no)
+          alloca = create_entry_block_alloca(func, arg)
 
-        # create alloca (stack pointer)
-        param = LibC.LLVMGetParam(func, arg_no)
-        alloca = create_entry_block_alloca(func, arg)
+          # create debug descriptor
+          @debug.parameter_variable(arg, arg_no, alloca)
 
-        # create debug descriptor
-        @debug.parameter_variable(arg, arg_no, alloca)
+          # store initial value (on stack)
+          LibC.LLVMBuildStore(@builder, param, alloca)
 
-        # store initial value (on stack)
-        LibC.LLVMBuildStore(@builder, param, alloca)
+          # remember symbol
+          @scope.set(arg.name, alloca)
+        end
 
-        # remember symbol
-        @named_values[arg.name] = alloca
-      end
+        ret = codegen(node.body)
 
-      ret = nil
-      node.body.each { |n| ret = codegen(n) }
-
-      if !ret || node.void?
-        LibC.LLVMBuildRetVoid(@builder)
-      else
-        LibC.LLVMBuildRet(@builder, ret)
+        if !ret || node.void?
+          LibC.LLVMBuildRetVoid(@builder)
+        else
+          LibC.LLVMBuildRet(@builder, ret)
+        end
       end
     end
 

@@ -1,4 +1,5 @@
 require "../semantic"
+require "../scope"
 
 module Runic
   class Semantic
@@ -23,7 +24,7 @@ module Runic
     class TypeVisitor < Visitor
       def initialize
         @named_constants = {} of String => AST::Constant
-        @named_variables = {} of String => AST::Variable
+        @scope = Scope(AST::Variable).new
         @prototypes = {} of String => AST::Prototype
       end
 
@@ -48,7 +49,7 @@ module Runic
       # memorized assignment, making sure the variable refers to the latest
       # variable type if it was previously shadowed.
       def visit(node : AST::Variable) : Nil
-        if named_var = @named_variables[node.name]?
+        if named_var = @scope.get(node.name)
           node.shadow = named_var.shadow
           node.type = named_var.type unless node.type?
         else
@@ -89,7 +90,7 @@ module Runic
             # type LHS from RHS
             lhs.type = rhs.type
 
-            if named_var = @named_variables[lhs.name]?
+            if named_var = @scope.get(lhs.name)
               if named_var.type == lhs.type
                 # make sure to refer to the variable (or its shadow)
                 visit(lhs)
@@ -97,11 +98,11 @@ module Runic
                 # shadow the variable
                 name = lhs.name
                 lhs.shadow = named_var.shadow + 1
-                @named_variables[name] = lhs
+                @scope.set(name, lhs)
               end
             else
               # memorize the variable (so we know its type later)
-              @named_variables[lhs.name] = lhs
+              @scope.set(lhs.name, lhs)
             end
           when AST::Constant
             # type LHS from RHS
@@ -160,25 +161,25 @@ module Runic
       # Types the function if it wasn't, otherwise ensures the return type
       # matches the definition. Eventually visits the prototype to be memoized.
       def visit(node : AST::Function) : Nil
-        new_scope do
+        @scope.nest(:function) do
           node.args.each do |arg|
-            @named_variables[arg.name] = arg
+            @scope.set(arg.name, arg)
           end
 
-          visit(node.body)
+          visit(node.body, :function)
+        end
 
-          ret_type = node.body.last?.try(&.type?)
+        ret_type = node.body.type?
 
-          if type = node.type?
-            unless type == "void" || type == ret_type
-              message = "function '#{node.name}' must return #{type} but returns #{ret_type}"
-              raise SemanticError.new(message, node.location)
-            end
-            node.prototype.type = type
-          elsif ret_type
-            node.type ||= ret_type
-            node.prototype.type = ret_type
+        if type = node.type?
+          unless type == "void" || type == ret_type
+            message = "function '#{node.name}' must return #{type} but returns #{ret_type}"
+            raise SemanticError.new(message, node.location)
           end
+          node.prototype.type = type
+        elsif ret_type
+          node.type ||= ret_type
+          node.prototype.type = ret_type
         end
 
         visit(node.prototype)
@@ -219,16 +220,16 @@ module Runic
       # TODO: return a nilable type if there is no alternate branch.
       def visit(node : AST::If) : Nil
         visit_condition(node.condition)
-        visit(node.body)
+        visit(node.body, :if)
 
         if alt_body = node.alternative
-          visit(alt_body)
-        end
+          visit(alt_body, :if)
 
-        if (last = node.body.last?) && (alt_last = node.alternative.try(&.last?))
-          if last.type == alt_last.type
-            node.type = last.type
-            return
+          if (then_type = node.body.type?) && (else_type = alt_body.type?)
+            if then_type == else_type
+              node.type = then_type
+              return
+            end
           end
         end
 
@@ -240,13 +241,18 @@ module Runic
       # TODO: return a nilable type.
       def visit(node : AST::Unless) : Nil
         visit_condition(node.condition)
-        visit(node.body)
+        visit(node.body, :unless)
         node.type = "void"
       end
 
-      def visit(node : AST::While | AST::Until) : Nil
+      def visit(node : AST::While) : Nil
         visit_condition(node.condition)
-        visit(node.body)
+        visit(node.body, :while)
+      end
+
+      def visit(node : AST::Until) : Nil
+        visit_condition(node.condition)
+        visit(node.body, :until)
       end
 
       def visit(node : AST::Case) : Nil
@@ -254,9 +260,9 @@ module Runic
         node.cases.each { |n| visit(n) }
 
         if body = node.alternative
-          visit(body)
+          visit(body, :case)
 
-          if type = body.last?.try(&.type)
+          if type = body.type?
             if node.cases.all? { |n| n.type == type }
               node.type = type
               return
@@ -269,7 +275,7 @@ module Runic
 
       def visit(node : AST::When) : Nil
         node.conditions.each { |n| visit_condition(n) }
-        visit(node.body)
+        visit(node.body, :case)
       end
 
       # These nodes don't need to be visited.
@@ -277,8 +283,14 @@ module Runic
       end
 
       # Simple helper to visit bodies (functions, ifs, ...).
+      def visit(body : AST::Body, name : Symbol) : Nil
+        @scope.nest(name) do
+          body.expressions.each { |node| visit(node) }
+        end
+      end
+
       def visit(body : AST::Body) : Nil
-        body.each { |node| visit(node) }
+        raise "unreachable"
       end
 
       private def visit_condition(node : AST::Node) : Nil
@@ -286,16 +298,6 @@ module Runic
 
         if node.type == "void"
           raise SemanticError.new("void value isn't ignored as it ought to be", node)
-        end
-      end
-
-      private def new_scope
-        original = @named_variables.dup
-        begin
-          @named_variables = {} of String => AST::Variable
-          yield
-        ensure
-          @named_variables = original
         end
       end
     end

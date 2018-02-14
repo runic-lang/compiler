@@ -417,7 +417,7 @@ module Runic
       assert_equal 11, execute(source)
     end
 
-    def test_if_expressions
+    def test_if_expression
       assert_equal 20, execute <<-RUNIC
       def foo(a : int)
         if a > 10
@@ -437,6 +437,23 @@ module Runic
         a
       end
       foo(1) + foo(20)
+      RUNIC
+    end
+
+    def test_shadows_variable_for_scope_duration
+      # mutates 'a' (i32) with no local shadow (of type)
+      assert_equal 10, execute <<-RUNIC
+      a = 2
+      if a < 10; a = 10; end
+      a
+      RUNIC
+
+      # shadows 'a' (i32) as f64 for the duration of the then block,
+      # then restores the original 'a' (i32) afterward
+      assert_equal 2, execute <<-RUNIC
+      a = 2
+      if a < 10; a = 10.0; end
+      a
       RUNIC
     end
 

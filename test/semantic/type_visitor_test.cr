@@ -118,6 +118,21 @@ module Runic
         end
       end
 
+      def test_shadows_variable_for_current_scope
+        source = <<-RUNIC
+        a = 1
+
+        if true
+          a = 2.0
+        end
+
+        a
+        RUNIC
+        visit_each(source) do |node, index|
+          assert_type "i32", node if index == 2
+        end
+      end
+
       def test_types_constants
         assert_type "i32", visit("FOO = 1")
 
@@ -245,6 +260,14 @@ module Runic
         assert_raises(SemanticError) { visit("until foo(); 1; end") }
         assert_raises(SemanticError) { visit("case foo(); when 1; end") }
         assert_raises(SemanticError) { visit("case 1; when foo(); end") }
+      end
+
+      def test_flow_expressions_have_inner_scopes
+        assert_raises(SemanticError) { visit_each("if 1; foo = 1; end; foo") {} }
+        assert_raises(SemanticError) { visit_each("unless 1; foo = 1; end; foo") {} }
+        assert_raises(SemanticError) { visit_each("while 1; foo = 1; end; foo") {} }
+        assert_raises(SemanticError) { visit_each("until 1; foo = 1; end; foo") {} }
+        assert_raises(SemanticError) { visit_each("case 1; when 2; foo = 1; end; foo") {} }
       end
 
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)

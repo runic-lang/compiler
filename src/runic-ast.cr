@@ -183,6 +183,10 @@ module Runic
         end
       end
 
+      def to_h(node : Runic::AST::Body)
+        node.expressions.each { |n| to_h(n) }
+      end
+
       def to_options(node : Runic::AST::Node, type = true)
         String.build do |str|
           if type && @semantic
