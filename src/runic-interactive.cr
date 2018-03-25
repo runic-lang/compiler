@@ -12,7 +12,8 @@ module Runic
 
         @lexer = Lexer.new(STDIN, "stdin", interactive: true)
         @parser = Parser.new(@lexer, top_level_expressions: true)
-        @semantic = Semantic.new
+        @program = Program.new
+        @semantic = Semantic.new(@program)
         @generator = Codegen.new(debug: DebugLevel::None, optimize: optimize)
       end
 
@@ -118,7 +119,7 @@ module Runic
       private def wrap_expression(node : AST::Node)
         prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, node.type, "", node.location)
         body = AST::Body.new([node], node.location)
-        AST::Function.new(prototype, body, node.location)
+        AST::Function.new(prototype, [] of String, body, node.location)
       end
 
       private def debug(value)

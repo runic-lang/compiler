@@ -3,6 +3,7 @@ require "./codegen/debug"
 require "./codegen/functions"
 require "./codegen/literals"
 require "./codegen/operators"
+require "./codegen/structures"
 require "./llvm"
 require "./errors"
 require "./scope"
@@ -39,10 +40,6 @@ module Runic
       LibC.LLVMContextDispose(@context)
     end
 
-
-    def path=(path : String)
-      @debug.path = path
-    end
 
     def data_layout=(layout)
       LibC.LLVMSetModuleDataLayout(@module, layout)
@@ -139,13 +136,16 @@ module Runic
       end
     end
 
+
+    def codegen(path : String, program : Program) : Nil
+      @debug.path = path
+      program.each { |node| codegen(node) }
+    end
+
     def codegen(nodes : AST::Body) : LibC::LLVMValueRef
       nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
     end
 
-    #def codegen(nodes : Array(AST::Node)) : LibC::LLVMValueRef
-    #  nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
-    #end
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)
@@ -172,7 +172,7 @@ module Runic
     # types to the LLVM overload types. For example:
     #
     # ```
-    # intrinsic("llvm.floor", "f32") # => searches llvm.floor.f32
+    # intrinsic("llvm.floor", Type.new("f32"))   # => searches llvm.floor.f32
     # ```
     private def intrinsic(name, *types)
       overload_types = types.map do |type|
@@ -204,23 +204,22 @@ module Runic
     end
 
     # The `codegen` methods must return a value, but sometimes they must return
-    # void, that is nothing, in this case we return a zero value. We could pass
-    # a NULL pointer because semantic analysis should prevent using a void
-    # value, but better safe than sorry.
+    # void, that is nothing, in this case we return a zero value —semantic
+    # analysis verified the value is never used.
     private def llvm_void_value
       LibC.LLVMConstInt(llvm_type("i32"), 0, 0)
     end
 
+    private def llvm_type(name : String)
+      llvm_type(Type.new(name))
+    end
+
     private def llvm_type(node : AST::Node)
-      llvm_type(node.type.name)
+      llvm_type(node.type)
     end
 
     private def llvm_type(type : Type)
-      llvm_type(type.name)
-    end
-
-    private def llvm_type(type : String)
-      case type
+      case type.name
       when "bool"
         LibC.LLVMInt1TypeInContext(@context)
       when "i8", "u8"

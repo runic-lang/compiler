@@ -74,24 +74,51 @@ module Runic
         end
       end
 
-      def generate(file : String, functions : Array(AST::Prototype))
-        output = File.basename(file, ".runic") + ".html"
+      def generate(program : Program)
+        # TODO: constants
+        # TODO: externs
 
-        File.open(output, "w") do |io|
-          document(io, title: File.basename(file)) do |html|
+        toplevel = AST::Struct.new("toplevel", [] of String, "", Location.new("toplevel.runic"))
+        program.functions.each { |_, node| toplevel.methods << node }
+        generate(toplevel)
+
+        program.structs.each { |_, node| generate(node) }
+      end
+
+      private def generate(node : AST::Struct)
+        File.open(File.join(@output, "#{node.name}.html"), "w") do |io|
+          document(io, title: node.name) do |html|
             html.element("div", id: "contents") do
               html.element("div") do
-                html.element("h1", File.basename(file))
+
+                html.element("h1") do
+                  unless node.name == "toplevel"
+                    if node.attribute?("primitive")
+                      html.element("small", "primitive")
+                    else
+                      html.element("small", "struct")
+                    end
+                  end
+                  html.text " "
+                  html.text node.name
+                end
+
+                html.element("p") do
+                  html.text node.documentation
+                end
 
                 # html.element("h2", "Functions", id: "#functions")
 
-                functions.each do |proto|
-                  html.element("article", id: "function-#{proto.name}") do
+                node.methods.each do |fn|
+                  html.element("article", id: "function-#{fn.name}") do
                     html.element("h3") do
-                      html.element("code") { signature(html, proto) }
-                      location(html, proto)
+                      html.element("code") { signature(html, fn) }
+                      location(html, fn)
                     end
-                    html.element("p") { html.text proto.documentation }
+
+                    html.element("p") do
+                      html.text fn.prototype.documentation
+                    end
                   end
                 end
               end
@@ -99,37 +126,47 @@ module Runic
 
             sidebar(html) do
               html.element("h2", "functions")
-              functions.each { |proto| sidebar_entry(html, proto) }
+              node.methods.each { |fn| sidebar_entry(html, fn) }
             end
           end
         end
       end
 
-      private def location(html : HTML::Builder, proto : AST::Prototype)
+      private def location(html : HTML::Builder, fn : AST::Function)
         if (commit = @git_hash) && (remote = @git_remote)
           if remote.starts_with?("github.com")
-            href = "https://#{remote}/blob/#{commit}/#{proto.location.file}#L#{proto.location.line}"
+            href = "https://#{remote}/blob/#{commit}/#{fn.location.file}#L#{fn.location.line}"
           end
         end
         if href
-          html.element("a", "</>", href: href, class: "view-source", title: proto.location.to_s)
+          html.element("a", "</>", href: href, class: "view-source", title: fn.location.to_s)
         else
-          html.element("a", "</>", class: "view-source", title: proto.location.to_s)
+          html.element("a", "</>", class: "view-source", title: fn.location.to_s)
         end
       end
 
-      private def signature(html : HTML::Builder, proto : AST::Prototype)
+      private def signature(html : HTML::Builder, fn : AST::Function)
         html.text "def "
-        html.element("a", proto.name, href: "#function-#{proto.name}")
-        html.text "("
-        proto.args.each_with_index do |arg, index|
-          html.text ", " unless index == 0
-          html.text arg.name
-          html.text " : "
-          html.element("a", arg.type.to_s, class: "type")
+        html.element("a", fn.name, href: "#function-#{fn.name}")
+
+        args = fn.args
+        if args.first.try(&.name) == "self"
+          (args = args.dup).shift
         end
-        html.text ") : "
-        html.element("a", proto.type.to_s, class: "type")
+
+        unless args.empty?
+          html.text "("
+          args.each_with_index do |arg, index|
+            html.text ", " unless index == 0
+            html.text arg.name
+            html.text " : "
+            html.element("a", arg.type.to_s, class: "type")
+          end
+          html.text ")"
+        end
+
+        html.text " : "
+        html.element("a", fn.type.to_s, class: "type")
       end
 
       private def document(io : IO, title : String)
@@ -155,6 +192,7 @@ module Runic
                   font-size: 0.8em;
                 }
                 h1 { font-size: 26px; margin: 0 0 1em; }
+                h1 small { font-size: 1rem; color: #6a6a6a; }
                 h2 { font-size: 20px; }
                 h3 { font-size: 16px; }
                 h3, p { margin: 1em 0; }
@@ -233,9 +271,9 @@ module Runic
         end
       end
 
-      private def sidebar_entry(html : HTML::Builder, proto : AST::Prototype)
+      private def sidebar_entry(html : HTML::Builder, fn : AST::Function)
         html.element("li") do
-          html.element("a", proto.name, href: "#function-#{proto.name}")
+          html.element("a", fn.name, href: "#function-#{fn.name}")
         end
       end
     end

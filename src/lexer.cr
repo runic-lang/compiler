@@ -56,6 +56,7 @@ module Runic
     )
 
     @char : Char?
+    @previous_char : Char?
 
     def initialize(@source : IO, file = "MEMORY", @interactive = false)
       @location = Location.new(file, line: 1, column: 1)
@@ -88,7 +89,13 @@ module Runic
         end
       when '~', '!', '+', '-', '*', '/', '<', '>', '=', '%', '&', '|', '^'
         Token.new(:operator, consume_operator, location)
-      when '.', ',', ':', '(', ')', '{', '}', '[', ']'
+      when '['
+        if @previous_char == '#'
+          Token.new(:attribute, consume_attribute.to_s, location)
+        else
+          Token.new(:mark, consume.to_s, location)
+        end
+      when '.', ',', ':', '(', ')', '{', '}', ']'
         Token.new(:mark, consume.to_s, location)
       when '\n', ';'
         if @interactive
@@ -129,7 +136,7 @@ module Runic
         @location.increment_column
       end
 
-      char
+      @previous_char = char
     end
 
     # Consumes the previously peeked char or consumes a char from the source,
@@ -312,12 +319,43 @@ module Runic
       end
     end
 
+    private def consume_attribute
+      skip # '['
+
+      value = String.build do |str|
+        loop do
+          case peek_char
+          when ']'
+            skip # ']'
+            break
+          when '\n'
+            raise SyntaxError.new("unexpected linefeed in attribute declaration", @location)
+          else
+            str << consume
+          end
+        end
+      end
+
+      if peek_char == '\n'
+        skip # '\n'
+      else
+        raise SyntaxError.new("expected linefeed after attribute declaration", @location)
+      end
+
+      value.to_s
+    end
+
     private def consume_comment
       leading_indent = 0
 
       String.build do |str|
         loop do |i|
           skip # '#'
+
+          if peek_char == '['
+            # attribute
+            break
+          end
 
           if i == 0
             # count leading whitespace and skip it

@@ -1,6 +1,7 @@
 require "minitest/autorun"
 require "../src/lexer"
 require "../src/parser"
+require "../src/program"
 require "../src/semantic"
 
 class Minitest::Test
@@ -17,11 +18,15 @@ class Minitest::Test
   end
 
   protected def parse_each(source)
-    parser(source).parse { |node| yield node }
+    parser(source).parse do |node|
+      yield node
+    end
   end
 
   protected def parse_all(source)
-    parser(source).parse {}
+    parser(source).parse do |node|
+      program.register(node)
+    end
   end
 
   protected def parser(source, top_level_expressions = true)
@@ -30,5 +35,9 @@ class Minitest::Test
 
   protected def lex(source)
     Runic::Lexer.new(IO::Memory.new(source))
+  end
+
+  protected def program
+    @program ||= Runic::Program.new
   end
 end

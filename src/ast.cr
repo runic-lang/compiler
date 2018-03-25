@@ -1,9 +1,20 @@
+require "./errors"
 require "./location"
+require "./mangler"
 require "./type"
 
 module Runic
   module AST
     module Literal
+    end
+
+    module TopLevel
+      @visited = Atomic(Int32).new(0)
+
+      def visited?
+        _, changed = @visited.compare_and_set(0, 1)
+        !changed
+      end
     end
 
     abstract class Node
@@ -262,6 +273,8 @@ module Runic
     end
 
     class Constant < Node
+      include TopLevel
+
       getter name : String
 
       def self.new(token : Token)
@@ -281,10 +294,10 @@ module Runic
       property shadow : Int32
 
       def self.new(token : Token)
-        new(token.value, token.location)
+        new(token.value, nil, token.location)
       end
 
-      def initialize(@name, @location)
+      def initialize(@name, @type, @location)
         @shadow = 0
       end
 
@@ -371,12 +384,14 @@ module Runic
       end
 
       def resolve_type
-        expressions.last?.try(&.type)
+        expressions.last?.try(&.type?)
       end
     end
 
     class Prototype < Node
-      getter name : String
+      include TopLevel
+
+      property name : String
       getter args : Array(AST::Variable)
       getter documentation : String
 
@@ -384,44 +399,102 @@ module Runic
         @type = Type.new(type) if type
       end
 
+      def mangled_name
+        name == "main" ? name : Mangler.mangle(self)
+      end
+
       def resolve_type
         # extern: unreachable
+      end
+
+      def matches?(other : Prototype)
+        type == other.type &&
+          args.equals?(other.args) { |a, b| a.type == b.type }
       end
     end
 
     class Function < Node
+      include TopLevel
+
       getter prototype : Prototype
+      getter attributes : Array(String)
       getter body : Body
 
-      def initialize(@prototype, @body, @location)
+      def initialize(@prototype, @attributes, @body, @location)
+      end
+
+      #def struct?
+      #  @struct
+      #end
+
+      #def struct=(@struct : Struct)
+      #end
+
+      def matches?(other : AST::Function)
+        args.equals?(other.args) { |a, b| a.type == b.type }
       end
 
       def name
-        @prototype.name
+        prototype.name
+      end
+
+      def mangled_name
+        prototype.mangled_name
       end
 
       def args
-        @prototype.args
+        prototype.args
       end
 
-      private def resolve_type
-        prototype.type? || body.last?.try(&.type?)
+      def attribute?(name : String)
+        attributes.includes?(name)
+      end
+
+      def resolve_type
+        prototype.type? || body.type?
       end
     end
 
     class Call < Node
+      getter receiver : Node?
       getter callee : String
       getter args : Array(Node)
+      property prototype : Prototype?
 
-      def self.new(identifier : Token, args)
-        new(identifier.value, args, identifier.location)
+      def self.new(receiver : Node?, identifier : Token, args)
+        new(receiver, identifier.value, args, identifier.location)
       end
 
-      def initialize(@callee, @args, @location)
+      def initialize(@receiver, @callee, @args, @location)
       end
 
-      private def resolve_type
+      def resolve_type
         # can't be determined (need semantic analysis)
+      end
+
+      def mangled_callee
+        @prototype.not_nil!.mangled_name
+      end
+
+      def to_s(io : IO)
+        if receiver = @receiver
+          io << receiver.type.name
+          io << '#'
+        end
+
+        io << @callee
+
+        io << '('
+        @args.each_with_index do |arg, index|
+          if receiver
+            next if index == 0
+            io << ", " unless index == 1
+          else
+            io << ", " unless index == 0
+          end
+          io << arg.type.name
+        end
+        io << ')'
       end
     end
 
@@ -496,6 +569,35 @@ module Runic
 
       def resolve_type
         # could be determined, but postpone to semantic analysis
+      end
+    end
+
+    class Struct < Node
+      include TopLevel
+
+      getter name : String
+      getter attributes : Array(String)
+      getter fields
+      getter methods
+      getter locations : Array(Location)
+      getter documentation : String
+
+      # TODO: should be defined on struct Type (?)
+      getter prototypes
+
+      def initialize(@name, @attributes, @documentation, @location)
+        @fields = [] of AST::Variable
+        @methods = [] of AST::Function
+        @prototypes = {} of String => AST::Prototype
+        @locations = [@location]
+      end
+
+      def attribute?(name : String)
+        attributes.includes?(name)
+      end
+
+      def resolve_type
+        # N/A
       end
     end
   end

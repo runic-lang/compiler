@@ -23,7 +23,7 @@ module Runic
       @current = Values(T).new(:global, nil)
     end
 
-    def nest(name : Symbol)
+    def push(name : Symbol)
       @current = Values(T).new(name, @current)
       begin
         yield

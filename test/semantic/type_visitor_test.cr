@@ -134,13 +134,9 @@ module Runic
       end
 
       def test_types_constants
-        assert_type "i32", visit("FOO = 1")
-
-        visit_each("FOO = 1; BAR = FOO") do |node|
-          assert_type "i32", node
-        end
-
-        assert_raises(SemanticError) { visit("FOO = UNKNOWN") }
+        assert_type "i32", register("FOO = 1")
+        assert_type "i32", visit("BAR = FOO");
+        assert_raises(SemanticError) { visit("SOME = UNKNOWN") }
         assert_raises(SemanticError) { visit("value = WHAT") }
         assert_raises(SemanticError) { visit("2 + INCREMENT") }
       end
@@ -178,7 +174,7 @@ module Runic
       end
 
       def test_types_calls
-        node = visit("def add(a : int, b : float) a + b; end")
+        node = register("def add(a : int, b : float) a + b; end")
         assert_type "f64", node.as(AST::Function)
 
         node = visit("add(1, add(2, 3.2))")
@@ -187,43 +183,47 @@ module Runic
       end
 
       def test_validates_call_arguments
-        visit("def add(a : int, b : float) a + b; end")
+        register("def add(a : int, b : float) a + b; end")
         assert_raises(SemanticError) { visit("add(1.0, 2.0)") }
         assert_raises(SemanticError) { visit("add(add(1, 2.0), 2.0)") }
       end
 
       def test_validates_def_return_type
-        ex = assert_raises(SemanticError) { visit("def add(a : int); end") }
-        assert_match "has no return type", ex.message
-
         ex = assert_raises(SemanticError) { visit("def add(a : int) : int; 1.0; end") }
         assert_match "must return i32 but returns f64", ex.message
 
+        assert_type "void", visit("def add(a : int); end")
         assert_type "void", visit("def foo(a : int) : void; 1.0; end")
       end
 
-      def test_validates_previous_definitions
-        visit("extern add(a : int, b : float) : f64")
-        visit("def add(a : int, b : float); a + b; end")
+      def test_validates_primitive_functions
+        assert_type "i32", visit("#[primitive]\ndef foo : int; end")
 
-        # mismatch: return type
-        ex = assert_raises(SemanticError) do
-          visit("def add(a : int, b : float) : int; a; end")
-        end
-        assert_match "doesn't match previous definition", ex.message
-
-        # mismatch: arg type
-        ex = assert_raises(SemanticError) do
-          visit("def add(a : int, b : int) : f64; 1.0_f64; end")
-        end
-        assert_match "doesn't match previous definition", ex.message
-
-        # mismatch: arg number
-        ex = assert_raises(SemanticError) do
-          visit("def add(a : int, b : float, c : i8) : f64; b; end")
-        end
-        assert_match "doesn't match previous definition", ex.message
+        ex = assert_raises(SemanticError) { visit("#[primitive]\ndef foo; end") }
+        assert_match "must specify a return type", ex.message
       end
+
+      #def test_validates_previous_definitions
+      #  register("def add(a : int, b : float); a + b; end")
+
+      #  # mismatch: arg count
+      #  ex = assert_raises(ConflictError) do
+      #    register("def add(a : int, b : float, c : i8) : f64; b; end")
+      #  end
+      #  assert_match "doesn't match previous definition", ex.message
+
+      #  # mismatch: arg type
+      #  ex = assert_raises(ConflictError) do
+      #    register("def add(a : int, b : int) : f64; 1.0_f64; end")
+      #  end
+      #  assert_match "doesn't match previous definition", ex.message
+
+      #  # mismatch: return type
+      #  ex = assert_raises(ConflictError) do
+      #    register("def add(a : int, b : float) : int; a; end")
+      #  end
+      #  assert_match "doesn't match previous definition", ex.message
+      #end
 
       def test_types_if_expressions
         assert_type "void", visit("if true; 1; end")
@@ -253,7 +253,7 @@ module Runic
       end
 
       def test_validates_flow_conditions
-        visit("def foo() : void; 123; end")
+        register("def foo() : void; 123; end")
         assert_raises(SemanticError) { visit("if foo(); 1; end") }
         assert_raises(SemanticError) { visit("unless foo(); 1; end") }
         assert_raises(SemanticError) { visit("while foo(); 1; end") }
@@ -278,6 +278,15 @@ module Runic
         assert_equal names, nodes.map(&.type.name), file: file, line: line
       end
 
+      private def register(source)
+        parse_each(source) do |node|
+          program.register(node)
+          visitor.visit(node)
+          return node
+        end
+        raise "unreachable"
+      end
+
       private def visit(source)
         parse_each(source) do |node|
           visitor.visit(node)
@@ -296,7 +305,7 @@ module Runic
       end
 
       private def visitor
-        @visitor ||= TypeVisitor.new
+        @visitor ||= TypeVisitor.new(program)
       end
     end
   end

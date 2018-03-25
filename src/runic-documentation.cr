@@ -1,6 +1,8 @@
 require "./config"
 require "./documentation"
-require "./documentation/*"
+require "./documentation/html_generator"
+require "./documentation/json_generator"
+require "./documentation/yaml_generator"
 
 output = "doc"
 sources = [] of String

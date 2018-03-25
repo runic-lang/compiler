@@ -1,4 +1,4 @@
-require "../semantic"
+require "./visitor"
 require "../scope"
 
 module Runic
@@ -10,22 +10,10 @@ module Runic
     # there is a type mismatch, or a number literal doesn't fit into its defined
     # or inferred type, ...
     #
-    # TODO: Requires prototypes to be forward declared before they're called.
-    # We could consider:
-    # - collecting prototype definitions (even incomplete) while parsing;
-    # - building a dependency tree of functions (maybe types, later);
-    # - forward visit/type functions as they are used;
-    # - warning: recursive calls (foo calls itself);
-    # - warning: circular calls (foo calls bar that calls foo)
-    #
-    # TODO: the void type can't be accessed, that is semantic analysis must
-    # prevent assigning void to a variable or constant, or using a void member
-    # in a binary or unary expression, ...
+    # FIXME: detect recursive and circular calls
     class TypeVisitor < Visitor
-      def initialize
-        @named_constants = {} of String => AST::Constant
+      def initialize(@program : Program)
         @scope = Scope(AST::Variable).new
-        @prototypes = {} of String => AST::Prototype
       end
 
       # Validates that the integer literal's type fits its definition or its
@@ -60,8 +48,11 @@ module Runic
       # Makes sure the constant has been defined, accessing the previously
       # memorized assignment.
       def visit(node : AST::Constant) : Nil
-        if named_const = @named_constants[node.name]?
-          node.type = named_const.type
+        binary = @program.resolve(node)
+        visit(binary)
+
+        if type = binary.lhs.type?
+          node.type = type
         else
           raise SemanticError.new("constant '#{node.name}' has no type", node.location)
         end
@@ -107,7 +98,6 @@ module Runic
           when AST::Constant
             # type LHS from RHS
             lhs.type = rhs.type
-            @named_constants[lhs.name] = lhs
           else
             raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
           end
@@ -137,6 +127,8 @@ module Runic
       # declaration, redefinition). Eventually memoizes the prototype
       # definition, overwriting any previous definition.
       def visit(node : AST::Prototype) : Nil
+        return if node.visited?
+
         node.args.each do |arg|
           unless arg.type?
             raise SemanticError.new("argument '#{arg.name}' in function '#{node.name}' has no type", node.location)
@@ -146,14 +138,6 @@ module Runic
         unless node.type?
           raise SemanticError.new("function '#{node.name}' has no return type", node.location)
         end
-
-        if previous = @prototypes[node.name]?
-          unless node.type == previous.type && node.args.map(&.type) == previous.args.map(&.type)
-            raise SemanticError.new("function '#{node.name}' doesn't match previous definition", node.location)
-          end
-        end
-
-        @prototypes[node.name] = node
       end
 
       # Creates a new scope to hold local variables, initialized to the function
@@ -161,7 +145,9 @@ module Runic
       # Types the function if it wasn't, otherwise ensures the return type
       # matches the definition. Eventually visits the prototype to be memoized.
       def visit(node : AST::Function) : Nil
-        @scope.nest(:function) do
+        return if node.visited?
+
+        @scope.push(:function) do
           node.args.each do |arg|
             @scope.set(arg.name, arg)
           end
@@ -169,17 +155,21 @@ module Runic
           visit(node.body, :function)
         end
 
-        ret_type = node.body.type?
-
-        if type = node.type?
-          unless type == "void" || type == ret_type
-            message = "function '#{node.name}' must return #{type} but returns #{ret_type}"
-            raise SemanticError.new(message, node.location)
+        if node.attribute?("primitive")
+          unless node.prototype.type?
+            raise SemanticError.new("primitive function '#{node.name}' must specify a return type!", node.location)
           end
-          node.prototype.type = type
-        elsif ret_type
-          node.type ||= ret_type
-          node.prototype.type = ret_type
+        else
+          ret_type = node.body.type? || "void"
+          if type = node.type?
+            unless type == "void" || type == ret_type
+              raise SemanticError.new("function '#{node.name}' must return #{type} but returns #{ret_type}", node.location)
+            end
+            node.prototype.type = type
+          elsif ret_type
+            node.type = ret_type
+            node.prototype.type = ret_type
+          end
         end
 
         visit(node.prototype)
@@ -190,10 +180,21 @@ module Runic
       # that passed arguments match the prototype (same number of arguments,
       # same types). Eventually types the expression.
       def visit(node : AST::Call) : Nil
+        if slf = node.receiver
+          node.args.unshift(slf)
+        end
         node.args.each { |arg| visit(arg) }
 
-        unless prototype = @prototypes[node.callee]?
-          raise SemanticError.new("undefined function '#{node.callee}'", node.location)
+        fn_or_prototype = @program.resolve(node)
+        visit(fn_or_prototype)
+
+        case fn_or_prototype
+        when AST::Function
+          prototype = fn_or_prototype.prototype
+        when AST::Prototype
+          prototype = fn_or_prototype
+        else
+          raise "unreachable: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
         end
 
         unless node.args.size == prototype.args.size
@@ -209,6 +210,7 @@ module Runic
           end
         end
 
+        node.prototype = prototype
         node.type = prototype.type
       end
 
@@ -284,13 +286,22 @@ module Runic
 
       # Simple helper to visit bodies (functions, ifs, ...).
       def visit(body : AST::Body, name : Symbol) : Nil
-        @scope.nest(name) do
+        @scope.push(name) do
           body.expressions.each { |node| visit(node) }
         end
       end
 
       def visit(body : AST::Body) : Nil
         raise "unreachable"
+      end
+
+      def visit(node : AST::Struct) : Nil
+        return if node.visited?
+
+        @scope.push(:struct) do
+          #node.methods.each { |fn| fn.struct = node }
+          node.methods.each { |fn| visit(fn) }
+        end
       end
 
       private def visit_condition(node : AST::Node) : Nil

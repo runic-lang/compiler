@@ -30,4 +30,13 @@ module Runic
 
   class CodegenError < Error
   end
+
+  class ConflictError < Error
+    getter original_location : Location
+    getter location : Location
+
+    def initialize(message, @original_location, @location)
+      super "#{message} at #{@location} (previous at #{@original_location})"
+    end
+  end
 end

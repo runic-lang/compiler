@@ -1,4 +1,4 @@
-require "../semantic"
+require "./visitor"
 
 module Runic
   class Semantic
@@ -19,7 +19,19 @@ module Runic
         end
       end
 
+      # Expands name of struct methods to include the struct name.
+      # Injects `self` variable as first method argument
+      def visit(node : AST::Struct) : Nil
+        node.methods.each do |fn|
+          # fn.struct = node
+          fn.prototype.name = "#{node.name}::#{fn.prototype.name}"
+          fn.args.unshift(AST::Variable.new("self", Type.new(node.name), fn.location))
+        end
+      end
+
       # Other nodes don't need to be visited.
+      #
+      # FIXME: actually subnodes should be visited!
       def visit(node : AST::Node) : Nil
       end
     end

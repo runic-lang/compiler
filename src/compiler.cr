@@ -1,5 +1,6 @@
 require "./codegen"
 require "./parser"
+require "./program"
 require "./semantic"
 
 module Runic
@@ -24,12 +25,13 @@ module Runic
     )
       @target_triple = target_triple ||= String.new(LibC.LLVMGetDefaultTargetTriple())
 
-      @semantic = Semantic.new
+      @program = Program.new
+      #@semantic = Semantic.new(@program)
+
       @codegen = Codegen.new(
         debug: @debug,
         optimize: !opt_level.code_gen_level_none?
       )
-
       LLVM.init(target_triple)
       @codegen.target_triple = target_triple
       @codegen.data_layout = data_layout
@@ -39,12 +41,9 @@ module Runic
       lexer = Lexer.new(io, path)
       parser = Parser.new(lexer, top_level_expressions: false)
 
-      @codegen.path = path
-
-      parser.parse do |node|
-        @semantic.visit(node)
-        @codegen.codegen(node)
-      end
+      parser.parse { |node| @program.register(node) }
+      Semantic.analyze(@program)
+      @codegen.codegen(path, @program)
     end
 
     def emit_llvm(output : String) : Nil

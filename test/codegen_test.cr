@@ -514,9 +514,8 @@ module Runic
     protected def execute(source : String)
       prototype = AST::Prototype.new("__anon_expr", [] of AST::Variable, nil, "", Location.new("<test>"))
       body = AST::Body.new([] of AST::Node, Location.new("<test>"))
-      main = AST::Function.new(prototype, body, Location.new("<test>"))
+      main = AST::Function.new(prototype, [] of String, body, Location.new("<test>"))
 
-      semantic = Semantic.new
       functions = [] of AST::Function
 
       generator = Codegen.new(debug: DebugLevel::None, optimize: true)
@@ -524,13 +523,15 @@ module Runic
 
       parse_each(source) do |node|
         if node.is_a?(AST::Function)
-          semantic.visit(node)
-          functions << node
+          program.register(node)
+          #semantic.visit(node)
+          #functions << node
         else
           if node.is_a?(AST::Binary)
             if node.lhs.is_a?(AST::Constant)
-              semantic.visit(node)
-              generator.codegen(node)
+              program.register(node)
+              #semantic.visit(node)
+              #generator.codegen(node)
               next
             end
           end
@@ -538,9 +539,14 @@ module Runic
         end
       end
 
+      #program.register(main)
       semantic.visit(main)
 
-      functions.each { |node| generator.codegen(node) }
+      program.each do |node|
+        semantic.visit(node)
+        generator.codegen(node)
+      end
+      #functions.each { |node| generator.codegen(node) }
       func = generator.codegen(main)
 
       begin
@@ -561,6 +567,14 @@ module Runic
       ensure
         LibC.LLVMDeleteFunction(func)
       end
+    end
+
+    private def semantic
+      @semantic ||= Semantic.new(program)
+    end
+
+    private def program
+      @program ||= Program.new
     end
 
     private def intrinsics

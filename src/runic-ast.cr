@@ -14,21 +14,22 @@ module Runic
         end
       {% end %}
 
-      @semantic : Semantic?
+      @semantic : Bool
       @location : Bool
 
-      def initialize(source : IO, file : String, semantic = AST.semantic, @location = AST.location)
-        lexer = Lexer.new(source, file)
-        @parser = Parser.new(lexer, top_level_expressions: true)
+      def initialize(source : IO, file : String, @semantic = AST.semantic, @location = AST.location)
         @nested = 0
-        @semantic = Semantic.new if semantic
+        lexer = Lexer.new(source, file)
+        @program = Program.new
+        @parser = Parser.new(lexer, top_level_expressions: true)
       end
 
       def run
         while node = @parser.next
-          @semantic.try(&.visit(node))
-          to_h(node)
+          @program.register(node)
         end
+        Semantic.analyze(@program) if @semantic
+        @program.each { |node| to_h(node) }
       end
 
       def to_h(node : Runic::AST::Integer)
@@ -70,8 +71,12 @@ module Runic
       end
 
       def to_h(node : Runic::AST::Function)
-        args = node.args.map { |arg| "#{arg.name} : #{arg.type?}" }.join(", ")
-        print "- def #{node.name}(#{args}) : #{node.type?}#{to_options(node, type: false)}"
+        args = node.args
+        if node.args.first?.try(&.name) == "self"
+          (args = args.dup).shift
+        end
+        args = args.map { |arg| "#{arg.name} : #{arg.type?}" }
+        print "- def #{node.name}(#{args.join(", ")}) : #{node.type?}#{to_options(node, type: false)}"
         print "  body:"
         nested do
           node.body.each { |n| to_h(n) }
@@ -80,9 +85,16 @@ module Runic
 
       def to_h(node : Runic::AST::Call)
         print "- call #{node.callee}#{to_options(node)}"
+        if receiver = node.receiver
+          print "  receiver:"
+          nested do
+            to_h(receiver)
+          end
+        end
         print "  args:"
         nested do
-          node.args.each do |arg|
+          node.args.each_with_index do |arg, index|
+            next if node.receiver && index == 0
             to_h(arg)
           end
         end
@@ -185,6 +197,18 @@ module Runic
 
       def to_h(node : Runic::AST::Body)
         node.expressions.each { |n| to_h(n) }
+      end
+
+      def to_h(node : Runic::AST::Struct)
+        print "- struct #{node.name} [#{node.attributes.join(", ")}]"
+
+        #nested do
+        #  node.variables.each { |n| to_h(n) }
+        #end
+
+        nested do
+          node.methods.each { |n| to_h(n) }
+        end
       end
 
       def to_options(node : Runic::AST::Node, type = true)

@@ -8,6 +8,7 @@ module Runic
     @previous_token : Token?
 
     def initialize(@lexer : Lexer, @top_level_expressions = false)
+      @attributes = [] of String
     end
 
     def parse
@@ -27,6 +28,8 @@ module Runic
             return parse_definition
           when "extern"
             return parse_extern
+          when "struct"
+            return parse_struct
           else
             return parse_top_level_expression if @top_level_expressions
             raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
@@ -43,16 +46,42 @@ module Runic
       end
     end
 
-    private def parse_documentation
-      if (token = @previous_token) && token.type == :comment
-        token.value
-      else
-        ""
+    private def parse_struct
+      attributes = @attributes.dup
+      documentation = consume_documentation
+
+      location = consume.location # struct
+      name = consume_type
+      expect(:linefeed)
+
+      # TODO: allow reopening structs
+      node = AST::Struct.new(name, attributes, documentation, location)
+
+      loop do
+        case peek.type
+        when :keyword
+          case peek.value
+          when "def"
+            node.methods << parse_definition
+          when "end"
+            consume # end
+            break
+          else
+            raise SyntaxError.new("expected 'def' or 'end' but got '#{peek}'", peek.location)
+          end
+        when :linefeed
+          skip
+        else
+          raise SyntaxError.new("unexpected '#{peek}'", peek.location)
+        end
       end
+
+      node
     end
 
     private def parse_definition
-      documentation = parse_documentation
+      attributes = @attributes.dup
+      documentation = consume_documentation
 
       location = consume.location # def
       name = consume_prototype_name
@@ -66,7 +95,7 @@ module Runic
       body = parse_body("end")
       consume # end
 
-      AST::Function.new(prototype, body, location)
+      AST::Function.new(prototype, attributes, body, location)
     end
 
     private def parse_body(*stops, location = peek.location)
@@ -97,18 +126,22 @@ module Runic
       end
     end
 
-    private def parse_extern
-      documentation = parse_documentation
+    private def consume_documentation
+      if (token = @previous_token) && token.type == :comment
+        token.value
+      else
+        ""
+      end
+    end
 
+    private def parse_extern
+      documentation = consume_documentation
       consume # extern
       location = peek.location
       name = consume_prototype_name
       args = consume_extern_args
-
-      if peek.value == ":"
-        return_type = consume_type
-      end
-      AST::Prototype.new(name, args, return_type || "void", documentation, location)
+      return_type = peek.value == ":" ? consume_type : "void"
+      AST::Prototype.new(name, args, return_type, documentation, location)
     end
 
     private def consume_prototype_name
@@ -162,7 +195,7 @@ module Runic
           location = peek.location
           arg_name, arg_type = yield
 
-          arg = AST::Variable.new(arg_name, location)
+          arg = AST::Variable.new(arg_name, nil, location)
           arg.type = arg_type if arg_type
           args << arg
 
@@ -261,8 +294,19 @@ module Runic
           raise SyntaxError.new("unexpected operator #{peek.value.inspect}", peek.location)
         end
       else
-        parse_primary
+        parse_call_expression
       end
+    end
+
+    private def parse_call_expression
+      expression = parse_primary
+
+      while peek.value == "."
+        consume # .
+        expression = parse_identifier_expression(expression)
+      end
+
+      expression
     end
 
     private def parse_primary
@@ -333,15 +377,19 @@ module Runic
 
     # Parses either a variable accessor, or a function call if immediately
     # followed by an opening parenthesis.
-    private def parse_identifier_expression
+    private def parse_identifier_expression(subject = nil)
       identifier = consume
 
       # TODO: allow paren-less function calls
       unless peek.value == "("
-        return AST::Variable.new(identifier)
+        if subject
+          return AST::Call.new(subject, identifier, [] of AST::Node)
+        else
+          return AST::Variable.new(identifier)
+        end
       end
 
-      consume # (
+      expect "("
       args = [] of AST::Node
 
       unless peek.value == ")"
@@ -353,7 +401,7 @@ module Runic
       end
 
       consume # )
-      AST::Call.new(identifier, args)
+      AST::Call.new(subject, identifier, args)
     end
 
     private def parse_if_expression
@@ -467,6 +515,8 @@ module Runic
     end
 
     protected def consume
+      @attributes.clear
+
       if token = @token
         @previous_token, @token = @token, nil
         token
@@ -486,8 +536,11 @@ module Runic
       @token ||= loop do
         token = @lexer.next
 
-        if token.type == :comment
+        case token.type
+        when :comment
           @previous_token = token
+        when :attribute
+          @attributes << token.value
         else
           break token
         end

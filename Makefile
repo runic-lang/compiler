@@ -5,7 +5,7 @@ C2CR = CFLAGS=`$(LLVM_CONFIG) --cflags` lib/clang/bin/c2cr
 
 COMMON_SOURCES = src/version.cr src/config.cr
 LEXER_SOURCES = $(COMMON_SOURCES) src/definitions.cr src/errors.cr src/lexer.cr src/location.cr src/token.cr
-PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr src/type.cr
+PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr src/type.cr src/program.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
 LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
 			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr

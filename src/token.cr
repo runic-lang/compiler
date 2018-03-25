@@ -11,6 +11,7 @@ module Runic
     end
 
     {% for type in %i(
+       attribute
        call
        comment
        eof
@@ -32,6 +33,10 @@ module Runic
 
     def to_s(io)
       case type
+      when :attribute
+        io << "#["
+        value.to_s(io)
+        io << ']'
       when :call
         super
       when :comment
