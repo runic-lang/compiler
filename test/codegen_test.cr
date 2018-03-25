@@ -524,29 +524,18 @@ module Runic
       parse_each(source) do |node|
         if node.is_a?(AST::Function)
           program.register(node)
-          #semantic.visit(node)
-          #functions << node
+        elsif node.is_a?(AST::ConstantDefinition)
+          program.register(node)
         else
-          if node.is_a?(AST::Binary)
-            if node.lhs.is_a?(AST::Constant)
-              program.register(node)
-              #semantic.visit(node)
-              #generator.codegen(node)
-              next
-            end
-          end
           main.body << node
         end
       end
-
-      #program.register(main)
       semantic.visit(main)
 
       program.each do |node|
         semantic.visit(node)
         generator.codegen(node)
       end
-      #functions.each { |node| generator.codegen(node) }
       func = generator.codegen(main)
 
       begin

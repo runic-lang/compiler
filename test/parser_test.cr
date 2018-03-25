@@ -107,12 +107,13 @@ module Runic
     end
 
     def test_constant_assignments
-      assert_expression AST::Binary, "FOO = 1"
-      assert_expression AST::Binary, "BAR = 1.0"
-      assert_expression AST::Binary, "FOOBAR = FOO"
+      assert_expression AST::ConstantDefinition, "FOO = 1"
+      assert_expression AST::ConstantDefinition, "BAR = 1.0"
+      assert_expression AST::ConstantDefinition, "FOOBAR = FOO"
 
-      node = parser("FOO = 1").next.as(AST::Binary)
-      assert AST::Constant === node.lhs
+      node = parser("FOO = 1").next.as(AST::ConstantDefinition)
+      assert_equal "FOO", node.name
+      assert AST::Integer === node.value
 
       assert_raises(SyntaxError) do
         parser("def foo; FOO = 1; end", top_level_expressions: false).next

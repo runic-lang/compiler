@@ -8,7 +8,7 @@ module Runic
     getter functions
 
     def initialize
-      @constants = {} of String => AST::Binary
+      @constants = {} of String => AST::ConstantDefinition
       @externs = {} of String => AST::Prototype
       @structs = {} of String => AST::Struct
 
@@ -23,25 +23,11 @@ module Runic
       @functions.each { |_, node| yield node }
     end
 
-    #def register(node : AST::Constant) : Nil
-    #  if const = @constants[node.name]?
-    #    raise ConflictError.new("can't redefine constant #{node.name}", const.location, node.location)
-    #  end
-    #  @constants[node.name] = node
-    #end
-
-    # TODO: consider an AST::ConstantDefinition node.
-    def register(node : AST::Binary) : Nil
-      case const = node.lhs
-      when AST::Constant
-        if previous = @constants[const.name]?
-          lhs = previous.lhs.as(AST::Constant)
-          raise ConflictError.new("can't redefine constant #{lhs.name}", lhs.location, node.location)
-        end
-        @constants[const.name] = node
-      else
-        raise "Program#register(#{node.class.name}) with #{node.lhs.class.name} should be unreachable"
+    def register(node : AST::ConstantDefinition) : Nil
+      if previous = @constants[node.name]?
+        raise ConflictError.new("can't redefine constant #{node.name}", previous.location, node.location)
       end
+      @constants[node.name] = node
     end
 
     def register(node : AST::Prototype) : Nil
@@ -83,7 +69,7 @@ module Runic
     end
 
     # TODO: search struct constants first
-    def resolve(node : AST::Constant) : AST::Binary
+    def resolve(node : AST::Constant) : AST::ConstantDefinition
       if const = @constants[node.name]?
         const #.lhs.as(AST::Constant)
       else

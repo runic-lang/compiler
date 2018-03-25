@@ -17,14 +17,14 @@ class Minitest::Test
     raise "ERROR: #{self.class.name}#visitor must be implemented."
   end
 
-  protected def parse_each(source)
-    parser(source).parse do |node|
+  protected def parse_each(source, top_level_expressions = true)
+    parser(source, top_level_expressions).parse do |node|
       yield node
     end
   end
 
-  protected def parse_all(source)
-    parser(source).parse do |node|
+  protected def parse_all(source, top_level_expressions = true)
+    parser(source, top_level_expressions).parse do |node|
       program.register(node)
     end
   end

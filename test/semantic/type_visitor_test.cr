@@ -135,7 +135,7 @@ module Runic
 
       def test_types_constants
         assert_type "i32", register("FOO = 1")
-        assert_type "i32", visit("BAR = FOO");
+        assert_type "i32", visit("BAR = FOO")
         assert_raises(SemanticError) { visit("SOME = UNKNOWN") }
         assert_raises(SemanticError) { visit("value = WHAT") }
         assert_raises(SemanticError) { visit("2 + INCREMENT") }
@@ -271,7 +271,7 @@ module Runic
       end
 
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)
-        assert_equal name, node.type.name, file: file, line: line
+        assert_equal name, node.type?.try(&.name), file: file, line: line
       end
 
       private def assert_types(names : Array(String), nodes : Array(AST::Node), file = __FILE__, line = __LINE__)
@@ -287,7 +287,7 @@ module Runic
         raise "unreachable"
       end
 
-      private def visit(source)
+      private def visit(source = true)
         parse_each(source) do |node|
           visitor.visit(node)
           return node

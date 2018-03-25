@@ -52,6 +52,12 @@ module Runic
         print "- constant: #{node.name}#{to_options(node)}"
       end
 
+      def to_h(node : Runic::AST::ConstantDefinition)
+        print "- constant: #{node.name}#{to_options(node)}"
+        print "  value:"
+        nested { to_h(node.value) }
+      end
+
       def to_h(node : Runic::AST::Binary)
         print "- binary: #{node.operator}#{to_options(node)}"
         print "  lhs:"

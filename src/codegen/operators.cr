@@ -11,21 +11,11 @@ module Runic
         case node.operator
         when "="
           case node.lhs
-
           when AST::Variable
             # store value on the stack
             lhse = node.lhs.as(AST::Variable)
             alloca = @scope.fetch(lhse.name) { build_alloca(lhse) }
             LibC.LLVMBuildStore(@builder, rhs, alloca)
-
-          when AST::Constant
-            # memorize constant value
-            lhse = node.lhs.as(AST::Constant)
-            if @constant_values[lhse.name]?
-              raise CodegenError.new("constant #{lhse.name} has already been initialized")
-            end
-            @constant_values[lhse.name] = rhs
-
           else
             raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
           end

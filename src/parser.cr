@@ -217,17 +217,17 @@ module Runic
         raise SyntaxError.new("expected constant but got identifier #{peek.value.inspect}", peek.location)
       end
 
-      lhs = AST::Constant.new(consume)
+      name = consume.value
       op = expect("=")
 
       while peek.type == :whitespace
         skip
       end
-      rhs = parse_literal do
+      value = parse_literal do
         raise SyntaxError.new("expected literal but got #{peek.type.inspect}", peek.location)
       end
 
-      AST::Binary.new(op.value, lhs, rhs, op.location)
+      AST::ConstantDefinition.new(name, value, op.location)
     end
 
     private def parse_top_level_expression
@@ -254,7 +254,16 @@ module Runic
 
         if binary_operator.assignment?
           # TODO: detect whether we are in a dynamic context to forbid constant definitions
-          unless lhs.is_a?(AST::Variable) || (@top_level_expressions && lhs.is_a?(AST::Constant))
+          loop do
+            case lhs
+            when AST::Variable
+              break
+            when AST::Constant
+              if @top_level_expressions && binary_operator.value == "="
+                value = parse_unary
+                return AST::ConstantDefinition.new(lhs.name, value, binary_operator.location)
+              end
+            end
             raise SyntaxError.new("only variables may be assigned a value in a dynamic context", binary_operator.location)
           end
         end

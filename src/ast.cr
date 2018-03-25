@@ -289,6 +289,20 @@ module Runic
       end
     end
 
+    class ConstantDefinition < Node
+      include TopLevel
+
+      getter name : String
+      getter value : AST::Node # AST::Literal
+
+      def initialize(@name, @value, @location)
+      end
+
+      private def resolve_type
+        value.type?
+      end
+    end
+
     class Variable < Node
       @name : String
       property shadow : Int32

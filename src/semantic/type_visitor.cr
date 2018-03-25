@@ -48,14 +48,20 @@ module Runic
       # Makes sure the constant has been defined, accessing the previously
       # memorized assignment.
       def visit(node : AST::Constant) : Nil
-        binary = @program.resolve(node)
-        visit(binary)
+        const = @program.resolve(node)
+        visit(const.value)
 
-        if type = binary.lhs.type?
+        if type = const.type?
           node.type = type
         else
           raise SemanticError.new("constant '#{node.name}' has no type", node.location)
         end
+      end
+
+      # Makes sure the constant value has been typed (a constant may reference
+      # another constant).
+      def visit(node : AST::ConstantDefinition) : Nil
+        visit(node.value)
       end
 
       # Visits the sub-expressions, then types the binary expression.
@@ -95,9 +101,6 @@ module Runic
               # memorize the variable (so we know its type later)
               @scope.set(lhs.name, lhs)
             end
-          when AST::Constant
-            # type LHS from RHS
-            lhs.type = rhs.type
           else
             raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
           end

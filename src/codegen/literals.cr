@@ -42,5 +42,14 @@ module Runic
         raise CodegenError.new("using constant before definition: #{node.name}")
       end
     end
+
+    def codegen(node : AST::ConstantDefinition) : LibC::LLVMValueRef
+      codegen(node.value).tap do |value|
+        if @constant_values[node.name]?
+          raise CodegenError.new("constant #{node.name} has already been initialized")
+        end
+        @constant_values[node.name] = value
+      end
+    end
   end
 end
