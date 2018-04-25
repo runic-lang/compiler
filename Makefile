@@ -1,6 +1,8 @@
-CRYSTAL ?= crystal
-LLVM_CONFIG ?= $(shell command -v llvm-config-5.0 || \
-                       command -v llvm-config)
+.POSIX:
+.SUFFIXES:
+
+CRYSTAL = crystal
+LLVM_CONFIG = llvm-config-5.0
 C2CR = CFLAGS=`$(LLVM_CONFIG) --cflags` lib/clang/bin/c2cr
 
 COMMON_SOURCES = src/version.cr src/config.cr
@@ -19,12 +21,9 @@ COMMANDS += libexec/runic-documentation
 COMMANDS += libexec/runic-interactive
 COMMANDS += libexec/runic-lex
 
-.PHONY: dist doc clean test
-.SUFFIXES:
-
 all: $(COMMANDS) doc
 
-dist: doc
+dist: doc .phony
 	mkdir -p dist/doc
 	cp -r VERSION doc/man1 dist/doc
 	cd dist && ln -sf ../src .
@@ -56,10 +55,10 @@ libexec/runic-documentation: src/runic-documentation.cr $(DOCUMENTATION_SOURCES)
 	@mkdir -p libexec
 	$(CRYSTAL) build -o libexec/runic-documentation src/runic-documentation.cr $(CRFLAGS)
 
-doc:
+doc: .phony
 	cd doc && make
 
-clean:
+clean: .phony
 	rm -rf $(COMMANDS) dist src/c/llvm
 	cd src/ext && make clean
 	cd doc && make clean
@@ -82,5 +81,7 @@ src/c/llvm/transforms/*.cr:
 src/ext/llvm/%.o: src/ext/llvm/%.cc
 	cd src/ext && make
 
-test:
+test: .phony
 	$(CRYSTAL) run `find test -iname "*_test.cr"` -- --verbose
+
+.phony:
