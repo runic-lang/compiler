@@ -263,6 +263,48 @@ module Runic
       assert_raises(SyntaxError) { parser("case a; end").next }
     end
 
+    def test_struct
+      node = assert_expression(AST::Struct, "#[primitive]\nstruct int32\nend").as(AST::Struct)
+      assert_equal "int32", node.name
+      assert_equal ["primitive"], node.attributes
+      assert_empty node.methods
+      assert_empty node.prototypes
+      assert_empty node.documentation
+      assert_equal node.location, node.locations.first
+    end
+
+    def test_struct_documentation_and_attributes
+      source = <<-RUNIC
+      # Docs for the `bool` primitive type.
+      #[primitive]
+      struct bool
+      end
+      RUNIC
+      node = assert_expression(AST::Struct, source).as(AST::Struct)
+      assert_equal "bool", node.name
+      assert_equal ["primitive"], node.attributes
+      assert_equal "Docs for the `bool` primitive type.", node.documentation
+    end
+
+    def test_struct_methods
+      source =  <<-RUNIC
+      #[primitive]
+      struct int64
+        def add(other : int64)
+          self + other
+        end
+
+        def sub(other : int64)
+          self - other
+        end
+      end
+      RUNIC
+      node = assert_expression(AST::Struct, source).as(AST::Struct)
+      assert_equal 2, node.methods.size
+      assert_equal ["add", "sub"], node.methods.map(&.name).sort
+      assert_empty node.prototypes # populated by semantic analysis
+    end
+
     private def assert_expression(klass, source, file = __FILE__, line = __LINE__)
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line

@@ -591,7 +591,6 @@ module Runic
 
       getter name : String
       getter attributes : Array(String)
-      getter fields
       getter methods
       getter locations : Array(Location)
       getter documentation : String
@@ -600,7 +599,6 @@ module Runic
       getter prototypes
 
       def initialize(@name, @attributes, @documentation, @location)
-        @fields = [] of AST::Variable
         @methods = [] of AST::Function
         @prototypes = {} of String => AST::Prototype
         @locations = [@location]
