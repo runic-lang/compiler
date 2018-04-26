@@ -25,10 +25,11 @@ module Runic
       end
 
       @debug.flush
-      #if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
-      #  # STDERR.puts print(func)
-      #  raise "function validation failed"
-      #end
+
+      if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
+        STDERR.puts print(func)
+        raise "FATAL: function validation failed"
+      end
 
       if fpm = function_pass_manager
         LibC.LLVMRunFunctionPassManager(fpm, func)

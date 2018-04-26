@@ -302,7 +302,6 @@ module Runic
         return if node.visited?
 
         @scope.push(:struct) do
-          #node.methods.each { |fn| fn.struct = node }
           node.methods.each { |fn| visit(fn) }
         end
       end

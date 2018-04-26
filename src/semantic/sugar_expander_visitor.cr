@@ -23,7 +23,6 @@ module Runic
       # Injects `self` variable as first method argument
       def visit(node : AST::Struct) : Nil
         node.methods.each do |fn|
-          # fn.struct = node
           fn.prototype.name = "#{node.name}::#{fn.prototype.name}"
           fn.args.unshift(AST::Variable.new("self", Type.new(node.name), fn.location))
         end

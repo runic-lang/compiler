@@ -437,13 +437,6 @@ module Runic
       def initialize(@prototype, @attributes, @body, @location)
       end
 
-      #def struct?
-      #  @struct
-      #end
-
-      #def struct=(@struct : Struct)
-      #end
-
       def matches?(other : AST::Function)
         args.equals?(other.args) { |a, b| a.type == b.type }
       end
@@ -534,6 +527,7 @@ module Runic
 
       def resolve_type
         # could be determined, but we postpone to semantic analysis
+        # currently sets it to "void" until we support nilables
       end
     end
 
@@ -595,6 +589,7 @@ module Runic
       getter locations : Array(Location)
       getter documentation : String
 
+      # TODO: should be an Array(AST::Prototype)
       # TODO: should be defined on struct Type (?)
       getter prototypes
 

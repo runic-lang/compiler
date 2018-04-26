@@ -57,7 +57,7 @@ module Runic
 
     def register(node : AST::Struct) : Nil
       if st = @structs[node.name]?
-        # st.merge(node)
+        raise "FATAL: struct #{node.name} has already been registered"
       else
         @structs[node.name] = node
       end

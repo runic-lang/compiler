@@ -24,10 +24,7 @@ module Runic
       @debug = DebugLevel::Default,
     )
       @target_triple = target_triple ||= String.new(LibC.LLVMGetDefaultTargetTriple())
-
       @program = Program.new
-      #@semantic = Semantic.new(@program)
-
       @codegen = Codegen.new(
         debug: @debug,
         optimize: !opt_level.code_gen_level_none?
@@ -40,7 +37,6 @@ module Runic
     def parse(io : IO, path : String) : Nil
       lexer = Lexer.new(io, path)
       parser = Parser.new(lexer, top_level_expressions: false)
-
       parser.parse { |node| @program.register(node) }
       Semantic.analyze(@program)
       @codegen.codegen(path, @program)
