@@ -176,6 +176,25 @@ module Runic
       assert_next :comment, "foo\nbar  \n  baz", "# foo\n    # bar  \n#   baz"
     end
 
+    def test_attributes
+      assert_next :attribute, "primitive", "#[primitive]\n"
+      assert_next :attribute, "noreturn", "#[noreturn]\n"
+
+      ex = assert_raises(SyntaxError) { lex("#[noreturn]").next }
+      assert_match "expected linefeed after attribute declaration", ex.message
+    end
+
+    def test_attributes_after_comment
+      assert_tokens [:comment, :attribute, :attribute],
+        "# some multiline\n # documentation\n#[primitive]\n#[noreturn]\n"
+
+      assert_next :comment, "some multiline\ndocumentation",
+        "# some multiline\n # documentation\n#[primitive]\n"
+
+      assert_next :comment, "some multiline\ndocumentation\n\n",
+        "# some multiline\n # documentation\n#\n#\n#[primitive]\n"
+    end
+
     def test_mark
       ["(", ")", "[", "]", "{", "}", "."].each do |mark|
         assert_next :mark, mark

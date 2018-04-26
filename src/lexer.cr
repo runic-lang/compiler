@@ -108,7 +108,12 @@ module Runic
         end
         Token.new(:linefeed, "", location)
       when '#'
-        Token.new(:comment, consume_comment, location)
+        str = consume_comment
+        if str.empty? && peek_char == '['
+          Token.new(:attribute, consume_attribute.to_s, location)
+        else
+          Token.new(:comment, str, location)
+        end
       else
         raise SyntaxError.new("unexpected character #{char.inspect}", location)
       end
@@ -347,6 +352,7 @@ module Runic
 
     private def consume_comment
       leading_indent = 0
+      pending_linefeed = false
 
       String.build do |str|
         loop do |i|
@@ -358,15 +364,15 @@ module Runic
           end
 
           if i == 0
-            # count leading whitespace and skip it
-            while peek_char.try(&.ascii_whitespace?)
+            # count leading spaces and skip them:
+            while peek_char == ' '
               skip
               leading_indent += 1
             end
           else
-            # skip leading whitespace
+            # skip leading spaces (previously counted):
             leading_indent.times do
-              if peek_char.try(&.ascii_whitespace?)
+              if peek_char == ' '
                 skip
               else
                 break
@@ -374,7 +380,9 @@ module Runic
             end
           end
 
-          consume_until(str) { |c| c == '\n' || c == '\r' || c.nil? }
+          str << '\n' if pending_linefeed
+          pending_linefeed = false
+          consume_until(str) { |c| linefeed?(c) || c.nil? }
           break if peek_char.nil?
 
           consume # '\n' '\r'
@@ -382,12 +390,16 @@ module Runic
 
           # multiline comment?
           if peek_char == '#'
-            str << '\n'
+            pending_linefeed = true
           else
             break
           end
         end
       end
+    end
+
+    private def linefeed?(c)
+      c == '\n' || c == '\r'
     end
 
     private def consume_operator
