@@ -24,6 +24,7 @@ module Runic
       def visit(node : AST::Call) : Nil
         super
 
+      # FIXME: `self` is actually a `Pointer<T>` not a `T` for non primitive structs!
         if slf = node.receiver
           node.args.unshift(slf)
         end
@@ -46,6 +47,7 @@ module Runic
       # Injects *self* as first argument of struct methods.
       def visit(node : AST::Struct) : Nil
         node.methods.each do |n|
+          # FIXME: `self` is actually a `Pointer<T>` not a `T` for non primitive structs!
           n.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, n.location))
           visit(n)
         end

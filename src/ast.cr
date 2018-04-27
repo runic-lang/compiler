@@ -389,6 +389,22 @@ module Runic
       end
     end
 
+    class InstanceVariable < Node
+      getter name : String
+
+      def self.new(token : Token, type = nil)
+        new(token.value, type, token.location)
+      end
+
+      def initialize(@name, type, @location)
+        self.type = type if type
+      end
+
+      def resolve_type
+        # can't be determined (need semantic analysis)
+      end
+    end
+
     class Assignment < Node
       property operator : String
       getter lhs : Node
@@ -704,6 +720,7 @@ module Runic
 
       property name : String
       getter attributes : Array(String)
+      getter variables : Array(InstanceVariable)
       getter methods : Array(Function)
       getter locations : Array(Location)
       getter documentation : String
@@ -713,6 +730,7 @@ module Runic
       getter prototypes
 
       def initialize(@name, @attributes, @documentation, @location)
+        @variables = [] of InstanceVariable
         @methods = [] of Function
         @prototypes = {} of String => Prototype
         @locations = [@location]

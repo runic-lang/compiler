@@ -19,6 +19,9 @@ module Runic
       def visit(node : AST::Variable) : Nil
       end
 
+      def visit(node : AST::InstanceVariable) : Nil
+      end
+
       def visit(node : AST::Reference) : Nil
         visit(node.pointee)
       end

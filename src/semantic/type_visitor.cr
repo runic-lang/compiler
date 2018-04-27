@@ -14,6 +14,7 @@ module Runic
     class TypeVisitor < Visitor
       def initialize(@program : Program)
         @scope = Scope(AST::Variable).new
+        @ivars = {} of String => AST::InstanceVariable
       end
 
       # Validates that the integer literal's type fits its definition or its
@@ -85,6 +86,15 @@ module Runic
         end
       end
 
+      # Types ivar accessors from memoized definitions.
+      def visit(node : AST::InstanceVariable) : Nil
+        if ivar = @ivars[node.name]?
+          node.type = ivar.type
+        else
+          raise SemanticError.new("undefined instance variable @#{node.name}", node.location)
+        end
+      end
+
       # Makes sure the constant has been defined, accessing the previously
       # memorized assignment.
       def visit(node : AST::Constant) : Nil
@@ -132,6 +142,16 @@ module Runic
             # memorize the variable (so we know its type later)
             @scope.set(lhs.name, lhs)
           end
+        when AST::InstanceVariable
+          if ivar = @ivars[lhs.name]?
+            if node.rhs.type == ivar.type
+              node.type = lhs.type = node.rhs.type
+            else
+              raise SemanticError.new("can't assign #{node.rhs.type} to @#{lhs.name} (#{ivar.type})", node.location)
+            end
+          else
+            raise SemanticError.new("undefined instance variable @#{lhs.name}", lhs.location)
+          end
         when AST::Dereference
           # make sure *LHS is typed
           visit(lhs)
@@ -143,7 +163,7 @@ module Runic
             raise SemanticError.new("can't assign #{node.rhs.type} to #{lhs.pointee.type}", node.location)
           end
         else
-          raise SemanticError.new("invalid assignment: only variables and constants may be assigned a value", lhs.location)
+          raise SemanticError.new("invalid assignment: only variables, instance variables and constants may be assigned a value", lhs.location)
         end
       end
 
@@ -412,12 +432,34 @@ module Runic
         raise "unreachable"
       end
 
-      # Visits struct methods (once).
+      # Visits struct variables & methods (once).
       def visit(node : AST::Struct) : Nil
         return if node.visited?
 
         @scope.push(:struct) do
+          node.variables.each do |ivar|
+            unless ivar.type?
+              raise SemanticError.new("@#{ivar.name} definition for struct #{ivar.name} doesn't have a type", ivar.location)
+            end
+            if original = @ivars[ivar.name]?
+              raise ConflictError.new("duplicated @#{ivar.name} definition for struct #{node.name}", ivar.location, original.location)
+            end
+            @ivars[ivar.name] = ivar
+          end
+
           node.methods.each { |fn| visit(fn) }
+        end
+      ensure
+        @ivars.clear
+      end
+
+      # Type the instance variable when used as accessors, asserting that it was
+      # defined for the current struct.
+      def visit(node : AST::InstanceVariable) : Nil
+        if ivar = @ivars[node.name]?
+          node.type = ivar.type
+        else
+          raise SemanticError.new("undefined instance variable @#{node.name}", node.location)
         end
       end
 

@@ -235,6 +235,10 @@ module Runic
       llvm_type(node.type)
     end
 
+    private def llvm_type(node : String)
+      llvm_type(Type.new(node))
+    end
+
     private def llvm_type(type : Type)
       if type.pointer?
         LibC.LLVMPointerType(llvm_type(type.pointee_type), 0)

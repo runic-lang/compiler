@@ -377,7 +377,7 @@ module Runic
 
     def test_unless
       node = assert_expression AST::Unless, "unless true; end"
-      assert_empty node.as(AST::Unless).body
+      assert_empty node.body
 
       node = assert_expression AST::Unless, <<-RUNIC
       unless a < 10 || b > 10
@@ -385,12 +385,12 @@ module Runic
         bar()
       end
       RUNIC
-      assert_equal 2, node.as(AST::Unless).body.size
+      assert_equal 2, node.body.size
     end
 
     def test_while
       node = assert_expression AST::While, "while true; end"
-      assert_empty node.as(AST::While).body
+      assert_empty node.body
 
       node = assert_expression AST::While, <<-RUNIC
       while a < 10 || b > 10
@@ -398,12 +398,12 @@ module Runic
         bar()
       end
       RUNIC
-      assert_equal 2, node.as(AST::While).body.size
+      assert_equal 2, node.body.size
     end
 
     def test_until
       node = assert_expression AST::Until, "until true; end"
-      assert_empty node.as(AST::Until).body
+      assert_empty node.body
 
       node = assert_expression AST::Until, <<-RUNIC
       until a < 10 || b > 10
@@ -411,15 +411,15 @@ module Runic
         bar()
       end
       RUNIC
-      assert_equal 2, node.as(AST::Until).body.size
+      assert_equal 2, node.body.size
     end
 
     def test_case
       node = assert_expression AST::Case, "case a; when 1; end"
-      assert_nil node.as(AST::Case).alternative
-      assert_equal 1, node.as(AST::Case).cases.size
-      assert_equal 1, node.as(AST::Case).cases.first.conditions.size
-      assert_empty node.as(AST::Case).cases.first.body
+      assert_nil node.alternative
+      assert_equal 1, node.cases.size
+      assert_equal 1, node.cases.first.conditions.size
+      assert_empty node.cases.first.body
 
       node = assert_expression AST::Case, <<-RUNIC
       case foo(a, b + 10)
@@ -432,10 +432,10 @@ module Runic
         bar()
       end
       RUNIC
-      assert node.as(AST::Case).alternative
-      assert_equal 1, node.as(AST::Case).alternative.try(&.size)
-      assert_equal 2, node.as(AST::Case).cases.size
-      assert_equal 3, node.as(AST::Case).cases[1].conditions.size
+      assert node.alternative
+      assert_equal 1, node.alternative.try(&.size)
+      assert_equal 2, node.cases.size
+      assert_equal 3, node.cases[1].conditions.size
 
       assert_raises(SyntaxError) { parser("case a; end").next }
 
@@ -493,6 +493,7 @@ module Runic
       node = assert_expression AST::Struct, "#[primitive]\nstruct int32\nend"
       assert_equal "int32", node.name
       assert_equal ["primitive"], node.attributes
+      assert_empty node.variables
       assert_empty node.methods
       assert_empty node.prototypes
       assert_empty node.documentation
@@ -527,6 +528,42 @@ module Runic
       assert_equal 2, node.methods.size
       assert_equal ["add", "sub"], node.methods.map(&.name).sort
       assert_empty node.prototypes # populated by semantic analysis
+    end
+
+    def test_struct_variable_declarations
+      node = assert_expression AST::Struct, <<-RUNIC
+      struct Time
+        @seconds : int64
+        @nanoseconds : int32
+        @offset : int16
+      end
+      RUNIC
+      assert_equal 3, node.variables.size
+      assert_equal ["seconds", "nanoseconds", "offset"], node.variables.map(&.name)
+      assert_equal ["int64", "int32", "int16"], node.variables.map(&.type.name)
+
+      ex = assert_raises(SyntaxError) do
+        parse_all("#[primitive]\nstruct int32\n@foo : int32\nend")
+      end
+      assert_match "primitive types can't declare instance variables", ex.message
+    end
+
+    def test_struct_variable_accesors
+      node = assert_expression AST::Struct, <<-RUNIC
+      struct Time
+        @seconds : i64
+
+        def initialize(seconds : i64)
+          @seconds = seconds
+        end
+
+        def seconds; @seconds; end
+        def seconds=(seconds : i64); @seconds = seconds; end
+      end
+      RUNIC
+
+      assert_equal 1, node.variables.size
+      assert_equal 3, node.methods.size
     end
 
     def test_modules
@@ -591,7 +628,7 @@ module Runic
 
     private def assert_expression(klass : T.class, source, file = __FILE__, line = __LINE__) forall T
       node = parser(source).next
-      assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line
+      assert T === node, -> { "expected #{T} but got #{node.class}" }, file, line
       node.as(T)
     end
 

@@ -56,6 +56,10 @@ module Runic
         print "- variable: #{node.name}#{to_options(node)}"
       end
 
+      def to_h(node : Runic::AST::InstanceVariable)
+        print "- ivar: #{node.name}#{to_options(node)}"
+      end
+
       def to_h(node : Runic::AST::Constant)
         print "- constant: #{node.name}#{to_options(node)}"
       end
@@ -269,9 +273,9 @@ module Runic
       def to_h(node : Runic::AST::Struct)
         print "- struct #{node.name} [#{node.attributes.join(", ")}]"
 
-        #nested do
-        #  node.variables.each { |n| to_h(n) }
-        #end
+        nested do
+          node.variables.each { |n| to_h(n) }
+        end
 
         nested do
           node.methods.each { |n| to_h(n) }

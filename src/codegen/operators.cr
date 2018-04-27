@@ -19,12 +19,16 @@ module Runic
             @debug.auto_variable(lhs, alloca)
           end
         end
+      when AST::InstanceVariable
+        raise CodegenError.new("BUG: no codegen for instance variable assignment")
       when AST::Dereference
         case pointee = lhs.pointee
         when AST::Variable
           # get alloca (points somewhere):
           alloca = @scope.get(pointee.name)
           alloca = LibC.LLVMBuildLoad(@builder, alloca, "")
+        when AST::InstanceVariable
+          raise CodegenError.new("BUG: no codegen for dereferenced instance variable assignment")
         end
       end
 

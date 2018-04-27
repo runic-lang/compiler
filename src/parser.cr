@@ -128,6 +128,13 @@ module Runic
           else
             raise SyntaxError.new("expected 'def' or 'end' but got '#{peek}'", peek.location)
           end
+        when :ivar
+          if node.attribute?("primitive")
+            raise SyntaxError.new("primitive types can't declare instance variables", peek.location)
+          end
+          ivar = consume
+          type = Type.new(consume_type(colon: true))
+          node.variables << AST::InstanceVariable.new(ivar, type)
         when :linefeed, :semicolon
           skip_line_terminator
         else
@@ -171,8 +178,8 @@ module Runic
       AST::Body.new(body, location)
     end
 
-    private def consume_type(pointer = true)
-      if peek.value == ":"
+    private def consume_type(*, colon = false, pointer = true)
+      if colon || peek.value == ":"
         skip
       end
 
@@ -390,10 +397,13 @@ module Runic
           # TODO: detect whether we are in a dynamic context to forbid constant definitions
           loop do
             case lhs
-            when AST::Variable
+            when AST::Variable, AST::InstanceVariable
               break
             when AST::Dereference
-              break if lhs.pointee.is_a?(AST::Variable)
+              case lhs.pointee
+              when AST::Variable, AST::InstanceVariable
+                break
+              end
             when AST::Constant
               if @top_level_expressions && binary_operator.value == "="
                 value = parse_unary
@@ -483,6 +493,8 @@ module Runic
         parse_primary
       when :identifier
         parse_literal { parse_identifier_expression }
+      when :ivar
+        AST::InstanceVariable.new(consume)
       when :keyword
         case peek.value
         when "if"
