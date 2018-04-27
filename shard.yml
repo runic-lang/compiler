@@ -10,11 +10,14 @@ description: |
 dependencies:
   clang:
     github: ysbaddaden/clang.cr
-    branch: master
 
 development_dependencies:
   minitest:
     github: ysbaddaden/minitest.cr
-    branch: master
+
+libraries:
+  LLVM: 5.0
+
+crystal_version: 0.24.2
 
 license: CeCILL-C
