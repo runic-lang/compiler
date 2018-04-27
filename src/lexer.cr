@@ -104,6 +104,8 @@ module Runic
         end
       when '.', ',', ':', '(', ')', '{', '}', ']'
         Token.new(:mark, consume.to_s, location)
+      when '@'
+        Token.new(:ivar, consume_ivar, location)
       when '\n', '\r'
         if @interactive
           # interactive mode: skip linefeed immediately, don't wait for
@@ -174,6 +176,11 @@ module Runic
 
     private def consume_identifier
       consume_while { |c| c.ascii_alphanumeric? || c == '_' }
+    end
+
+    private def consume_ivar
+      consume # '@'
+      consume_identifier
     end
 
     private def consume_number

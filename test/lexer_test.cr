@@ -221,6 +221,11 @@ module Runic
       end
     end
 
+    def test_instance_variables
+      assert_next :ivar, "value", "@value"
+      assert_next :ivar, "foo", "@foo"
+    end
+
     private def assert_next(type, value, source = value, file = __FILE__, line = __LINE__)
       token = lex(source).next
       assert_equal type, token.type, nil, file, line
