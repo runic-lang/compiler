@@ -184,8 +184,50 @@ module Runic
 
       def test_validates_call_arguments
         register("def add(a : int, b : float) a + b; end")
+
+        # wrong number of args:
+        assert_raises(SemanticError) { visit("add()") }
+        assert_raises(SemanticError) { visit("add(1)") }
+        assert_raises(SemanticError) { visit("add(1, 2.0, 3)") }
+
+        # incompatible types:
         assert_raises(SemanticError) { visit("add(1.0, 2.0)") }
         assert_raises(SemanticError) { visit("add(add(1, 2.0), 2.0)") }
+
+        # automatic cast of literals:
+        node = visit("add(1, 2)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["1", "2"], node.args.map(&.as(AST::Number).value)
+
+        # no automatic cast of variables:
+        assert_raises(SemanticError) { visit_each("b = 2; add(1, b)") {} }
+      end
+
+      def test_expands_default_arguments_in_calls
+        register("def add(a : i32, b = 0.0); end")
+
+        # use defined:
+        node = visit("add(1, 2.0)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["1", "2.0"], node.args.map(&.as(AST::Number).value)
+
+        # use default:
+        node = visit("add(1)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["1", "0.0"], node.args.map(&.as(AST::Number).value)
+
+        # automatic cast:
+        node = visit("add(3, 4)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["3", "4"], node.args.map(&.as(AST::Number).value)
+
+        # wrong number of args:
+        ex = assert_raises(SemanticError) { visit("add()") }
+        assert_match "wrong number of arguments for 'add' (given 0, expected 1..2)", ex.message
+
+        # incompatible types:
+        ex = assert_raises(SemanticError) { visit("add(3, false)") }
+        assert_match "wrong type for argument 'b' of function 'add' (given bool, expected f64)", ex.message
       end
 
       def test_validates_def_return_type
@@ -194,6 +236,22 @@ module Runic
 
         assert_type "void", visit("def add(a : int); end")
         assert_type "void", visit("def foo(a : int) : void; 1.0; end")
+      end
+
+      def test_validates_def_default_args
+        # can cast floats/ints to float:
+        visit("def bar(a : f64 = 1.0); end")
+        visit("def bar(a : f32 = 9223372036854775807); end")
+        visit("def bar(a : f64 = 1_f32); end")
+
+        # can cast ints to int (if fits):
+        visit("def bar(a : int = 123); end")
+        visit("def bar(a : int = 123_i64); end")
+        assert_raises(SemanticError) { visit("def bar(a : int = 9223372036854775807); end") }
+
+        # can't cast incompatible types:
+        assert_raises(SemanticError) { visit("def bar(a : int = false); end") }
+        assert_raises(SemanticError) { visit("def bar(a : int = 1.0); end") }
       end
 
       def test_validates_primitive_functions

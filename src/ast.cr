@@ -332,6 +332,19 @@ module Runic
       end
     end
 
+    class Argument < Variable
+      getter default : Literal?
+
+      def initialize(name, type, @default, location)
+        super(name, nil, location)
+        self.type = type if type
+      end
+
+      def resolve_type
+        @default.try(&.type?)
+      end
+    end
+
     class Binary < Node
       property operator : String
       getter lhs : Node
@@ -406,7 +419,7 @@ module Runic
       include TopLevel
 
       property name : String
-      getter args : Array(AST::Variable)
+      getter args : Array(Argument)
       getter documentation : String
 
       def initialize(@name, @args, type, @documentation, @location)
@@ -415,6 +428,17 @@ module Runic
 
       def mangled_name
         name == "main" ? name : Mangler.mangle(self)
+      end
+
+      def arg_count
+        min, max = 0, args.size
+
+        args.each do |arg|
+          break if arg.default
+          min += 1
+        end
+
+        min..max
       end
 
       def resolve_type

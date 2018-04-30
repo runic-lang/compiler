@@ -154,10 +154,43 @@ module Runic
     end
 
     private def consume_def_args
+      expect_default_value = false
+
       consume_args do
+        location = peek.location
+        arg_type = arg_default = nil
+
         arg_name = expect(:identifier).value
-        expect ":"
-        {arg_name, consume_type}
+
+        if peek.value == ":"
+          consume # ':'
+          arg_type = consume_type
+        end
+
+        if peek.value == "="
+          consume # '='
+
+          arg_default = parse_literal do
+            raise SyntaxError.new("expected literal but got #{peek.type.inspect}", peek.location)
+          end
+
+          unless arg_type
+            # TODO: postpone to semantic analysis (?)
+            arg_type = arg_default.type
+          end
+
+          # futher arguments must have a default value
+          expect_default_value = true
+        end
+
+        if expect_default_value && arg_default.nil?
+          raise SyntaxError.new("argument '#{arg_name}' must have a default value", location)
+        end
+        if arg_type.nil?
+          raise SyntaxError.new("argument '#{arg_name}' must have a type or default value", location)
+        end
+
+        {arg_name, arg_type, arg_default.as(AST::Literal?)}
       end
     end
 
@@ -167,22 +200,22 @@ module Runic
         arg_name = expect(:identifier).value
 
         if peek.value == ":"
-          {arg_name, consume_type}
+          {arg_name, consume_type, nil}
         else
-          {"x#{index += 1}", arg_name}
+          {"x#{index += 1}", arg_name, nil}
         end
       end
     end
 
     private def consume_args
-      args = [] of AST::Variable
+      args = [] of AST::Argument
 
       if peek.type == :linefeed
         consume
         return args
       end
 
-      if peek.value == ":" || peek.type == :eof
+      if peek.value == ":" || peek.value == "=" || peek.type == :eof
         return args
       end
 
@@ -193,11 +226,9 @@ module Runic
       else
         loop do
           location = peek.location
-          arg_name, arg_type = yield
 
-          arg = AST::Variable.new(arg_name, nil, location)
-          arg.type = arg_type if arg_type
-          args << arg
+          arg_name, arg_type, arg_default = yield
+          args << AST::Argument.new(arg_name, arg_type, arg_default, location)
 
           case peek.value
           when ")"

@@ -24,7 +24,7 @@ module Runic
       def visit(node : AST::Struct) : Nil
         node.methods.each do |fn|
           fn.prototype.name = "#{node.name}::#{fn.prototype.name}"
-          fn.args.unshift(AST::Variable.new("self", Type.new(node.name), fn.location))
+          fn.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, fn.location))
         end
       end
 

@@ -28,7 +28,7 @@ module Runic
 
     def assert_mangle(expected, fn_name, fn_args = [] of String)
       location = Location.new("")
-      args = fn_args.map { |type| AST::Variable.new("", Type.new(type), location) }
+      args = fn_args.map { |type| AST::Argument.new("", Type.new(type), nil, location) }
       prototype = AST::Prototype.new(fn_name, args, "void", "", location)
       assert_equal expected, Mangler.mangle(prototype)
     end

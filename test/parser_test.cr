@@ -160,6 +160,36 @@ module Runic
       end
     end
 
+    def test_default_arguments
+      node = parser("def bar(a = 0, b = 123_f32, c : f64 = 456); a; end").next.as(AST::Function)
+      a, b, c = node.args
+
+      assert_equal "a", a.name
+      assert a.default
+      assert_equal "i32", a.type.name
+      assert_equal "0", a.default.as(AST::Number).try(&.value)
+
+      assert_equal "b", b.name
+      assert b.default
+      assert_equal "f32", b.type.name
+      assert_equal "123", b.default.as(AST::Number).try(&.value)
+
+      assert_equal "c", c.name
+      assert c.default
+      assert_equal "f64", c.type.name
+      assert_equal "456", c.default.as(AST::Number).try(&.value)
+
+      ex = assert_raises(SyntaxError) do
+        parser("def bar(a = value); end").next
+      end
+      assert_match "expected literal", ex.message
+
+      ex = assert_raises(SyntaxError) do
+        parser("def foo(a : int, b : f64, c = 0, d); end)").next
+      end
+      assert_match "argument 'd' must have a default value", ex.message
+    end
+
     def test_calls
       assert_expression AST::Call, "foo()"
       assert_expression AST::Call, "foo(1.2)"

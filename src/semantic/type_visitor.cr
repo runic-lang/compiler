@@ -33,6 +33,39 @@ module Runic
         end
       end
 
+      def visit(node : AST::Argument) : Nil
+        if default = node.default
+          cast_literal(node, default)
+
+          unless node.type == default.type
+            raise SemanticError.new("default argument type mismatch: expected #{node.type} but got #{default.type}", default.location)
+          end
+        end
+        @scope.set(node.name, node)
+      end
+
+      # Tries to cast a literal so it matches a variable type.
+      private def cast_literal(variable, literal)
+        if variable.type == literal.type
+          return
+        end
+
+        case variable.type
+        when .integer?
+          if literal.type.integer?
+            literal.type = variable.type
+
+            unless literal.as(AST::Integer).valid_type_definition?
+              raise SemanticError.new("can't cast #{literal.value} to #{variable.type}", literal.location)
+            end
+          end
+        when .float?
+          if literal.type.number?
+            literal.type = variable.type
+          end
+        end
+      end
+
       # Makes sure the variable has been defined, accessing the previously
       # memorized assignment, making sure the variable refers to the latest
       # variable type if it was previously shadowed.
@@ -152,7 +185,7 @@ module Runic
 
         @scope.push(:function) do
           node.args.each do |arg|
-            @scope.set(arg.name, arg)
+            visit(arg)
           end
 
           visit(node.body, :function)
@@ -200,16 +233,26 @@ module Runic
           raise "unreachable: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
         end
 
-        unless node.args.size == prototype.args.size
-          message = "function '#{node.callee}' expects #{prototype.args.size} arguments but got #{node.args.size}"
-          raise SemanticError.new(message, node.args.first.location)
+        # validate arg count:
+        unless prototype.arg_count.includes?(node.args.size)
+          message = "wrong number of arguments for '#{prototype.name}' (given #{node.args.size}, expected #{prototype.arg_count})"
+          raise SemanticError.new(message, (node.args.first? || node).location)
         end
 
-        node.args.each_with_index do |arg, i|
-          expected = prototype.args[i]
-          unless arg.type == expected.type
-            message = "argument '#{expected.name}' of function '#{prototype.name}' expects #{expected.type} but got #{arg.type}"
-            raise SemanticError.new(message, arg.location)
+        # validate arg types (+ set defaults):
+        prototype.args.each_with_index do |expected, i|
+          if arg = node.args[i]?
+            if arg.is_a?(AST::Literal)
+              cast_literal(expected, arg)
+            end
+            unless arg.type == expected.type
+              message = "wrong type for argument '#{expected.name}' of function '#{prototype.name}' (given #{arg.type}, expected #{expected.type})"
+              raise SemanticError.new(message, arg.location)
+            end
+          elsif default = expected.default
+            node.args << default
+          else
+            raise "unreachable"
           end
         end
 
