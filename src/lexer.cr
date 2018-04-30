@@ -355,7 +355,8 @@ module Runic
       pending_linefeed = false
 
       String.build do |str|
-        loop do |i|
+        first = true
+        loop do
           skip # '#'
 
           if peek_char == '['
@@ -363,7 +364,8 @@ module Runic
             break
           end
 
-          if i == 0
+          if first
+            first = false
             # count leading spaces and skip them:
             while peek_char == ' '
               skip
