@@ -75,6 +75,9 @@ module Runic
         identifier = consume_identifier
         if KEYWORDS.includes?(identifier)
           Token.new(:keyword, identifier, location)
+        elsif peek_char == ':'
+          skip
+          Token.new(:kwarg, identifier, location)
         else
           Token.new(:identifier, identifier, location)
         end

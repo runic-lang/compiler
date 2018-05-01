@@ -104,6 +104,16 @@ module Runic
             to_h(arg)
           end
         end
+
+        unless node.kwargs.empty?
+          print "  kwargs:"
+          nested do
+            node.kwargs.each do |name, arg|
+              print "#{name}: "
+              to_h(arg)
+            end
+          end
+        end
       end
 
       def to_h(node : Runic::AST::If)

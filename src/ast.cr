@@ -490,13 +490,14 @@ module Runic
       getter receiver : Node?
       getter callee : String
       getter args : Array(Node)
+      getter kwargs : Hash(String, Node)
       property prototype : Prototype?
 
-      def self.new(receiver : Node?, identifier : Token, args)
-        new(receiver, identifier.value, args, identifier.location)
+      def self.new(receiver : Node?, identifier : Token, args, kwargs)
+        new(receiver, identifier.value, args, kwargs, identifier.location)
       end
 
-      def initialize(@receiver, @callee, @args, @location)
+      def initialize(@receiver, @callee, @args, @kwargs, @location)
       end
 
       def resolve_type

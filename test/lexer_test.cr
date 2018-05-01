@@ -27,6 +27,12 @@ module Runic
       end
     end
 
+    def test_kwargs
+      source = "value: BY: SomethinG:"
+      assert_tokens [:kwarg, :kwarg, :kwarg], source
+      assert_tokens ["value", "BY", "SomethinG"], source
+    end
+
     def test_decimal_integer_literals
       assert_next :integer, "0"
       assert_next :integer, "1"

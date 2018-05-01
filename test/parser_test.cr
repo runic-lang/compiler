@@ -201,6 +201,33 @@ module Runic
       assert_equal 2, node.args.size
     end
 
+    def test_keyword_arguments
+      node = assert_expression(AST::Call, "foo(1, 2)").as(AST::Call)
+      assert_empty node.kwargs
+      assert_equal ["1", "2"], node.args.map(&.as(AST::Literal).value)
+
+      node = assert_expression(AST::Call, "foo(1, to: 2)").as(AST::Call)
+      assert_equal ["to"], node.kwargs.keys
+      assert_equal ["2"], node.kwargs.values.map(&.as(AST::Literal).value)
+      assert_equal ["1"], node.args.map(&.as(AST::Literal).value)
+
+      node = assert_expression(AST::Call, "foo(by: 1, to: 2)").as(AST::Call)
+      assert_equal ["by", "to"], node.kwargs.keys
+      assert_equal ["1", "2"], node.kwargs.values.map(&.as(AST::Literal).value)
+      assert_empty node.args
+
+      node = assert_expression(AST::Call, "foo(to: 2, by: 1)").as(AST::Call)
+      assert_equal ["to", "by"], node.kwargs.keys
+      assert_equal ["2", "1"], node.kwargs.values.map(&.as(AST::Literal).value)
+      assert_empty node.args
+
+      ex = assert_raises(SyntaxError) { parser("foo(by: 1, 2)").next }
+      assert_match "expected named argument", ex.message
+
+      ex = assert_raises(SyntaxError) { parser("foo(1, to: 1, to: 2)").next }
+      assert_match "duplicated named argument", ex.message
+    end
+
     def test_ifs
       node = assert_expression AST::If, "if test; end"
       assert_empty node.as(AST::If).body

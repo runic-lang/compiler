@@ -221,13 +221,42 @@ module Runic
         assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
         assert_equal ["3", "4"], node.args.map(&.as(AST::Number).value)
 
-        # wrong number of args:
         ex = assert_raises(SemanticError) { visit("add()") }
         assert_match "wrong number of arguments for 'add' (given 0, expected 1..2)", ex.message
 
-        # incompatible types:
         ex = assert_raises(SemanticError) { visit("add(3, false)") }
         assert_match "wrong type for argument 'b' of function 'add' (given bool, expected f64)", ex.message
+
+        # named arguments:
+        node = visit("add(1, b: 5)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["1", "5"], node.args.map(&.as(AST::Number).value)
+
+        node = visit("add(b: 5, a: 2)").as(AST::Call)
+        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
+        assert_equal ["2", "5"], node.args.map(&.as(AST::Number).value)
+      end
+
+      def test_reindexes_keyword_arguments_in_calls
+        register("def incr(by : int, to : int); end")
+
+        node = visit("incr(1, 5)").as(AST::Call)
+        assert_equal ["1", "5"], node.args.map(&.as(AST::Number).value)
+
+        node = visit("incr(1, to: 5)").as(AST::Call)
+        assert_equal ["1", "5"], node.args.map(&.as(AST::Number).value)
+
+        node = visit("incr(by: 1, to: 5)").as(AST::Call)
+        assert_equal ["1", "5"], node.args.map(&.as(AST::Number).value)
+
+        node = visit("incr(to: 5, by: 1)").as(AST::Call)
+        assert_equal ["1", "5"], node.args.map(&.as(AST::Number).value)
+
+        ex = assert_raises(SemanticError) { visit("incr(1, to: 2, by: 1)") }
+        assert_match "wrong number of arguments for 'incr' (given 3, expected 2)", ex.message
+
+        ex = assert_raises(SemanticError) { visit("incr(1, by: 1)") }
+        assert_match "missing argument 'to' for 'incr'", ex.message
       end
 
       def test_validates_def_return_type

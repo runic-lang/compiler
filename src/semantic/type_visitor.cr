@@ -230,13 +230,30 @@ module Runic
         when AST::Prototype
           prototype = fn_or_prototype
         else
-          raise "unreachable: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
+          raise "FATAL: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
         end
 
         # validate arg count:
-        unless prototype.arg_count.includes?(node.args.size)
-          message = "wrong number of arguments for '#{prototype.name}' (given #{node.args.size}, expected #{prototype.arg_count})"
+        actual = node.args.size + node.kwargs.size
+        arg_count = prototype.arg_count
+
+        unless arg_count.includes?(actual)
+          expected = arg_count.begin == arg_count.end ? arg_count.begin : arg_count
+          message = "wrong number of arguments for '#{prototype.name}' (given #{actual}, expected #{expected})"
           raise SemanticError.new(message, (node.args.first? || node).location)
+        end
+
+        # insert named args:
+        unless node.kwargs.empty?
+          prototype.args.each_with_index do |arg, i|
+            unless node.args[i]?
+              if kwarg = node.kwargs[arg.name]?
+                node.args << kwarg
+              else
+                raise SemanticError.new("missing argument '#{arg.name}' for '#{prototype.name}'", node.location)
+              end
+            end
+          end
         end
 
         # validate arg types (+ set defaults):

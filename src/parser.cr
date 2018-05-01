@@ -417,31 +417,40 @@ module Runic
 
     # Parses either a variable accessor, or a function call if immediately
     # followed by an opening parenthesis.
-    private def parse_identifier_expression(subject = nil)
+    private def parse_identifier_expression(receiver = nil)
       identifier = consume
+      args = [] of AST::Node
+      kwargs = {} of String => AST::Node
 
-      # TODO: allow paren-less function calls
       unless peek.value == "("
-        if subject
-          return AST::Call.new(subject, identifier, [] of AST::Node)
+        if receiver
+          return AST::Call.new(receiver, identifier, args, kwargs)
         else
+          # TODO: allow paren-less function calls (without explicit receiver)
           return AST::Variable.new(identifier)
         end
       end
 
       expect "("
-      args = [] of AST::Node
 
       unless peek.value == ")"
         loop do
-          args << parse_expression
+          if peek.type == :kwarg
+            raise SyntaxError.new("duplicated named argument '#{peek.value}'", peek.location) if kwargs[peek.value]?
+            kwargs[consume.value] = parse_expression
+          elsif kwargs.empty?
+            args << parse_expression
+          else
+            raise SyntaxError.new("expected named argument but got #{peek}", peek.location)
+          end
+
           break if peek.value == ")"
           expect ","
         end
       end
 
       consume # )
-      AST::Call.new(subject, identifier, args)
+      AST::Call.new(receiver, identifier, args, kwargs)
     end
 
     private def parse_if_expression
