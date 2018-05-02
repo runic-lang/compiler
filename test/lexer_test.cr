@@ -6,12 +6,13 @@ module Runic
       assert_tokens [:eof, :eof], ""
     end
 
-    def test_linefeeds
+    def test_linefeeds_and_semicolons
       assert_tokens [:linefeed], "\n"
-      assert_tokens [:linefeed], ";"
-      assert_tokens [:linefeed, :eof], ";\n;\n\n"
+      assert_tokens [:semicolon], ";"
+      assert_tokens [:semicolon, :eof], ";\n;\n\n"
+      assert_tokens [:linefeed, :semicolon, :eof], "\n;\n;"
       assert_tokens [:identifier, :linefeed, :identifier, :linefeed, :eof], "a\nb\n"
-      assert_tokens [:identifier, :linefeed, :identifier, :eof], "a \n  \n   c"
+      assert_tokens [:identifier, :linefeed, :identifier, :semicolon, :eof], "a \n  \n   c ;"
     end
 
     def test_identifiers

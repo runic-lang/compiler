@@ -100,16 +100,19 @@ module Runic
         end
       when '.', ',', ':', '(', ')', '{', '}', ']'
         Token.new(:mark, consume.to_s, location)
-      when '\n', ';'
+      when '\n'
         if @interactive
           # interactive mode: skip linefeed immediately, don't wait for
           # potential future linefeeds:
           skip
         else
           # compile mode: group has many linefeeds as possible:
-          skip_whitespace
+          skip_whitespace(semicolon: false)
         end
         Token.new(:linefeed, "", location)
+      when ';'
+        skip_whitespace(semicolon: true)
+        Token.new(:semicolon, ";", location)
       when '#'
         str = consume_comment
         if str.empty? && peek_char == '['
@@ -452,9 +455,9 @@ module Runic
       consume_while(str) { |char| !yield char }
     end
 
-    private def skip_whitespace
+    private def skip_whitespace(semicolon)
       while char = peek_char
-        break unless char.ascii_whitespace? || char == ';'
+        break unless char.ascii_whitespace? || (semicolon && char == ';')
         skip
       end
     end

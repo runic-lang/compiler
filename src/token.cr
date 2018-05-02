@@ -21,6 +21,7 @@ module Runic
        keyword
        linefeed
        operator
+       semicolon
      ) %}
       def {{type.id}}?
         @type == {{type}}
@@ -52,6 +53,8 @@ module Runic
       when :linefeed
         io << "LF"
       when :operator
+        io << value
+      when :semicolon
         io << value
       else
         super

@@ -34,8 +34,8 @@ module Runic
             return parse_top_level_expression if @top_level_expressions
             raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
           end
-        when :linefeed
-          skip
+        when :linefeed, :semicolon
+          skip_line_terminator
         else
           if @top_level_expressions
             return parse_top_level_expression
@@ -52,7 +52,7 @@ module Runic
 
       location = consume.location # struct
       name = consume_type
-      expect(:linefeed)
+      expect_line_terminator
 
       # TODO: allow reopening structs
       node = AST::Struct.new(name, attributes, documentation, location)
@@ -69,8 +69,8 @@ module Runic
           else
             raise SyntaxError.new("expected 'def' or 'end' but got '#{peek}'", peek.location)
           end
-        when :linefeed
-          skip
+        when :linefeed, :semicolon
+          skip_line_terminator
         else
           raise SyntaxError.new("unexpected '#{peek}'", peek.location)
         end
@@ -93,7 +93,7 @@ module Runic
 
       prototype = AST::Prototype.new(name, args, return_type, documentation, location)
       body = parse_body("end")
-      consume # end
+      skip # end
 
       AST::Function.new(prototype, attributes, body, location)
     end
@@ -102,8 +102,8 @@ module Runic
       body = [] of AST::Node
 
       until stops.includes?(peek.value)
-        if peek.type == :linefeed
-          consume
+        if {:linefeed, :semicolon}.includes?(peek.type)
+          skip
         else
           body << parse_expression
         end
@@ -147,7 +147,7 @@ module Runic
     private def consume_prototype_name
       String.build do |str|
         loop do
-          break if %w{( :}.includes?(peek.value) || %i(eof linefeed).includes?(peek.type)
+          break if {"(", ":"}.includes?(peek.value) || {:eof, :linefeed, :semicolon}.includes?(peek.type)
           str << consume.value
         end
       end
@@ -210,8 +210,8 @@ module Runic
     private def consume_args
       args = [] of AST::Argument
 
-      if peek.type == :linefeed
-        consume
+      if {:linefeed, :semicolon}.includes?(peek.type)
+        skip_line_terminator
         return args
       end
 
@@ -357,7 +357,7 @@ module Runic
         else
           raise SyntaxError.new("expected expression but got #{peek.value.inspect}", peek.location)
         end
-      when :linefeed
+      when :linefeed, :semicolon
         skip
         parse_primary
       when :identifier
@@ -481,7 +481,7 @@ module Runic
     private def parse_case_expression
       location = consume.location # case
       value = parse_expression
-      skip if peek.type == :linefeed
+      skip_line_terminator
 
       cases = [] of AST::When
 
@@ -495,7 +495,7 @@ module Runic
           skip # ,
         end
 
-        if peek.type == :linefeed
+        if {:linefeed, :semicolon}.includes?(peek.type)
           skip
         else
           expect_keyword("then")
@@ -560,6 +560,19 @@ module Runic
         consume
       else
         raise SyntaxError.new("expected #{value} but got #{peek}", peek.location)
+      end
+    end
+
+    private def expect_line_terminator
+      unless {:linefeed, :semicolon}.includes?(peek.type)
+        raise SyntaxError.new("expected LF or ; but got #{peek}", peek.location)
+      end
+      skip_line_terminator
+    end
+
+    private def skip_line_terminator
+      while {:linefeed, :semicolon}.includes?(peek.type)
+        skip
       end
     end
 
