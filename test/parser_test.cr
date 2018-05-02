@@ -158,6 +158,22 @@ module Runic
       parse_each("def foo; 1 + 2; end; def bar; 3 * 4; end") do |node|
         assert AST::Function === node
       end
+
+      source = <<-RUNIC
+      def bar(
+
+        a : int
+
+        ,
+
+         b : float
+
+      )
+      end
+      RUNIC
+      node = parser(source).next.as(AST::Function)
+      assert_equal ["a", "b"], node.args.map(&.name)
+      assert_equal ["i32", "f64"], node.args.map(&.type.name)
     end
 
     def test_default_arguments
@@ -199,6 +215,24 @@ module Runic
       node = parser("bar(1, 2)").next.as(AST::Call)
       assert_equal "bar", node.callee
       assert_equal 2, node.args.size
+
+      source = <<-RUNIC
+      bar(
+
+        1
+
+        ,
+
+         b:
+
+         4
+
+      )
+      RUNIC
+      node = parser(source).next.as(AST::Call)
+      assert_equal ["1"], node.args.map(&.as(AST::Literal).value)
+      assert_equal ["b"], node.kwargs.keys
+      assert_equal ["4"], node.kwargs.values.map(&.as(AST::Literal).value)
     end
 
     def test_keyword_arguments
@@ -230,8 +264,8 @@ module Runic
 
     def test_ifs
       node = assert_expression AST::If, "if test; end"
-      assert_empty node.as(AST::If).body
-      assert_nil node.as(AST::If).alternative
+      assert_empty node.body
+      assert_nil node.alternative
 
       node = assert_expression AST::If, <<-RUNIC
       if test
@@ -240,8 +274,8 @@ module Runic
         again()
       end
       RUNIC
-      assert_equal 3, node.as(AST::If).body.size
-      assert_nil node.as(AST::If).alternative
+      assert_equal 3, node.body.size
+      assert_nil node.alternative
 
       node = assert_expression AST::If, <<-RUNIC
       if a < 10 || b > 10
@@ -251,8 +285,25 @@ module Runic
         bar()
       end
       RUNIC
-      assert_equal 1, node.as(AST::If).body.size
-      assert_equal 2, node.as(AST::If).alternative.try(&.size)
+      assert_equal 1, node.body.size
+      assert_equal 2, node.alternative.try(&.size)
+
+      node = assert_expression AST::If, <<-RUNIC
+      if (
+
+      a < 10 ||
+
+        b > 10
+
+      ) &&
+
+      c > 5
+
+        foo()
+      end
+      RUNIC
+      assert_equal 1, node.body.size
+      assert AST::Call === node.body[0]
     end
 
     def test_unless
@@ -318,6 +369,32 @@ module Runic
       assert_equal 3, node.as(AST::Case).cases[1].conditions.size
 
       assert_raises(SyntaxError) { parser("case a; end").next }
+
+      source = <<-RUNIC
+      case foo
+
+      when 1,
+
+      2,
+        3
+
+          foo
+
+      when 4, 5,
+
+
+        6 then baz
+
+      when 7,
+        8 then
+          baz
+      end
+      RUNIC
+      node = parser(source).next.as(AST::Case)
+      assert_equal 3, node.cases.size
+      assert_equal %w(1 2 3), node.cases[0].conditions.map(&.as(AST::Literal).value)
+      assert_equal %w(4 5 6), node.cases[1].conditions.map(&.as(AST::Literal).value)
+      assert_equal %w(7 8), node.cases[2].conditions.map(&.as(AST::Literal).value)
     end
 
     def test_struct
@@ -362,10 +439,10 @@ module Runic
       assert_empty node.prototypes # populated by semantic analysis
     end
 
-    private def assert_expression(klass, source, file = __FILE__, line = __LINE__)
+    private def assert_expression(klass : T.class, source, file = __FILE__, line = __LINE__) forall T
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line
-      node
+      node.as(T)
     end
 
     private def assert_type(expected, source, file = __FILE__, line = __LINE__)

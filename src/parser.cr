@@ -64,7 +64,7 @@ module Runic
           when "def"
             node.methods << parse_definition
           when "end"
-            consume # end
+            skip # end
             break
           else
             raise SyntaxError.new("expected 'def' or 'end' but got '#{peek}'", peek.location)
@@ -113,7 +113,7 @@ module Runic
     end
 
     private def consume_type
-      consume if peek.value == ":"
+      skip if peek.value == ":"
       case type = expect(:identifier).value
       when "int"
         "i32"
@@ -136,7 +136,7 @@ module Runic
 
     private def parse_extern
       documentation = consume_documentation
-      consume # extern
+      skip # extern
       location = peek.location
       name = consume_prototype_name
       args = consume_extern_args
@@ -163,12 +163,12 @@ module Runic
         arg_name = expect(:identifier).value
 
         if peek.value == ":"
-          consume # ':'
+          skip # ':'
           arg_type = consume_type
         end
 
         if peek.value == "="
-          consume # '='
+          skip # '='
 
           arg_default = parse_literal do
             raise SyntaxError.new("expected literal but got #{peek.type.inspect}", peek.location)
@@ -220,9 +220,10 @@ module Runic
       end
 
       expect "("
+      skip_linefeed
 
       if peek.value == ")"
-        consume
+        skip
       else
         loop do
           location = peek.location
@@ -230,12 +231,15 @@ module Runic
           arg_name, arg_type, arg_default = yield
           args << AST::Argument.new(arg_name, arg_type, arg_default, location)
 
+          skip_linefeed
+
           case peek.value
           when ")"
-            consume
+            skip
             break
           when ","
-            consume
+            skip
+            skip_linefeed
           end
         end
       end
@@ -342,7 +346,7 @@ module Runic
       expression = parse_primary
 
       while peek.value == "."
-        consume # .
+        skip # .
         expression = parse_identifier_expression(expression)
       end
 
@@ -410,7 +414,9 @@ module Runic
 
     private def parse_parenthesis_expression
       skip # (
+      skip_linefeed
       node = parse_expression
+      skip_linefeed
       expect ")"
       node
     end
@@ -432,6 +438,7 @@ module Runic
       end
 
       expect "("
+      skip_linefeed
 
       unless peek.value == ")"
         loop do
@@ -444,12 +451,15 @@ module Runic
             raise SyntaxError.new("expected named argument but got #{peek}", peek.location)
           end
 
+          skip_linefeed
           break if peek.value == ")"
+
           expect ","
+          skip_linefeed
         end
       end
 
-      consume # )
+      skip # )
       AST::Call.new(receiver, identifier, args, kwargs)
     end
 
@@ -460,10 +470,10 @@ module Runic
       body = parse_body("end", "else")
 
       if peek.value == "else"
-        consume # else
+        skip # else
         alternative = parse_body("end")
       end
-      consume # end
+      skip # end
 
       AST::If.new(condition, body, alternative, location)
     end
@@ -473,7 +483,7 @@ module Runic
 
       condition = parse_expression
       body = parse_body("end")
-      consume # end
+      skip # end
 
       AST::Unless.new(condition, body, location)
     end
@@ -524,7 +534,7 @@ module Runic
 
       condition = parse_expression
       body = parse_body("end")
-      consume # end
+      skip # end
 
       AST::While.new(condition, body, location)
     end
@@ -534,7 +544,7 @@ module Runic
 
       condition = parse_expression
       body = parse_body("end")
-      consume # end
+      skip # end
 
       AST::Until.new(condition, body, location)
     end
@@ -572,6 +582,12 @@ module Runic
 
     private def skip_line_terminator
       while {:linefeed, :semicolon}.includes?(peek.type)
+        skip
+      end
+    end
+
+    private def skip_linefeed
+      if peek.type == :linefeed
         skip
       end
     end
