@@ -100,11 +100,11 @@ module Runic
         end
       when '.', ',', ':', '(', ')', '{', '}', ']'
         Token.new(:mark, consume.to_s, location)
-      when '\n'
+      when '\n', '\r'
         if @interactive
           # interactive mode: skip linefeed immediately, don't wait for
           # potential future linefeeds:
-          skip
+          skip_linefeed
         else
           # compile mode: group has many linefeeds as possible:
           skip_whitespace(semicolon: false)
@@ -339,7 +339,7 @@ module Runic
           when ']'
             skip # ']'
             break
-          when '\n'
+          when '\n', '\r'
             raise SyntaxError.new("unexpected linefeed in attribute declaration", @location)
           else
             str << consume
@@ -347,8 +347,8 @@ module Runic
         end
       end
 
-      if peek_char == '\n'
-        skip # '\n'
+      if peek_char == '\n' || peek_char == '\r'
+        skip_linefeed
       else
         raise SyntaxError.new("expected linefeed after attribute declaration", @location)
       end
@@ -390,10 +390,11 @@ module Runic
 
           str << '\n' if pending_linefeed
           pending_linefeed = false
-          consume_until(str) { |c| linefeed?(c) || c.nil? }
+
+          consume_until(str) { |c| c == '\n' || c == '\r' || c.nil? }
           break if peek_char.nil?
 
-          consume # '\n' '\r'
+          skip_linefeed
           skip_space
 
           # multiline comment?
@@ -404,10 +405,6 @@ module Runic
           end
         end
       end
-    end
-
-    private def linefeed?(c)
-      c == '\n' || c == '\r'
     end
 
     private def consume_operator
@@ -460,6 +457,11 @@ module Runic
         break unless char.ascii_whitespace? || (semicolon && char == ';')
         skip
       end
+    end
+
+    private def skip_linefeed
+      skip if peek_char == '\r'
+      skip if peek_char == '\n'
     end
 
     private def skip_space
