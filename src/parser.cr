@@ -105,7 +105,7 @@ module Runic
         if {:linefeed, :semicolon}.includes?(peek.type)
           skip
         else
-          body << parse_expression
+          body << parse_statement
         end
       end
 
@@ -269,7 +269,35 @@ module Runic
       unless @top_level_expressions
         raise SyntaxError.new("unexpected top level expression", peek.location)
       end
-      parse_expression
+      parse_statement
+    end
+
+    private def parse_statement
+      stmt = parse_expression
+
+      while peek.type == :keyword
+        location = peek.location
+        body = AST::Body.new([stmt] of AST::Node, stmt.location)
+
+        case peek.value
+        when "if"
+          skip
+          stmt = AST::If.new(parse_expression, body, nil, location)
+        when "unless"
+          skip
+          stmt = AST::Unless.new(parse_expression, body, location)
+        when "while"
+          skip
+          stmt = AST::While.new(parse_expression, body, location)
+        when "until"
+          skip
+          stmt = AST::Until.new(parse_expression, body, location)
+        else
+          raise SyntaxError.new("expected if, unless, while or until but got #{peek}", location)
+        end
+      end
+
+      stmt
     end
 
     private def parse_expression

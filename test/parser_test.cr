@@ -397,6 +397,29 @@ module Runic
       assert_equal %w(7 8), node.cases[2].conditions.map(&.as(AST::Literal).value)
     end
 
+    def test_statement_modifiers
+      node = assert_expression AST::If, "run_foo() if running"
+      assert_equal "run_foo", node.body.first.as(AST::Call).callee
+      assert_equal "running", node.condition.as(AST::Variable).name
+      assert_nil node.alternative
+
+      node = assert_expression AST::Unless, "run_foo() unless stopped"
+      assert_equal "run_foo", node.body.first.as(AST::Call).callee
+      assert_equal "stopped", node.condition.as(AST::Variable).name
+
+      node = assert_expression AST::While, "run_foo() while running"
+      assert_equal "run_foo", node.body.first.as(AST::Call).callee
+      assert_equal "running", node.condition.as(AST::Variable).name
+
+      node = assert_expression AST::Until, "run_foo() until stopped"
+      assert_equal "run_foo", node.body.first.as(AST::Call).callee
+      assert_equal "stopped", node.condition.as(AST::Variable).name
+
+      node = assert_expression AST::Until, "run_foo() if running until stopped"
+      assert AST::If === node.body.first
+      assert_equal "running", node.body.first.as(AST::If).condition.as(AST::Variable).name
+    end
+
     def test_struct
       node = assert_expression(AST::Struct, "#[primitive]\nstruct int32\nend").as(AST::Struct)
       assert_equal "int32", node.name
