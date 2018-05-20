@@ -344,7 +344,7 @@ module Runic
       end
 
       # These nodes don't need to be visited.
-      def visit(node : AST::Float | AST::Boolean) : Nil
+      def visit(node : AST::Boolean | AST::Float | AST::Module) : Nil
       end
 
       # Simple helper to visit bodies (functions, ifs, ...).
@@ -358,6 +358,7 @@ module Runic
         raise "unreachable"
       end
 
+      # Visits struct methods (once).
       def visit(node : AST::Struct) : Nil
         return if node.visited?
 

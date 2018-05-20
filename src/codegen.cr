@@ -146,6 +146,10 @@ module Runic
       nodes.reduce(llvm_void_value) { |_, node| codegen(node) }
     end
 
+    def codegen(node : AST::Module)
+      raise "FATAL: can't codegen module"
+    end
+
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)

@@ -30,6 +30,8 @@ module Runic
             return parse_extern
           when "struct"
             return parse_struct
+          when "module"
+            return parse_module
           else
             return parse_top_level_expression if @top_level_expressions
             raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
@@ -44,6 +46,45 @@ module Runic
           end
         end
       end
+    end
+
+    private def parse_module
+      documentation = consume_documentation
+
+      location = consume.location # module
+      name = expect(:identifier).value
+      expect_line_terminator
+
+      modules = [] of AST::Module
+      structs = [] of AST::Struct
+
+      # TODO: allow reopening modules
+      mod = AST::Module.new(name, documentation, location)
+
+      loop do
+        case peek.type
+        when :keyword
+          case peek.value
+          when "module"
+            mod.modules << parse_module
+          when "struct"
+            mod.structs << parse_struct
+          when "end"
+            skip
+            return mod
+          else
+            break
+          end
+        #when :identifier
+        #  mod.constants << parse_constant_assignment
+        when :linefeed, :semicolon
+          skip_line_terminator
+        else
+          break
+        end
+      end
+
+      raise SyntaxError.new("expected module, struct or end but got #{peek}", peek.location)
     end
 
     private def parse_struct

@@ -19,11 +19,23 @@ module Runic
         end
       end
 
-      # Expands name of struct methods to include the struct name.
-      # Injects `self` variable as first method argument
+      # Recursively expands the name of nested modules and structs to include
+      # the module name.
+      def visit(node : AST::Module) : Nil
+        node.modules.each do |n|
+          n.name = "#{node.name}::#{n.name}"
+          visit(n)
+        end
+
+        node.structs.each do |n|
+          n.name = "#{node.name}::#{n.name}"
+          visit(n)
+        end
+      end
+
+      # Injects `self` as first method argument.
       def visit(node : AST::Struct) : Nil
         node.methods.each do |fn|
-          fn.prototype.name = "#{node.name}::#{fn.prototype.name}"
           fn.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, fn.location))
         end
       end

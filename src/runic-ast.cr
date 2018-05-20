@@ -215,6 +215,18 @@ module Runic
         node.expressions.each { |n| to_h(n) }
       end
 
+      def to_h(node : Runic::AST::Module)
+        print "- module #{node.name}"
+
+        nested do
+          node.modules.each { |n| to_h(n) }
+        end
+
+        nested do
+          node.structs.each { |n| to_h(n) }
+        end
+      end
+
       def to_h(node : Runic::AST::Struct)
         print "- struct #{node.name} [#{node.attributes.join(", ")}]"
 

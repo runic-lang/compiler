@@ -462,6 +462,43 @@ module Runic
       assert_empty node.prototypes # populated by semantic analysis
     end
 
+    def test_modules
+      node = assert_expression AST::Module, "module Bar; end"
+      assert_equal "Bar", node.name
+      assert_empty node.documentation
+
+      node = assert_expression AST::Module, "# A foolish interface.\nmodule Foo; end"
+      assert_equal "Foo", node.name
+      assert_equal "A foolish interface.",  node.documentation
+    end
+
+    def test_nested_modules
+      node = assert_expression AST::Module, <<-RUNIC
+      module Foo
+        module Bar
+        end
+
+        module Baz;end
+      end
+      RUNIC
+      assert_equal "Foo", node.name
+      assert_equal %w(Bar Baz), node.modules.map(&.name)
+      assert_empty node.structs
+    end
+
+    def test_module_structs
+      node = assert_expression AST::Module, <<-RUNIC
+      module Foo
+        struct Baz; end
+        struct Bar
+        end
+      end
+      RUNIC
+      assert_equal "Foo", node.name
+      assert_empty node.modules
+      assert_equal %w(Baz Bar), node.structs.map(&.name)
+    end
+
     private def assert_expression(klass : T.class, source, file = __FILE__, line = __LINE__) forall T
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line

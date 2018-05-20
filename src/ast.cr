@@ -605,22 +605,40 @@ module Runic
       end
     end
 
+    class Module < Node
+      property name : String
+      getter modules : Array(Module)
+      getter structs : Array(Struct)
+      getter locations : Array(Location)
+      getter documentation : String
+
+      def initialize(@name, @documentation, @location)
+        @modules = [] of Module
+        @structs = [] of Struct
+        @locations = [@location]
+      end
+
+      def resolve_type
+        # N/A
+      end
+    end
+
     class Struct < Node
       include TopLevel
 
-      getter name : String
+      property name : String
       getter attributes : Array(String)
       getter methods
       getter locations : Array(Location)
       getter documentation : String
 
-      # TODO: should be an Array(AST::Prototype)
+      # TODO: should be an Array(Prototype)
       # TODO: should be defined on struct Type (?)
       getter prototypes
 
       def initialize(@name, @attributes, @documentation, @location)
-        @methods = [] of AST::Function
-        @prototypes = {} of String => AST::Prototype
+        @methods = [] of Function
+        @prototypes = {} of String => Prototype
         @locations = [@location]
       end
 

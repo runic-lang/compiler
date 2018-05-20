@@ -35,22 +35,6 @@ module Runic
         assert_equal "1", mul.rhs.as(AST::Integer).value
       end
 
-      def test_expands_struct_method_names
-        node = visit <<-RUNIC
-        struct User
-          def age
-          end
-
-          def name
-          end
-        end
-        RUNIC
-
-        methods = node.as(AST::Struct).methods
-        assert_equal "User::age", methods[0].name
-        assert_equal "User::name", methods[1].name
-      end
-
       def test_injects_self_as_first_arg_to_struct_methods
         node = visit <<-RUNIC
         struct User
