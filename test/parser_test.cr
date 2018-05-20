@@ -236,21 +236,21 @@ module Runic
     end
 
     def test_keyword_arguments
-      node = assert_expression(AST::Call, "foo(1, 2)").as(AST::Call)
+      node = assert_expression AST::Call, "foo(1, 2)"
       assert_empty node.kwargs
       assert_equal ["1", "2"], node.args.map(&.as(AST::Literal).value)
 
-      node = assert_expression(AST::Call, "foo(1, to: 2)").as(AST::Call)
+      node = assert_expression AST::Call, "foo(1, to: 2)"
       assert_equal ["to"], node.kwargs.keys
       assert_equal ["2"], node.kwargs.values.map(&.as(AST::Literal).value)
       assert_equal ["1"], node.args.map(&.as(AST::Literal).value)
 
-      node = assert_expression(AST::Call, "foo(by: 1, to: 2)").as(AST::Call)
+      node = assert_expression AST::Call, "foo(by: 1, to: 2)"
       assert_equal ["by", "to"], node.kwargs.keys
       assert_equal ["1", "2"], node.kwargs.values.map(&.as(AST::Literal).value)
       assert_empty node.args
 
-      node = assert_expression(AST::Call, "foo(to: 2, by: 1)").as(AST::Call)
+      node = assert_expression AST::Call, "foo(to: 2, by: 1)"
       assert_equal ["to", "by"], node.kwargs.keys
       assert_equal ["2", "1"], node.kwargs.values.map(&.as(AST::Literal).value)
       assert_empty node.args
@@ -421,7 +421,7 @@ module Runic
     end
 
     def test_struct
-      node = assert_expression(AST::Struct, "#[primitive]\nstruct int32\nend").as(AST::Struct)
+      node = assert_expression AST::Struct, "#[primitive]\nstruct int32\nend"
       assert_equal "int32", node.name
       assert_equal ["primitive"], node.attributes
       assert_empty node.methods
@@ -431,20 +431,19 @@ module Runic
     end
 
     def test_struct_documentation_and_attributes
-      source = <<-RUNIC
+      node = assert_expression AST::Struct, <<-RUNIC
       # Docs for the `bool` primitive type.
       #[primitive]
       struct bool
       end
       RUNIC
-      node = assert_expression(AST::Struct, source).as(AST::Struct)
       assert_equal "bool", node.name
       assert_equal ["primitive"], node.attributes
       assert_equal "Docs for the `bool` primitive type.", node.documentation
     end
 
     def test_struct_methods
-      source =  <<-RUNIC
+      node = assert_expression AST::Struct, <<-RUNIC
       #[primitive]
       struct int64
         def add(other : int64)
@@ -456,7 +455,6 @@ module Runic
         end
       end
       RUNIC
-      node = assert_expression(AST::Struct, source).as(AST::Struct)
       assert_equal 2, node.methods.size
       assert_equal ["add", "sub"], node.methods.map(&.name).sort
       assert_empty node.prototypes # populated by semantic analysis
