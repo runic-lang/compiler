@@ -29,8 +29,17 @@ module Runic
         @debug = Debug::DWARF.new(@module, @builder, @context, debug, @optimize)
       end
 
+      # custom types (i.e. structs):
+      @llvm_types = {} of String => LibC::LLVMTypeRef
+
+      # global constant values:
       @constant_values = {} of String => LibC::LLVMValueRef
+
+      # local variables (i.e. pointers)
       @scope = Scope(LibC::LLVMValueRef).new
+
+      # name(+index) of current struct ivars:
+      @ivars = [] of String
     end
 
     def finalize
@@ -199,7 +208,7 @@ module Runic
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)
-      alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(node.type), "#{node.name}_ptr")
+      alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(node.type), "")
       yield alloca
       alloca
     end
@@ -227,8 +236,8 @@ module Runic
       LibC.LLVMConstInt(llvm_type("i32"), 0, 0)
     end
 
-    private def llvm_type(name : String)
-      llvm_type(Type.new(name))
+    private def llvm_type(node : AST::Struct)
+      build_llvm_struct(node.name)
     end
 
     private def llvm_type(node : AST::Node)
@@ -266,9 +275,13 @@ module Runic
         when "void"
           LibC.LLVMVoidTypeInContext(@context)
         else
-          raise CodegenError.new("unsupported #{type}")
+          build_llvm_struct(type.name)
         end
       end
+    end
+
+    private def build_llvm_struct(name : String)
+      @llvm_types[name] ||= LibC.LLVMStructCreateNamed(@context, "struct.#{name}")
     end
   end
 end
