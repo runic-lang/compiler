@@ -406,8 +406,8 @@ module Runic
         expressions << node
       end
 
-      def unsafe_at(i)
-        expressions.unsafe_at(i)
+      def unsafe_fetch(i)
+        expressions.unsafe_fetch(i)
       end
 
       def resolve_type
