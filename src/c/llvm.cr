@@ -1,4 +1,4 @@
-@[Link(ldflags: "`llvm-config-5.0 --cxxflags --ldflags --libs --system-libs`")]
+@[Link(ldflags: "`llvm-config-6.0 --cxxflags --ldflags --libs --system-libs`")]
 @[Link("stdc++")]
 lib LibC
   {% if flag?(:aarch64) || flag?(:x86_64) %}
@@ -9,8 +9,10 @@ lib LibC
     {% raise "unsupported target" %}
   {% end %}
 
+  alias Uint64T = UInt64
+
   {% begin %}
-    LLVM_AVAILABLE_TARGETS = {{ `llvm-config-5.0 --targets-built`.stringify.chomp.split(' ') }}
+    LLVM_AVAILABLE_TARGETS = {{ `llvm-config-6.0 --targets-built`.stringify.chomp.split(' ') }}
   {% end %}
 
   {% for target in LLVM_AVAILABLE_TARGETS %}

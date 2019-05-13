@@ -2,15 +2,14 @@
 .SUFFIXES:
 
 CRYSTAL = crystal
-LLVM_CONFIG = llvm-config-5.0
+LLVM_CONFIG = llvm-config-6.0
 C2CR = CFLAGS=`$(LLVM_CONFIG) --cflags` lib/clang/bin/c2cr
 
 COMMON_SOURCES = src/version.cr src/config.cr
 LEXER_SOURCES = $(COMMON_SOURCES) src/definitions.cr src/errors.cr src/lexer.cr src/location.cr src/token.cr
 PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr src/type.cr src/program.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
-LLVM_SOURCES = src/llvm.cr src/c/llvm.cr src/c/llvm/*.cr src/c/llvm/transforms/*.cr \
-			   src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
+LLVM_SOURCES = libllvm src/llvm.cr src/c/llvm.cr src/ext/llvm/di_builder.o src/ext/llvm/di_builder.cr
 CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
 DOCUMENTATION_SOURCES = $(SEMANTIC_SOURCES) src/documentation.cr src/documentation/*.cr
 
@@ -58,15 +57,8 @@ libexec/runic-documentation: src/runic-documentation.cr $(DOCUMENTATION_SOURCES)
 doc: .phony
 	cd doc && make
 
-clean: .phony
-	rm -rf $(COMMANDS) dist src/c/llvm
-	cd src/ext && make clean
-	cd doc && make clean
-
-src/c/llvm/*.cr:
-	cd lib/clang && make
+libllvm: lib/clang/bin/c2cr
 	@mkdir -p src/c/llvm/transforms
-	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Analysis.h > src/c/llvm/analysis.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Core.h > src/c/llvm/core.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/ErrorHandling.h > src/c/llvm/error_handling.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/ExecutionEngine.h > src/c/llvm/execution_engine.cr
@@ -75,11 +67,16 @@ src/c/llvm/*.cr:
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Transforms/Scalar.h > src/c/llvm/transforms/scalar.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Types.h > src/c/llvm/types.cr
 
-# avoid makefile error
-src/c/llvm/transforms/*.cr:
+lib/clang/bin/c2cr: .phony
+	cd lib/clang && make
 
 src/ext/llvm/%.o: src/ext/llvm/%.cc
 	cd src/ext && make
+
+clean: .phony
+	rm -rf $(COMMANDS) dist src/c/llvm
+	cd src/ext && make clean
+	cd doc && make clean
 
 test: .phony
 	$(CRYSTAL) run `find test -iname "*_test.cr"` -- --verbose

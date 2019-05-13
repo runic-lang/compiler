@@ -1,4 +1,4 @@
-LLVM_CONFIG ?= $(shell command -v llvm-config-5.0 || command -v llvm-config)
+LLVM_CONFIG ?= $(shell command -v llvm-config-6.0 || command -v llvm-config)
 CXXFLAGS += $(shell $(LLVM_CONFIG) --cxxflags)
 
 .PHONY: clean
