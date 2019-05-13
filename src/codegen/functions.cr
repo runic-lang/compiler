@@ -18,7 +18,7 @@ module Runic
       if @debug.level.none?
         codegen_function_body(node, func)
       else
-        di_subprogram = @debug.create_subprogram(node, func, optimized: @optimize)
+        di_subprogram = @debug.create_subprogram(node, func)
         @debug.with_lexical_block(di_subprogram) do
           codegen_function_body(node, func)
         end

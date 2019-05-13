@@ -24,7 +24,7 @@ module Runic
       if debug.none?
         @debug = Debug::NULL.new(debug)
       else
-        @debug = Debug::DWARF.new(@module, @builder, @context, debug)
+        @debug = Debug::DWARF.new(@module, @builder, @context, debug, @optimize)
       end
 
       @constant_values = {} of String => LibC::LLVMValueRef
