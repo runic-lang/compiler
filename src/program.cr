@@ -40,7 +40,7 @@ module Runic
 
     # Merely replaces the previous function definition, without validating the
     # new definition against the previous definition (number of args, arg types
-    # and return type.
+    # and return type).
     #
     # TODO: function overloads + overwrite previous definition if it matches the
     #       new definition.
@@ -51,8 +51,15 @@ module Runic
         end
       end
 
-      # @functions << node
       @functions[node.name] = node
+
+      #@functions.each_with_index do |previous, index|
+      #  if previous.name == node.name && node.matches?(previous)
+      #    @functions[index] = node
+      #    return
+      #  end
+      #end
+      #@functions << node
     end
 
     def register(node : AST::Struct) : Nil
@@ -78,22 +85,44 @@ module Runic
     end
 
     def resolve(node : AST::Call) : AST::Function | AST::Prototype
-      fn = if receiver = node.receiver
-             resolve_type(receiver).methods.find { |m| m.name == node.callee }
-           else
-             @functions[node.callee]?
-           end
-      if fn
-        fn
+      function =
+        if receiver = node.receiver
+          resolve_type(receiver).method(node)
+        else
+          @functions[node.callee]?
+        end
+
+      if function
+        function
       elsif prototype = @externs[node.callee]?
-        return prototype
+        prototype
       else
         raise SemanticError.new("undefined method #{node}", node)
       end
     end
 
+    def resolve(node : AST::Binary) : AST::Function
+      if function = resolve_type(node.lhs).operator(node)
+        function
+      else
+        raise SemanticError.new("undefined operator #{node.lhs.type}##{node.operator}(#{node.rhs.type})", node)
+      end
+    end
+
+    def resolve(node : AST::Unary) : AST::Function
+      if function = resolve_type(node.lhs).operator(node)
+        function
+      else
+        raise SemanticError.new("undefined operator #{node.expression.type}##{node.operator}", node)
+      end
+    end
+
     private def resolve_type(node : AST::Node) : AST::Struct
-      @structs[node.type.name]? || raise SemanticError.new("undefined struct #{node.type.name}", node)
+      if st = @structs[node.type.name]?
+        st
+      else
+        raise SemanticError.new("undefined struct #{node.type.name}", node)
+      end
     end
   end
 end

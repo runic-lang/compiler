@@ -143,16 +143,20 @@ module Runic
           visit(rhs)
         end
 
-        # type the binary expression
+        # type the binary expression, TODO: resolve type using corelib:
+        # node.type = @program.resolve(node).type
         unless node.type?
-          raise SemanticError.new("invalid operation: #{lhs.type?} #{node.operator} #{rhs.type?}", node.location)
+          raise SemanticError.new("invalid operation: #{lhs.type?} ##{node.operator} ##{rhs.type?}", node.location)
         end
       end
 
       # Visits the sub-expression, then types the unary expression.
       def visit(node : AST::Unary) : Nil
+        # make sure the expression is typed
         visit(node.expression)
 
+        # type the unary expression, TODO: resolve type using corelib
+        #node.type = @program.resolve(node).type
         unless node.type?
           raise SemanticError.new("invalid #{node.operator}#{node.expression.type}", node.location)
         end

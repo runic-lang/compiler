@@ -646,6 +646,27 @@ module Runic
         attributes.includes?(name)
       end
 
+      def method(node : AST::Call)
+        methods.find do |method|
+          method.name == node.callee
+        end
+      end
+
+      def operator(node : AST::Binary)
+        methods.find do |method|
+          method.name == node.operator &&
+            method.args.size == 1 &&
+            method.args.first.type == node.rhs.type
+        end
+      end
+
+      def operator(node : AST::Unary)
+        methods.find do |method|
+          method.name == node.operator &&
+            method.args.size == 0
+        end
+      end
+
       def resolve_type
         # N/A
       end
