@@ -32,6 +32,8 @@ module Runic
             return parse_struct
           when "module"
             return parse_module
+          when "require"
+            return parse_require
           else
             return parse_top_level_expression if @top_level_expressions
             raise SyntaxError.new("unexpected #{peek.value.inspect} keyword", peek.location)
@@ -46,6 +48,22 @@ module Runic
           end
         end
       end
+    end
+
+    private def parse_require
+      location = consume.location # require
+      path = expect(:string).value
+
+      case peek.type
+      when :keyword
+        raise SyntaxError.new("can't require in dynamic context", location)
+      when :eof
+        consume
+      else
+        expect_line_terminator
+      end
+
+      AST::Require.new(path, location)
     end
 
     private def parse_module
@@ -447,6 +465,8 @@ module Runic
           parse_while_expression
         when "until"
           parse_until_expression
+        when "require"
+          raise SyntaxError.new("can't require in dynamic context", peek.location)
         else
           raise SyntaxError.new("expected expression but got #{peek.value.inspect} keyword", peek.location)
         end

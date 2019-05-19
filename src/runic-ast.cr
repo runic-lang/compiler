@@ -227,6 +227,10 @@ module Runic
         end
       end
 
+      def to_h(node : Runic::AST::Require)
+        print "- require #{node.path.inspect}"
+      end
+
       def to_h(node : Runic::AST::Struct)
         print "- struct #{node.name} [#{node.attributes.join(", ")}]"
 

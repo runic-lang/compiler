@@ -147,7 +147,11 @@ module Runic
     end
 
     def codegen(node : AST::Module)
-      raise "FATAL: can't codegen module"
+      raise "FATAL: can't codegen module statement"
+    end
+
+    def codegen(node : AST::Require)
+      raise "FATAL: can't codegen require statement"
     end
 
 

@@ -53,6 +53,17 @@ module Runic
       {% end %}
     end
 
+    class Require < Node
+      getter path : String
+
+      def initialize(@path, @location)
+      end
+
+      def resolve_type
+        # N/A
+      end
+    end
+
     abstract class Number < Node
       include Literal
 

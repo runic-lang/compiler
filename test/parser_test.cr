@@ -497,6 +497,29 @@ module Runic
       assert_equal %w(Baz Bar), node.structs.map(&.name)
     end
 
+    def test_requires
+      node = assert_expression AST::Require, %(require "file")
+      assert_equal "file", node.path
+
+      node = assert_expression AST::Require, %(require "path/to/file")
+      assert_equal "path/to/file", node.path
+
+      node = assert_expression AST::Require, %(require "../relative/path/to/file")
+      assert_equal "../relative/path/to/file", node.path
+
+      ex = assert_raises(SyntaxError) { parser(%(require "../relative/path/to/file" if something)).next }
+      assert_match "can't require in dynamic context", ex.message
+
+      ex = assert_raises(SyntaxError) do
+        parser(<<-RUNIC).next
+        if something
+          require "../relative/path/to/file"
+        end
+        RUNIC
+      end
+      assert_match %(can't require in dynamic context), ex.message
+    end
+
     private def assert_expression(klass : T.class, source, file = __FILE__, line = __LINE__) forall T
       node = parser(source).next
       assert klass === node, -> { "expected #{klass} but got #{node.class}" }, file, line
