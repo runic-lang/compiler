@@ -45,6 +45,7 @@ module Runic
       protected
       public
       raise
+      require
       rescue
       return
       struct
@@ -90,6 +91,8 @@ module Runic
         else
           Token.new(:integer, value, location, type)
         end
+      when '"'
+        Token.new(:string, consume_string, location)
       when '~', '!', '+', '-', '*', '/', '<', '>', '=', '%', '&', '|', '^'
         Token.new(:operator, consume_operator, location)
       when '['
@@ -402,6 +405,27 @@ module Runic
             pending_linefeed = true
           else
             break
+          end
+        end
+      end
+    end
+
+    private def consume_string
+      skip # "
+
+      String.build do |str|
+        loop do
+          case peek_char
+          when '"'
+            skip # "
+            break
+          when '\\'
+            skip # \
+            str << consume if {'\\', '"'}.includes?(peek_char)
+          when nil
+            raise SyntaxError.new("unterminated string literal", @location)
+          else
+            str << consume
           end
         end
       end

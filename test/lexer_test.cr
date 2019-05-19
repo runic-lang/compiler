@@ -183,6 +183,17 @@ module Runic
       assert_next :comment, "foo\nbar  \n  baz", "# foo\n    # bar  \n#   baz"
     end
 
+    def test_strings
+      assert_next :string, "foobar", %("foobar")
+      assert_next :string, "keep line\n feeds\n\n", %("keep line\n feeds\n\n")
+      assert_next :string, "remove escapes", %("remove \\escapes")
+      assert_next :string, "keep \\backslashes\\", %("keep \\\\backslashes\\\\")
+      assert_next :string, %(nested "quotes"), %("nested \\"quotes\\"")
+
+      ex = assert_raises(SyntaxError) { lex(%("unterminated)).next }
+      assert_match "unterminated string literal", ex.message
+    end
+
     def test_attributes
       assert_next :attribute, "primitive", "#[primitive]\n"
       assert_next :attribute, "noreturn", "#[noreturn]\n"
