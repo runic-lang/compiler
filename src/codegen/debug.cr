@@ -220,29 +220,29 @@ module Runic
         private def di_type(type : String)
           case type
           when "f32"
-            LibC.LLVMDIBuilderCreateBasicType(self, "f32", 3, 32, DW_ATE_float)
+            LibC.LLVMDIBuilderCreateBasicType(self, "f32", 3, 32, DW_ATE_float, LibC::LLVMDIFlags::DIFlagZero)
           when "f64"
-            LibC.LLVMDIBuilderCreateBasicType(self, "f64", 3, 64, DW_ATE_float)
+            LibC.LLVMDIBuilderCreateBasicType(self, "f64", 3, 64, DW_ATE_float, LibC::LLVMDIFlags::DIFlagZero)
           when "i8"
-            LibC.LLVMDIBuilderCreateBasicType(self, "i8", 2, 8, DW_ATE_signed)
+            LibC.LLVMDIBuilderCreateBasicType(self, "i8", 2, 8, DW_ATE_signed, LibC::LLVMDIFlags::DIFlagZero)
           when "i16"
-            LibC.LLVMDIBuilderCreateBasicType(self, "i16", 3, 16, DW_ATE_signed)
+            LibC.LLVMDIBuilderCreateBasicType(self, "i16", 3, 16, DW_ATE_signed, LibC::LLVMDIFlags::DIFlagZero)
           when "i32"
-            LibC.LLVMDIBuilderCreateBasicType(self, "i32", 3, 32, DW_ATE_signed)
+            LibC.LLVMDIBuilderCreateBasicType(self, "i32", 3, 32, DW_ATE_signed, LibC::LLVMDIFlags::DIFlagZero)
           when "i64"
-            LibC.LLVMDIBuilderCreateBasicType(self, "i64", 3, 64, DW_ATE_signed)
+            LibC.LLVMDIBuilderCreateBasicType(self, "i64", 3, 64, DW_ATE_signed, LibC::LLVMDIFlags::DIFlagZero)
           when "i128"
-            LibC.LLVMDIBuilderCreateBasicType(self, "i128", 4, 128, DW_ATE_signed)
+            LibC.LLVMDIBuilderCreateBasicType(self, "i128", 4, 128, DW_ATE_signed, LibC::LLVMDIFlags::DIFlagZero)
           when "u8"
-            LibC.LLVMDIBuilderCreateBasicType(self, "u8", 2, 8, DW_ATE_unsigned)
+            LibC.LLVMDIBuilderCreateBasicType(self, "u8", 2, 8, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           when "u16"
-            LibC.LLVMDIBuilderCreateBasicType(self, "u16", 3, 16, DW_ATE_unsigned)
+            LibC.LLVMDIBuilderCreateBasicType(self, "u16", 3, 16, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           when "u32"
-            LibC.LLVMDIBuilderCreateBasicType(self, "u32", 3, 32, DW_ATE_unsigned)
+            LibC.LLVMDIBuilderCreateBasicType(self, "u32", 3, 32, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           when "u64"
-            LibC.LLVMDIBuilderCreateBasicType(self, "u64", 3, 64, DW_ATE_unsigned)
+            LibC.LLVMDIBuilderCreateBasicType(self, "u64", 3, 64, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           when "u128"
-            LibC.LLVMDIBuilderCreateBasicType(self, "u128", 4, 128, DW_ATE_unsigned)
+            LibC.LLVMDIBuilderCreateBasicType(self, "u128", 4, 128, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           else
             raise CodegenError.new("unsupported #{type}")
           end

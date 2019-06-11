@@ -1,4 +1,4 @@
-@[Link(ldflags: "`llvm-config-7 --cxxflags --ldflags --libs --system-libs`")]
+@[Link(ldflags: "`llvm-config-8 --cxxflags --ldflags --libs --system-libs`")]
 @[Link("stdc++")]
 lib LibC
   {% if flag?(:aarch64) || flag?(:x86_64) %}
@@ -12,7 +12,7 @@ lib LibC
   alias Uint64T = UInt64
 
   {% begin %}
-    LLVM_AVAILABLE_TARGETS = {{ `llvm-config-7 --targets-built`.stringify.chomp.split(' ') }}
+    LLVM_AVAILABLE_TARGETS = {{ `llvm-config-8 --targets-built`.stringify.chomp.split(' ') }}
   {% end %}
 
   {% for target in LLVM_AVAILABLE_TARGETS %}
@@ -25,6 +25,7 @@ lib LibC
 
   # FIXME: not generated automatically by c2cr (?)
   alias LLVMModuleFlagEntry = LLVMOpaqueModuleFlagEntry
+  alias LLVMValueMetadataEntry = LLVMOpaqueValueMetadataEntry
 end
 
 require "./llvm/analysis"

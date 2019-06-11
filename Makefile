@@ -2,7 +2,7 @@
 .SUFFIXES:
 
 CRYSTAL = crystal
-LLVM_CONFIG = llvm-config-7
+LLVM_CONFIG = llvm-config-8
 C2CR = CFLAGS=`$(LLVM_CONFIG) --cflags` lib/clang/bin/c2cr
 
 COMMON_SOURCES = src/version.cr src/config.cr
@@ -59,6 +59,7 @@ doc: .phony
 
 libllvm: lib/clang/bin/c2cr
 	@mkdir -p src/c/llvm/transforms
+	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Analysis.h > src/c/llvm/analysis.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/Core.h > src/c/llvm/core.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/DebugInfo.h > src/c/llvm/debug_info.cr
 	$(C2CR) --remove-enum-prefix=LLVM --remove-enum-suffix llvm-c/ErrorHandling.h > src/c/llvm/error_handling.cr
