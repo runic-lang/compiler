@@ -2,8 +2,8 @@
 /dist
 /lib
 /libexec
-/.shards
 /doc/man1
 /src/c/llvm
+/Gemfile.lock
 *.o
 *.ll
