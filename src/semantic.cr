@@ -1,5 +1,5 @@
-require "../ast"
-require "../program"
+require "./ast"
+require "./program"
 require "./semantic/*"
 
 module Runic
