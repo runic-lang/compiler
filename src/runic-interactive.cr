@@ -11,7 +11,7 @@ module Runic
         LLVM.init_native
 
         @lexer = Lexer.new(STDIN, "stdin", interactive: true)
-        @parser = Parser.new(@lexer, top_level_expressions: true)
+        @parser = Parser.new(@lexer, top_level_expressions: true, interactive: true)
         @program = Program.new
         @semantic = Semantic.new(@program)
         @generator = Codegen.new(debug: DebugLevel::None, optimize: optimize)

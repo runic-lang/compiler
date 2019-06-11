@@ -7,7 +7,7 @@ module Runic
     @token : Token?
     @previous_token : Token?
 
-    def initialize(@lexer : Lexer, @top_level_expressions = false)
+    def initialize(@lexer : Lexer, @top_level_expressions = false, @interactive = false)
       @attributes = [] of String
     end
 
@@ -670,8 +670,13 @@ module Runic
     end
 
     private def skip_line_terminator
-      while {:linefeed, :semicolon}.includes?(peek.type)
-        skip
+      if @interactive
+        # don't group line terminators in interactive parser:
+        skip if {:linefeed, :semicolon}.includes?(peek.type)
+      else
+        while {:linefeed, :semicolon}.includes?(peek.type)
+          skip
+        end
       end
     end
 
