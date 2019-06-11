@@ -46,6 +46,12 @@ module Runic
           else
             handle_top_level_expression
           end
+        rescue error : SyntaxError
+          error.pretty_report(STDOUT, source: false)
+          return
+        rescue error : SemanticError
+          error.pretty_report(STDOUT, source: false)
+          return
         rescue ex
           @parser.skip
           puts "ERROR: #{ex.message}"

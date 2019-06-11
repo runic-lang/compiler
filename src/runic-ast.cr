@@ -305,6 +305,10 @@ when 1
   if File.exists?(filename)
     File.open(filename, "r") do |io|
       Runic::Command::AST.new(io, filename).run
+    rescue error : Runic::SyntaxError
+      error.pretty_report(STDERR)
+    rescue error : Runic::SemanticError
+      error.pretty_report(STDERR)
     end
   else
     abort "fatal : no such file or directory '#{filename}'."

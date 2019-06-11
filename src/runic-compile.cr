@@ -58,35 +58,45 @@ while arg = ARGV[i += 1]?
   end
 end
 
-if filenames.size > 1
-  compiler = Runic::Compiler.new(
-    target_triple,
-    cpu: cpu,
-    features: features,
-    opt_level: opt_level,
-    debug: debug
-  )
+begin
+  if filenames.size > 1
+    compiler = Runic::Compiler.new(
+      target_triple,
+      cpu: cpu,
+      features: features,
+      opt_level: opt_level,
+      debug: debug
+    )
 
-  filenames.each do |filename|
-    if File.exists?(filename)
-      File.open(filename, "r") do |io|
-        compiler.parse(io, filename)
+    filenames.each do |filename|
+      if File.exists?(filename)
+        File.open(filename, "r") do |io|
+          compiler.parse(io, filename)
+        end
+      else
+        abort "fatal : no such file or directory '#{filename}'."
       end
-    else
-      abort "fatal : no such file or directory '#{filename}'."
     end
+
+    case emit
+    when "object"
+      output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".o"
+      compiler.emit_object(output)
+    when "llvm"
+      output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".ll"
+      compiler.emit_llvm(output)
+    else
+      abort "Unknown emit option '#{emit}'."
+    end
+  else
+    abort "fatal : no input file."
   end
 
-  case emit
-  when "object"
-    output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".o"
-    compiler.emit_object(output)
-  when "llvm"
-    output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".ll"
-    compiler.emit_llvm(output)
-  else
-    abort "Unknown emit option '#{emit}'."
-  end
-else
-  abort "fatal : no input file."
+  rescue error : Runic::SyntaxError
+    error.pretty_report(STDERR)
+
+  rescue error : Runic::SemanticError
+    error.pretty_report(STDERR)
+
+  # rescue error : Runic::CodegenError
 end

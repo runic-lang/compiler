@@ -51,5 +51,11 @@ else
   abort "fatal : unsupported format '#{format}'"
 end
 
-rdoc = Runic::Documentation.new(sources)
-rdoc.generate(generator_class.new(output))
+begin
+  rdoc = Runic::Documentation.new(sources)
+  rdoc.generate(generator_class.new(output))
+rescue error : Runic::SyntaxError
+  error.pretty_report(STDERR)
+rescue error : Runic::SemanticError
+  error.pretty_report(STDERR)
+end
