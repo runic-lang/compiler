@@ -70,13 +70,14 @@ begin
 
     filenames.each do |filename|
       if File.exists?(filename)
-        File.open(filename, "r") do |io|
-          compiler.parse(io, filename)
-        end
+        compiler.parse(filename)
       else
         abort "fatal : no such file or directory '#{filename}'."
       end
     end
+
+    compiler.analyze
+    compiler.codegen(filenames[1])
 
     case emit
     when "object"

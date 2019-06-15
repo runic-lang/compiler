@@ -40,6 +40,8 @@ module Runic
               handle_definition
             when "extern"
               handle_extern
+            when "require"
+              handle_require
             else
               handle_top_level_expression
             end
@@ -61,6 +63,33 @@ module Runic
         # skip trailing linefeed
         if @parser.peek.type == :linefeed
           @parser.skip
+        end
+      end
+
+      def handle_require : Nil
+        node = @parser.next.as(AST::Require)
+        self.require("#{node.path}.runic")
+      end
+
+      protected def require(path : String) : Nil
+        unless File.exists?(path)
+          puts "Error: no such file or directory '#{path}'.".colorize(:yellow).mode(:bold)
+        end
+
+        File.open(path, "r") do |file|
+          lexer = Lexer.new(file, path, interactive: false)
+          parser = Parser.new(lexer, top_level_expressions: false)
+
+          while node = parser.next
+            case node
+            when AST::Require
+              self.require(File.expand_path("#{node.path}.runic", File.dirname(path)))
+            else
+              @semantic.visit(node)
+              @program.register(node)
+              debug @generator.codegen(node)
+            end
+          end
         end
       end
 

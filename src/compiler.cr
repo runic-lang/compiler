@@ -34,11 +34,45 @@ module Runic
       @codegen.data_layout = data_layout
     end
 
-    def parse(io : IO, path : String) : Nil
-      lexer = Lexer.new(io, path)
-      parser = Parser.new(lexer, top_level_expressions: false)
-      parser.parse { |node| @program.register(node) }
+    def parse(path : String) : Nil
+      File.open(path, "r") do |io|
+        lexer = Lexer.new(io, path)
+        parser = Parser.new(lexer, top_level_expressions: false)
+        parser.parse do |node|
+          case node
+          when AST::Require
+            self.require(node)
+          else
+            @program.register(node)
+          end
+        end
+      end
+    end
+
+    protected def require(node : AST::Require) : Nil
+      path = "#{node.path}.runic"
+
+      if path.starts_with?("/")
+        raise SemanticError.new("can't require absolute file #{path}", node)
+      end
+
+      if path.starts_with?("./") || path.starts_with?("../")
+        relative_path = File.dirname(node.location.file)
+        path = File.expand_path(path, relative_path)
+      end
+
+      unless File.exists?(path)
+        raise SemanticError.new("can't find #{path}", node)
+      end
+
+      parse(path)
+    end
+
+    def analyze : Nil
       Semantic.analyze(@program)
+    end
+
+    def codegen(path : String) : Nil
       @codegen.codegen(path, @program)
     end
 
