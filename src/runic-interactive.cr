@@ -67,14 +67,14 @@ module Runic
       end
 
       def handle_require : Nil
-        node = @parser.next.as(AST::Require)
-        self.require("#{node.path}.runic")
+        ret = self.require(@parser.next.as(AST::Require), Dir.current)
+        print "=> "
+        puts ret.inspect
       end
 
-      protected def require(path : String) : Nil
-        unless File.exists?(path)
-          puts "Error: no such file or directory '#{path}'.".colorize(:yellow).mode(:bold)
-        end
+      protected def require(node : AST::Require, relative_path : String? = nil) : Bool
+        path = @program.resolve_require(node, relative_path)
+        return false unless path
 
         File.open(path, "r") do |file|
           lexer = Lexer.new(file, path, interactive: false)
@@ -83,7 +83,7 @@ module Runic
           while node = parser.next
             case node
             when AST::Require
-              self.require(File.expand_path("#{node.path}.runic", File.dirname(path)))
+              self.require(node)
             else
               @semantic.visit(node)
               @program.register(node)
@@ -91,6 +91,8 @@ module Runic
             end
           end
         end
+
+        true
       end
 
       def handle_extern : Nil

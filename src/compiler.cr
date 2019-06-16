@@ -41,31 +41,14 @@ module Runic
         parser.parse do |node|
           case node
           when AST::Require
-            self.require(node)
+            if require_path = @program.resolve_require(node)
+              parse(require_path)
+            end
           else
             @program.register(node)
           end
         end
       end
-    end
-
-    protected def require(node : AST::Require) : Nil
-      path = "#{node.path}.runic"
-
-      if path.starts_with?("/")
-        raise SemanticError.new("can't require absolute file #{path}", node)
-      end
-
-      if path.starts_with?("./") || path.starts_with?("../")
-        relative_path = File.dirname(node.location.file)
-        path = File.expand_path(path, relative_path)
-      end
-
-      unless File.exists?(path)
-        raise SemanticError.new("can't find #{path}", node)
-      end
-
-      parse(path)
     end
 
     def analyze : Nil

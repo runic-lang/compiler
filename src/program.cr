@@ -2,12 +2,16 @@ require "./ast"
 
 module Runic
   class Program
+    REQUIRE_PATH = [Dir.current]
+
+    getter requires
     getter constants
     getter externs
     getter structs
     getter functions
 
     def initialize
+      @requires = [] of String
       @constants = {} of String => AST::ConstantDefinition
       @externs = {} of String => AST::Prototype
       @structs = {} of String => AST::Struct
@@ -21,6 +25,43 @@ module Runic
       @externs.each { |_, node| yield node }
       @structs.each { |_, node| yield node }
       @functions.each { |_, node| yield node }
+    end
+
+    def resolve_require(node : AST::Require, relative_path : String? = nil) : String?
+      path = node.path
+
+      if path.starts_with?("/")
+        raise SemanticError.new("can't require absolute file #{path}", node)
+      end
+
+      unless path.ends_with?(".runic")
+        path = "#{path}.runic"
+      end
+
+      if path.starts_with?("./") || path.starts_with?("../")
+        relative_path ||= File.dirname(node.location.file)
+        path = File.expand_path(path, relative_path)
+      elsif found = search_require_path(path)
+        path = found
+      else
+        raise SemanticError.new("can't find #{path}", node)
+      end
+
+      unless File.exists?(path)
+        raise SemanticError.new("can't find #{path}", node)
+      end
+
+      return if @requires.includes?(path)
+      @requires << path
+
+      path
+    end
+
+    private def search_require_path(name : String) : String?
+      REQUIRE_PATH.each do |require_path|
+        path = File.join(require_path, name)
+        return path if File.exists?(path)
+      end
     end
 
     def register(node : AST::ConstantDefinition) : Nil
