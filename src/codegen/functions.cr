@@ -38,7 +38,7 @@ module Runic
       func
     end
 
-    private def llvm_function(node : AST::Prototype, name : String) : LibC::LLVMValueRef
+    protected def llvm_function(node : AST::Prototype, name : String) : LibC::LLVMValueRef
       param_types = node.args.map { |arg| llvm_type(arg) }
       return_type = llvm_type(node.type)
       func_type = LibC.LLVMFunctionType(return_type, param_types, param_types.size, 0)

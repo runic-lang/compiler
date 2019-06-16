@@ -1,4 +1,5 @@
 require "../codegen"
+require "./intrinsics"
 
 module Runic
   class Codegen
@@ -152,7 +153,7 @@ module Runic
           end
         end
         if node.type.float?
-          LibC.LLVMBuildCall(@builder, intrinsic("llvm.floor", node.type), [result], 1, "")
+          LibC.LLVMBuildCall(@builder, llvm_intrinsic("floor", node.type), [result], 1, "")
         else
           result
         end

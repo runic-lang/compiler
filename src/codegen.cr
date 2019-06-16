@@ -176,41 +176,6 @@ module Runic
       end
     end
 
-    # Searches an LLVM intrinsic in extern definitions, translating the Runic
-    # types to the LLVM overload types. For example:
-    #
-    # ```
-    # intrinsic("llvm.floor", Type.new("f32"))   # => searches llvm.floor.f32
-    # ```
-    private def intrinsic(name, *types)
-      overload_types = types.map do |type|
-        case type.name
-        when "i8", "u8" then "i8"
-        when "i16", "u16" then "i16"
-        when "i32", "u32" then "i32"
-        when "i64", "u64" then "i64"
-        when "i128", "u128" then "i128"
-        when "f32" then "f32"
-        when "f64" then "f64"
-        else raise CodegenError.new("unsupported overload type '#{type}' for '#{name}' intrinsic")
-       end
-      end
-
-      overload_name = String.build do |str|
-        str << name
-        overload_types.each do |type|
-          str << '.'
-          type.to_s(str)
-        end
-      end
-
-      if func = LibC.LLVMGetNamedFunction(@module, overload_name)
-        func
-      else
-        raise CodegenError.new("intrinsic '#{overload_name}': no such definition")
-      end
-    end
-
     # The `codegen` methods must return a value, but sometimes they must return
     # void, that is nothing, in this case we return a zero value —semantic
     # analysis verified the value is never used.

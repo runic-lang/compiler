@@ -28,7 +28,6 @@ dist: doc .phony
 	cd dist && ln -sf ../src .
 	cd dist && make -f ../Makefile CRFLAGS=--release $(COMMANDS)
 	rm dist/src
-	mkdir dist/src && cp src/intrinsics.runic dist/src/
 
 bin/runic: src/runic.cr $(COMMON_SOURCES)
 	@mkdir -p bin

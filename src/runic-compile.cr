@@ -1,9 +1,7 @@
 require "./compiler"
 require "./config"
 
-filenames = [
-  File.expand_path("../../src/intrinsics.runic", Process.executable_path)
-]
+filenames = [] of String
 output = nil
 target_triple = nil
 cpu = "generic"
@@ -59,38 +57,40 @@ while arg = ARGV[i += 1]?
 end
 
 begin
-  if filenames.size > 1
-    compiler = Runic::Compiler.new(
-      target_triple,
-      cpu: cpu,
-      features: features,
-      opt_level: opt_level,
-      debug: debug
-    )
-
-    filenames.each do |filename|
-      if File.exists?(filename)
-        compiler.parse(filename)
-      else
-        abort "fatal : no such file or directory '#{filename}'."
-      end
-    end
-
-    compiler.analyze
-    compiler.codegen(filenames[1])
-
-    case emit
-    when "object"
-      output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".o"
-      compiler.emit_object(output)
-    when "llvm"
-      output ||= File.basename(filenames[1], File.extname(filenames[1])) + ".ll"
-      compiler.emit_llvm(output)
-    else
-      abort "Unknown emit option '#{emit}'."
-    end
-  else
+  if filenames.empty?
     abort "fatal : no input file."
+  end
+
+  filename = filenames.first
+
+  compiler = Runic::Compiler.new(
+    target_triple,
+    cpu: cpu,
+    features: features,
+    opt_level: opt_level,
+    debug: debug
+  )
+
+  filenames.each do |filename|
+    if File.exists?(filename)
+      compiler.parse(filename)
+    else
+      abort "fatal : no such file or directory '#{filename}'."
+    end
+  end
+
+  compiler.analyze
+  compiler.codegen(filename)
+
+  case emit
+  when "object"
+    output ||= File.basename(filename, File.extname(filename)) + ".o"
+    compiler.emit_object(output)
+  when "llvm"
+    output ||= File.basename(filename, File.extname(filename)) + ".ll"
+    compiler.emit_llvm(output)
+  else
+    abort "Unknown emit option '#{emit}'."
   end
 
   rescue error : Runic::SyntaxError
