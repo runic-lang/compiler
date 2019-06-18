@@ -82,10 +82,14 @@ module Runic
           (args = args.dup).shift
         end
         args = args.map { |arg| "#{arg.name} : #{arg.type?}" }
-        print "- def #{node.name}(#{args.join(", ")}) : #{node.type?}#{to_options(node, type: false)}"
-        print "  body:"
-        nested do
-          node.body.each { |n| to_h(n) }
+        print "- def #{node.name}(#{args.join(", ")}) : #{node.type?}#{to_options(node, type: false)}", linefeed: node.attributes.empty?
+        ::puts " [#{node.attributes.join(", ")}]" unless node.attributes.empty?
+
+        unless node.attributes.includes?("primitive")
+          print "  body:"
+          nested do
+            node.body.each { |n| to_h(n) }
+          end
         end
       end
 
@@ -257,9 +261,13 @@ module Runic
         end
       end
 
-      def print(string)
+      def print(string, linefeed = true)
         @nested.times { ::print ' ' }
-        ::puts string
+        if linefeed
+          ::puts string
+        else
+          ::print string
+        end
       end
 
       def nested
