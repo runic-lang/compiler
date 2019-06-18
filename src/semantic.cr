@@ -6,6 +6,7 @@ module Runic
   class Semantic
     DEFAULT_VISITORS = [
       SugarExpanderVisitor,
+      NamespaceVisitor,
       TypeVisitor,
     ]
 
