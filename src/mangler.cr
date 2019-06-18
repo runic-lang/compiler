@@ -19,6 +19,8 @@ module Runic
     end
 
     private def self.function(fn, str)
+      # Itanium C++ ABI reference:
+      # <https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-operator>
       special(fn.name, str) do |name, str|
         case name
         when "+"   then str << (unary?(fn) ? "ps" : "pl")
@@ -48,8 +50,8 @@ module Runic
         when "<="  then str << "le"
         when ">="  then str << "ge"
         when "!"   then str << "nt"
-        when "&&"  then str << "&&"
-        when "||"  then str << "||"
+        when "&&"  then str << "aa"
+        when "||"  then str << "oo"
         #when "new" then str << "nw"
         else
           special(name, str)
