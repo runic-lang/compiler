@@ -219,6 +219,8 @@ module Runic
 
         private def di_type(type : String)
           case type
+          when "bool"
+            LibC.LLVMDIBuilderCreateBasicType(self, "i1", 2, 1, DW_ATE_boolean, LibC::LLVMDIFlags::DIFlagZero)
           when "f32"
             LibC.LLVMDIBuilderCreateBasicType(self, "f32", 3, 32, DW_ATE_float, LibC::LLVMDIFlags::DIFlagZero)
           when "f64"
