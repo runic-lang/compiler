@@ -42,8 +42,8 @@ module Runic
         assert_equal "User::name", methods[1].name
       end
 
-      protected def visitor
-        @visitor ||= NamespaceVisitor.new(program)
+      protected def visitors
+        @visitor ||= [NamespaceVisitor.new(program)]
       end
     end
   end

@@ -108,7 +108,7 @@ module Runic
 
         case lhs = node.lhs
         when AST::Variable
-          # type LHS from RHS
+          # type assignment and LHS from RHS
           node.type = lhs.type = node.rhs.type
 
           if named_var = @scope.get(lhs.name)
@@ -135,11 +135,8 @@ module Runic
         # make sure LHS and RHS are typed
         super
 
-        # type the binary expression, TODO: resolve type using corelib:
-        # node.type = @program.resolve(node).type
-        unless node.type?
-          raise SemanticError.new("invalid operation: #{node.lhs.type?} ##{node.operator} ##{node.rhs.type?}", node.location)
-        end
+        # type the binary expression
+        node.type = @program.resolve(node).type
       end
 
       # Visits the sub-expression, then types the unary expression.
@@ -147,11 +144,8 @@ module Runic
         # make sure the expression is typed
         super
 
-        # type the unary expression, TODO: resolve type using corelib
-        #node.type = @program.resolve(node).type
-        unless node.type?
-          raise SemanticError.new("invalid #{node.operator}#{node.expression.type}", node.location)
-        end
+        # type the unary expression
+        node.type = @program.resolve(node).type
       end
 
       # Makes sure the prototype is fully typed (arguments, return type).

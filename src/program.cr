@@ -151,7 +151,7 @@ module Runic
     end
 
     def resolve(node : AST::Unary) : AST::Function
-      if function = resolve_type(node.lhs).operator(node)
+      if function = resolve_type(node.expression).operator(node)
         function
       else
         raise SemanticError.new("undefined operator #{node.expression.type}##{node.operator}", node)

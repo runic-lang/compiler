@@ -7,14 +7,14 @@ require "../src/semantic"
 class Minitest::Test
   protected def visit(source)
     parse_each(source) do |node|
-      visitor.visit(node)
+      visitors.each(&.visit(node))
       return node
     end
     raise "unreachable"
   end
 
-  protected def visitor
-    raise "ERROR: #{self.class.name}#visitor must be implemented."
+  protected def visitors
+    raise "ERROR: #{self.class.name}#visitors must be implemented."
   end
 
   protected def require_corelib

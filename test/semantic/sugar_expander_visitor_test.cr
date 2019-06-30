@@ -57,8 +57,8 @@ module Runic
         assert_equal Type.new("i32"), fn.args[1].type
       end
 
-      protected def visitor
-        @visitor ||= SugarExpanderVisitor.new(program)
+      protected def visitors
+        @visitor ||= [SugarExpanderVisitor.new(program)]
       end
     end
   end

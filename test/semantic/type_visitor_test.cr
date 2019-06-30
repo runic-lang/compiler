@@ -3,6 +3,10 @@ require "../test_helper"
 module Runic
   class Semantic
     class TypeVisitorTest < Minitest::Test
+      def setup
+        require_corelib
+      end
+
       def test_infers_integer_literal_type
         assert_type "i32", visit("1")
         assert_type "i64", visit("1126516251752")
@@ -50,57 +54,8 @@ module Runic
         {% end %}
       end
 
-      def test_types_binary_expressions
-        %w(+ - * ** // %).each do |op|
-          assert_type "i32", visit("1 #{op} 2")
-          assert_type "i32", visit("1 #{op} 0x7")
-          assert_type "u32", visit("0xf #{op} 2")
-          assert_type "u32", visit("0xf #{op} 0x7_u8")
-          assert_type "u8", visit("0xf_u8 #{op} 0x7")
-          assert_type "f64", visit("1 #{op} 1.0")
-          assert_type "f32", visit("1 #{op} 1_f32")
-          assert_type "f32", visit("1_f32 #{op} 1_f64")
-        end
-
-        assert_type "f64", visit("1 / 2")
-        assert_type "f64", visit("1 / 0x7")
-        assert_type "f64", visit("0xf / 2")
-        assert_type "f64", visit("0xf / 0x7_u8")
-        assert_type "f64", visit("0xf_u8 / 0x7")
-        assert_type "f64", visit("1 / 1.0")
-        assert_type "f32", visit("1 / 1_f32")
-      end
-
-      def test_forbids_mixed_signed_unsigned_logical_expressions
-        %w(< <= > >=).each do |op|
-          assert_raises(SemanticError) { visit("1 #{op} 2_u32") }
-          assert_raises(SemanticError) { visit("1_u64 #{op} 2") }
-        end
-      end
-
-      def test_types_bitwise_expressions
-        %w(& | ^ << >>).each do |op|
-          assert_type "i32", visit("1 #{op} 2")
-          assert_type "i32", visit("1 #{op} 0x7")
-          assert_type "u32", visit("0xf #{op} 2")
-          assert_type "u32", visit("0xf #{op} 0x7_u8")
-          assert_type "u8", visit("0xf_u8 #{op} 0x7")
-
-          assert_raises(SemanticError) { visit("1.0 & 1") }
-          assert_raises(SemanticError) { visit("1 & 1.0") }
-        end
-      end
-
-      def test_recursively_types_binary_expressions
-        node = visit("a = 1 * (2 + 4)").as(AST::Assignment)
-        assert_type "i32", node                          # whole expression
-        assert_type "i32", node.lhs                      # variable 'a'
-        assert_type "i32", node.rhs                      # value
-        assert_type "i32", node.rhs.as(AST::Binary).rhs  # 2 + 4
-      end
-
       def test_shadows_variable_when_its_underlying_type_changes
-        visit_each("a = 1; a = a + 2.0; b = a; a = 123_u64") do |node, index|
+        visit_each("a = 1; a = 2.0; b = a; a = 123_u64") do |node, index|
           case index
           when 0
             assert_type "i32", node
@@ -141,6 +96,68 @@ module Runic
         assert_raises(SemanticError) { visit("2 + INCREMENT") }
       end
 
+      def test_types_math_binary_expressions
+        %w(+ - * ** // %).each do |op|
+          %w(i u).each do |sign|
+            %w(8 16 32 64 128).each do |bit|
+              ty = "#{sign}#{bit}"
+              assert_type ty, visit("1_#{ty} #{op} 2_#{ty}")
+            end
+          end
+
+          %w(32 64).each do |bit|
+            ty = "f#{bit}"
+            assert_type ty, visit("1_#{ty} #{op} 2_#{ty}")
+          end
+        end
+
+        # division always returns a float
+        assert_type "f64", visit("1 / 2")
+        assert_type "f64", visit("1_f64 / 2_f64")
+        assert_type "f32", visit("1_f32 / 2_f32")
+      end
+
+      def test_types_bitwise_binary_expressions
+        # bitwise operators
+        %w(& | ^ << >>).each do |op|
+          %w(i u).each do |sign|
+            %w(8 16 32 64 128).each do |bit|
+              ty = "#{sign}#{bit}"
+              assert_type ty, visit("1_#{ty} #{op} 2_#{ty}")
+            end
+          end
+        end
+      end
+
+      def test_types_logical_binary_expressions
+        # TODO: || and && for non bool types
+        %w(== != || &&).each do |op|
+          assert_type "bool", visit("true #{op} false")
+          # assert_type "bool", visit("true #{op} 2")
+          # assert_type "bool", visit("true #{op} 2.0")
+          # assert_type "bool", visit("2 #{op} false")
+        end
+
+        %w(== != <=> < <= > >=).each do |op|
+          rty = (op == "<=>") ? "i32" : "bool"
+
+          %w(i u).each do |sign|
+            %w(8 16 32 64 128).each do |bit|
+              ty = "#{sign}#{bit}"
+              assert_type rty, visit("1_#{ty} #{op} 2_#{ty}")
+            end
+          end
+        end
+      end
+
+      def test_recursively_types_binary_expressions
+        node = visit("a = 1 * (2 + 4)").as(AST::Assignment)
+        assert_type "i32", node                          # whole expression
+        assert_type "i32", node.lhs                      # variable 'a'
+        assert_type "i32", node.rhs                      # value
+        assert_type "i32", node.rhs.as(AST::Binary).rhs  # 2 + 4
+      end
+
       def test_types_unary_expressions
         assert_type "i32", visit("-(123))")
         assert_type "bool", visit("!123)")
@@ -157,24 +174,8 @@ module Runic
         assert_type "bool", node.as(AST::Unary).expression
       end
 
-      def test_types_logical_operators
-        OPERATORS::LOGICAL.each do |op|
-          rty = (op == "<=>") ? "i32" : "bool"
-          assert_type rty, visit("1 #{op} 2")
-          assert_type rty, visit("2.0 #{op} 2")
-          assert_type rty, visit("2 #{op} 1.0")
-        end
-
-        %w(== != || &&).each do |op|
-          assert_type "bool", visit("true #{op} false")
-          assert_type "bool", visit("true #{op} 2")
-          assert_type "bool", visit("true #{op} 2.0")
-          assert_type "bool", visit("2 #{op} false")
-        end
-      end
-
       def test_types_calls
-        node = register("def add(a : int, b : float) a + b; end")
+        node = register("def add(a : int, b : float) a.to_f + b; end")
         assert_type "f64", node.as(AST::Function)
 
         node = visit("add(1, add(2, 3.2))")
@@ -183,7 +184,7 @@ module Runic
       end
 
       def test_validates_call_arguments
-        register("def add(a : int, b : float) a + b; end")
+        register("def add(a : int, b : float) a.to_f + b; end")
 
         # wrong number of args:
         assert_raises(SemanticError) { visit("add()") }
@@ -291,11 +292,11 @@ module Runic
       end
 
       #def test_validates_previous_definitions
-      #  register("def add(a : int, b : float); a + b; end")
+      #  register("def add(a : int, b : float); a.to_f + b; end")
 
       #  # mismatch: arg count
       #  ex = assert_raises(ConflictError) do
-      #    register("def add(a : int, b : float, c : i8) : f64; b; end")
+      #    register("def add(a : int, b : float, c : i8) : float; b; end")
       #  end
       #  assert_match "doesn't match previous definition", ex.message
 
@@ -368,15 +369,7 @@ module Runic
       private def register(source)
         parse_each(source) do |node|
           program.register(node)
-          visitor.visit(node)
-          return node
-        end
-        raise "unreachable"
-      end
-
-      private def visit(source = true)
-        parse_each(source) do |node|
-          visitor.visit(node)
+          visitors.each(&.visit(node))
           return node
         end
         raise "unreachable"
@@ -385,14 +378,17 @@ module Runic
       private def visit_each(source)
         index = 0
         parse_each(source) do |node|
-          visitor.visit(node)
+          visitors.each(&.visit(node))
           yield node, index
           index += 1
         end
       end
 
-      private def visitor
-        @visitor ||= TypeVisitor.new(program)
+      private def visitors
+        @visitor ||= [
+          SugarExpanderVisitor.new(program),
+          TypeVisitor.new(program),
+        ]
       end
     end
   end

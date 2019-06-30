@@ -393,9 +393,7 @@ module Runic
       end
 
       private def resolve_type
-        if lhs.type? && rhs.type?
-          INTRINSICS.resolve(operator, lhs.type, rhs.type)
-        end
+        # determined from corelib
       end
     end
 
@@ -411,8 +409,7 @@ module Runic
       end
 
       private def resolve_type
-        type = INTRINSICS.resolve(operator, expression.type)
-        Type.new(type) if type
+        # determined from corelib
       end
     end
 
@@ -446,10 +443,12 @@ module Runic
       include TopLevel
 
       property name : String
+      getter original_name : String
       getter args : Array(Argument)
       getter documentation : String
 
       def initialize(@name, @args, type, @documentation, @location)
+        @original_name = @name
         @type = Type.new(type) if type
       end
 
@@ -494,6 +493,10 @@ module Runic
 
       def name
         prototype.name
+      end
+
+      def original_name
+        prototype.original_name
       end
 
       def mangled_name
@@ -655,7 +658,7 @@ module Runic
 
       property name : String
       getter attributes : Array(String)
-      getter methods
+      getter methods : Array(Function)
       getter locations : Array(Location)
       getter documentation : String
 
@@ -675,22 +678,24 @@ module Runic
 
       def method(node : AST::Call)
         methods.find do |method|
-          method.name == node.callee
+          method.original_name == node.callee
         end
       end
 
       def operator(node : AST::Binary)
         methods.find do |method|
-          method.name == node.operator &&
-            method.args.size == 1 &&
-            method.args.first.type == node.rhs.type
+          method.original_name == node.operator &&
+            method.args.size == 2 &&
+            method.args[0].name == "self" &&
+            method.args[1].type == node.rhs.type
         end
       end
 
       def operator(node : AST::Unary)
         methods.find do |method|
-          method.name == node.operator &&
-            method.args.size == 0
+          method.original_name == node.operator &&
+            method.args.size == 1 &&
+            method.args[0].name == "self"
         end
       end
 
