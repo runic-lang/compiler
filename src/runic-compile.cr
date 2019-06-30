@@ -9,6 +9,7 @@ features = ""
 opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault
 debug = Runic::DebugLevel::Default
 emit = "object"
+corelib = Runic.corelib
 
 macro argument_value(var, name)
   if idx = ARGV[i].index('=')
@@ -45,6 +46,9 @@ while arg = ARGV[i += 1]?
     debug = Runic::DebugLevel::None
   when .starts_with?("--emit")
     argument_value(emit, "--emit")
+  when .starts_with?("--corelib")
+    argument_value(corelib, "--corelib")
+    corelib = nil if corelib = "none"
   when "--help"
     Runic.open_manpage("compile")
   else
@@ -70,6 +74,11 @@ begin
     opt_level: opt_level,
     debug: debug
   )
+
+  if corelib
+    corelib = "#{corelib}.runic" unless corelib.ends_with?(".runic")
+    compiler.parse(corelib)
+  end
 
   filenames.each do |filename|
     if File.exists?(filename)

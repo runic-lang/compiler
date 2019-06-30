@@ -9,6 +9,10 @@ module Runic
     end
 
     def codegen(node : AST::Function) : LibC::LLVMValueRef
+      if node.attributes.includes?("primitive")
+        return llvm_void_value
+      end
+
       func = llvm_function(node.prototype, node.mangled_name)
       LibC.LLVMSetLinkage(func, PUBLIC_LINKAGE)
 

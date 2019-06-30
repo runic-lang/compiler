@@ -1,10 +1,16 @@
 module Runic
   def self.root
-    File.expand_path("../..", Process.executable_path.not_nil!)
+    ENV.fetch("RUNIC_ROOT") do
+      File.expand_path("../..", Process.executable_path.not_nil!)
+    end
   end
 
   def self.libexec
     File.join(root, "libexec")
+  end
+
+  def self.corelib
+    File.join(root, "corelib", "corelib.runic")
   end
 
   def self.manpages
