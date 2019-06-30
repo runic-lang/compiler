@@ -1,0 +1,147 @@
+#[primitive]
+struct f32
+  # INFINITY = 1_f32 / 0
+  # MIN_NORMAL = 1.1754943508222875e-38_f32  # 2.0**-126
+  # MIN = 1.401298464324817e-45_f32          # 2.0**-149
+  # MAX = 3.4028234663852886e38_f32          # (2.0 - 2**-23) * 2**127
+  # NaN = 0_f32 / 0
+  # SIZE = 32
+
+  #[primitive]
+  def to_i8 : i8
+  end
+
+  #[primitive]
+  def to_u8 : u8
+  end
+
+  #[primitive]
+  def to_i16 : i16
+  end
+
+  #[primitive]
+  def to_u16 : u16
+  end
+
+  #[primitive]
+  def to_i32 : i32
+  end
+
+  #[primitive]
+  def to_u32 : u32
+  end
+
+  #[primitive]
+  def to_i64 : i64
+  end
+
+  #[primitive]
+  def to_u64 : u64
+  end
+
+  #[primitive]
+  #[feature(i128)]
+  def to_i128 : i128
+  end
+
+  #[primitive]
+  #[feature(i128)]
+  def to_u128 : u128
+  end
+
+  def to_f32 : f32
+    self
+  end
+
+  #[primitive]
+  def to_f64 : f64
+  end
+
+  def to_i : i32
+    self.to_i32
+  end
+
+  def to_u : u32
+    self.to_u32
+  end
+
+  def to_f : f64
+    self.to_f64
+  end
+
+  #[primitive]
+  def +(other : f32) : f32
+  end
+
+  #[primitive]
+  def -(other : f32) : f32
+  end
+
+  #[primitive]
+  def *(other : f32) : f32
+  end
+
+  #[primitive]
+  def /(other : f32) : f32
+  end
+
+  #[primitive]
+  def //(other : f32) : f32
+  end
+
+  #[primitive]
+  def %(other : f32) : f32
+  end
+
+  #[primitive]
+  def **(other : f32) : f32
+  end
+
+  #[primitive]
+  def ==(other : f32) : bool
+  end
+
+  #[primitive]
+  def !=(other : f32) : bool
+  end
+
+  #[primitive]
+  def <(other : f32) : bool
+  end
+
+  #[primitive]
+  def <=(other : f32) : bool
+  end
+
+  #[primitive]
+  def >(other : f32) : bool
+  end
+
+  #[primitive]
+  def >=(other : f32) : bool
+  end
+
+  def <=>(other : f32) : i32
+    if self < other
+      -1
+    else
+      if self > other
+        1
+      else
+        0
+      end
+    end
+  end
+
+  ##[primitive]
+  #def - : f32
+  #end
+
+  ##[primitive]
+  #def + : f32
+  #end
+
+  def ! : bool
+    false
+  end
+end

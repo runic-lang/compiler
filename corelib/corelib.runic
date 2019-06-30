@@ -1,0 +1,19 @@
+require "./bool"
+
+require "./i8"
+require "./u8"
+
+require "./i16"
+require "./u16"
+
+require "./i32"
+require "./u32"
+
+require "./i64"
+require "./u64"
+
+require "./i128"
+require "./u128"
+
+require "./f32"
+require "./f64"

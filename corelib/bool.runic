@@ -1,0 +1,62 @@
+#[primitive]
+struct bool
+  def ! : bool
+    if self
+      false
+    else
+      true
+    end
+  end
+
+  #[primitive]
+  def ==(other : bool) : bool
+  end
+
+  #def ==(other : T) : bool forall T
+  #  false
+  #end
+
+  #[primitive]
+  def !=(other : bool) : bool
+  end
+
+  #def !=(other : T) : bool forall T
+  #  true
+  #end
+
+  def &&(other : bool) : bool
+    if self
+      other
+    else
+      false
+    end
+  end
+
+  def ||(other : bool) : bool
+    if self
+      true
+    else
+      other
+    end
+  end
+
+  def &(other : bool) : bool
+    if self
+      other
+    else
+      false
+    end
+  end
+
+  def |(other : bool) : bool
+    if self
+      true
+    else
+      other
+    end
+  end
+
+  def ^(other : bool) : bool
+    self != other
+  end
+end

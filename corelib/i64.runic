@@ -1,0 +1,160 @@
+#[primitive]
+struct i64
+  # MIN = -9223372036854775808_i64
+  # MAX = 9223372036854775807_i64
+  # SIZE = 64
+
+  #[primitive]
+  def to_i8 : i8
+  end
+
+  #[primitive]
+  def to_u8 : u8
+  end
+
+  #[primitive]
+  def to_i16 : i16
+  end
+
+  #[primitive]
+  def to_u16 : u16
+  end
+
+  #[primitive]
+  def to_i32 : i32
+  end
+
+  #[primitive]
+  def to_u32 : u32
+  end
+
+  def to_i64 : i64
+    self
+  end
+
+  #[primitive]
+  def to_u64 : u64
+  end
+
+  #[primitive]
+  #[feature(i128)]
+  def to_i128 : i128
+  end
+
+  #[primitive]
+  #[feature(i128)]
+  def to_u128 : u128
+  end
+
+  #[primitive]
+  def to_f32 : f32
+  end
+
+  #[primitive]
+  def to_f64 : f64
+  end
+
+  def to_i : i32
+    self.to_i32
+  end
+
+  def to_u : u32
+    self.to_u32
+  end
+
+  def to_f : f64
+    self.to_f64
+  end
+
+  #[primitive]
+  def +(other : i64) : i64
+  end
+
+  #[primitive]
+  def -(other : i64) : i64
+  end
+
+  #[primitive]
+  def *(other : i64) : i64
+  end
+
+  #[primitive]
+  def /(other : i64) : f64
+  end
+
+  #[primitive]
+  def //(other : i64) : i64
+  end
+
+  #[primitive]
+  def %(other : i64) : i64
+  end
+
+  #[primitive]
+  def **(other : i64) : i64
+  end
+
+  #[primitive]
+  def ==(other : i64) : bool
+  end
+
+  #[primitive]
+  def !=(other : i64) : bool
+  end
+
+  #[primitive]
+  def <(other : i64) : bool
+  end
+
+  #[primitive]
+  def <=(other : i64) : bool
+  end
+
+  #[primitive]
+  def >(other : i64) : bool
+  end
+
+  #[primitive]
+  def >=(other : i64) : bool
+  end
+
+  def <=>(other : i64) : i32
+    (self - other).to_i32
+  end
+
+  ##[primitive]
+  #def - : i64
+  #end
+
+  #def + : i64
+  #  self
+  #end
+
+  #[primitive]
+  def ~ : i64
+  end
+
+  def ! : bool
+    false
+  end
+
+  #[primitive]
+  def &(other : i64) : i64
+  end
+
+  #[primitive]
+  def |(other : i64) : i64
+  end
+
+  #[primitive]
+  def ^(other : i64) : i64
+  end
+
+  #[primitive]
+  def <<(other : i64) : i64
+  end
+
+  #[primitive]
+  def >>(other : i64) : i64
+  end
+end
