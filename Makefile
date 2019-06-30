@@ -7,7 +7,7 @@ C2CR = CFLAGS=`$(LLVM_CONFIG) --cflags` lib/clang/bin/c2cr
 
 COMMON_SOURCES = src/version.cr src/config.cr
 LEXER_SOURCES = $(COMMON_SOURCES) src/definitions.cr src/errors.cr src/lexer.cr src/location.cr src/token.cr
-PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/ast.cr src/type.cr src/program.cr
+PARSER_SOURCES = $(LEXER_SOURCES) src/parser.cr src/mangler.cr src/ast.cr src/type.cr src/program.cr
 SEMANTIC_SOURCES = $(PARSER_SOURCES) src/semantic.cr src/semantic/*.cr
 LLVM_SOURCES = libllvm src/llvm.cr src/c/llvm.cr
 CODEGEN_SOURCES = $(SEMANTIC_SOURCES) src/codegen.cr src/codegen/*.cr $(LLVM_SOURCES)
@@ -41,7 +41,7 @@ libexec/runic-ast: src/runic-ast.cr $(SEMANTIC_SOURCES)
 	@mkdir -p libexec
 	$(CRYSTAL) build -o libexec/runic-ast src/runic-ast.cr $(CRFLAGS)
 
-libexec/runic-compile: src/runic-compile.cr $(CODEGEN_SOURCES)
+libexec/runic-compile: src/runic-compile.cr src/compiler.cr $(CODEGEN_SOURCES)
 	@mkdir -p libexec
 	$(CRYSTAL) build -o libexec/runic-compile src/runic-compile.cr $(CRFLAGS)
 
