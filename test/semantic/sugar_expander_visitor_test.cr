@@ -4,7 +4,7 @@ module Runic
   class Semantic
     class SugarExpanderVisitorTest < Minitest::Test
       def test_expands_assignment_operators
-        node = visit("a += 1").as(AST::Binary)
+        node = visit("a += 1").as(AST::Assignment)
 
         assert_equal "=", node.operator
         assert_equal "a", node.lhs.as(AST::Variable).name
@@ -16,7 +16,7 @@ module Runic
       end
 
       def test_expands_assignment_operators_recursively
-        node = visit("a += (b *= 1)").as(AST::Binary)
+        node = visit("a += (b *= 1)").as(AST::Assignment)
 
         assert_equal "=", node.operator
         assert_equal "a", node.lhs.as(AST::Variable).name
@@ -25,7 +25,7 @@ module Runic
         assert_equal "+", add.operator
         assert_equal "a", add.lhs.as(AST::Variable).name
 
-        assign = add.rhs.as(AST::Binary)
+        assign = add.rhs.as(AST::Assignment)
         assert_equal "=", assign.operator
         assert_equal "b", assign.lhs.as(AST::Variable).name
 

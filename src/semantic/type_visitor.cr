@@ -97,51 +97,52 @@ module Runic
         visit(node.value)
       end
 
-      # Visits the sub-expressions, then types the binary expression.
+      # Visits the right-hand-side sub-expressions, then types the binary
+      # expression.
       #
-      # In case of an assignment, only the righ-hand-side sub-expression is
-      # visited, and the left-hand-side variable's type will be defined and
-      # memorized for the current scope. The visitor will know the type of a
-      # variable when it's accessed later on.
+      # The left-hand-side variable's type will be defined and memorized for the
+      # current scope. The visitor will know the type of a variable when it's
+      # accessed later on.
       #
       # Variables will be shadowed with a temporary variable when their type
-      # changes in the current scope, so `a = 1; a += 2.0` is valid and `a`
-      # is first inferred as an `i32` then shadowed as a `f64`; further
-      # accesses to `a` will refer to the `f64` variable.
+      # changes in the current scope, so `a = 1; a += 2.0` is valid with `a`
+      # first inferred as an `i32` then shadowed as a `f64`; further accesses to
+      # `a` will refer to the `f64` variable, not the shadowed `i32` variable.
+      def visit(node : AST::Assignment) : Nil
+        # make sure RHS is typed
+        visit(node.rhs)
+
+        case lhs = node.lhs
+        when AST::Variable
+          # type LHS from RHS
+          node.type = lhs.type = node.rhs.type
+
+          if named_var = @scope.get(lhs.name)
+            if named_var.type == lhs.type
+              # make sure to refer to the variable (or its shadow)
+              visit(lhs)
+            else
+              # shadow the variable
+              name = lhs.name
+              lhs.shadow = named_var.shadow + 1
+              @scope.set(name, lhs)
+            end
+          else
+            # memorize the variable (so we know its type later)
+            @scope.set(lhs.name, lhs)
+          end
+        else
+          raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
+        end
+      end
+
+      # Visits the sub-expressions, then types the binary expression.
       def visit(node : AST::Binary) : Nil
         lhs, rhs = node.lhs, node.rhs
 
-        if node.assignment?
-          # make sure RHS is typed
-          visit(rhs)
-
-          case lhs
-          when AST::Variable
-            # type LHS from RHS
-            lhs.type = rhs.type
-
-            if named_var = @scope.get(lhs.name)
-              if named_var.type == lhs.type
-                # make sure to refer to the variable (or its shadow)
-                visit(lhs)
-              else
-                # shadow the variable
-                name = lhs.name
-                lhs.shadow = named_var.shadow + 1
-                @scope.set(name, lhs)
-              end
-            else
-              # memorize the variable (so we know its type later)
-              @scope.set(lhs.name, lhs)
-            end
-          else
-            raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
-          end
-        else
-          # make sure LHS and RHS are typed
-          visit(lhs)
-          visit(rhs)
-        end
+        # make sure LHS and RHS are typed
+        visit(lhs)
+        visit(rhs)
 
         # type the binary expression, TODO: resolve type using corelib:
         # node.type = @program.resolve(node).type

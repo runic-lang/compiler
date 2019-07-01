@@ -58,6 +58,14 @@ module Runic
         nested { to_h(node.value) }
       end
 
+      def to_h(node : Runic::AST::Assignment)
+        print "- assignment: #{node.operator}#{to_options(node)}"
+        print "  lhs:"
+        nested { to_h(node.lhs) }
+        print "  rhs:"
+        nested { to_h(node.rhs) }
+      end
+
       def to_h(node : Runic::AST::Binary)
         print "- binary: #{node.operator}#{to_options(node)}"
         print "  lhs:"

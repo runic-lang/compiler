@@ -3,30 +3,27 @@ require "./intrinsics"
 
 module Runic
   class Codegen
-    def codegen(node : AST::Binary) : LibC::LLVMValueRef
-      if node.assignment?
-        rhs = codegen(node.rhs)
+    def codegen(node : AST::Assignment) : LibC::LLVMValueRef
+      rhs = codegen(node.rhs)
+      @debug.emit_location(node)
 
-        @debug.emit_location(node)
-
-        case node.operator
-        when "="
-          case node.lhs
-          when AST::Variable
-            # store value on the stack
-            lhse = node.lhs.as(AST::Variable)
-            alloca = @scope.fetch(lhse.name) { build_alloca(lhse) }
-            LibC.LLVMBuildStore(@builder, rhs, alloca)
-          else
-            raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
-          end
-
+      case node.operator
+      when "="
+        case node.lhs
+        when AST::Variable
+          # store value on the stack
+          lhse = node.lhs.as(AST::Variable)
+          alloca = @scope.fetch(lhse.name) { build_alloca(lhse) }
+          LibC.LLVMBuildStore(@builder, rhs, alloca)
           return rhs
-        else
-          unsupported_operation!(node)
         end
+        raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
       end
 
+      raise CodegenError.new("unsupported #{node.lhs.type} #{node.operator} #{node.rhs.type} assignment (yet)")
+    end
+
+    def codegen(node : AST::Binary) : LibC::LLVMValueRef
       case node.operator
       when "&&" # logical and (with automatic skip of RHS if LHS is falsy)
         lhs = build_condition(node.lhs)

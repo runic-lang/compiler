@@ -355,7 +355,7 @@ module Runic
       end
     end
 
-    class Binary < Node
+    class Assignment < Node
       property operator : String
       getter lhs : Node
       property rhs : Node
@@ -367,8 +367,25 @@ module Runic
       def initialize(@operator, @lhs, @rhs, @location)
       end
 
-      def assignment?
-        OPERATORS::ASSIGNMENT.includes?(operator)
+      def logical?
+        OPERATORS::LOGICAL.includes?(operator)
+      end
+
+      private def resolve_type
+        # determined from corelib
+      end
+    end
+
+    class Binary < Node
+      property operator : String
+      getter lhs : Node
+      property rhs : Node
+
+      def self.new(token : Token, lhs, rhs)
+        new(token.value, lhs, rhs, token.location)
+      end
+
+      def initialize(@operator, @lhs, @rhs, @location)
       end
 
       def logical?

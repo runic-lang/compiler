@@ -92,7 +92,7 @@ module Runic
       end
 
       def test_recursively_types_binary_expressions
-        node = visit("a = 1 * (2 + 4)").as(AST::Binary)
+        node = visit("a = 1 * (2 + 4)").as(AST::Assignment)
         assert_type "i32", node                          # whole expression
         assert_type "i32", node.lhs                      # variable 'a'
         assert_type "i32", node.rhs                      # value
@@ -104,16 +104,16 @@ module Runic
           case index
           when 0
             assert_type "i32", node
-            assert_type "i32", node.as(AST::Binary).lhs    # infers 'a'
+            assert_type "i32", node.as(AST::Assignment).lhs  # infers 'a'
           when 1
             assert_type "f64", node
-            assert_type "f64", node.as(AST::Binary).lhs  # 'a' is shadowed
+            assert_type "f64", node.as(AST::Assignment).lhs  # 'a' is shadowed
           when 2
             assert_type "f64", node
-            assert_type "f64", node.as(AST::Binary).rhs  # 'a' refers to the tmp variable (not the shadowed)
+            assert_type "f64", node.as(AST::Assignment).rhs  # 'a' refers to the tmp variable (not the shadowed)
           when 3
             assert_type "u64", node
-            assert_type "u64", node.as(AST::Binary).rhs   # 'a' is shadowed again
+            assert_type "u64", node.as(AST::Assignment).rhs  # 'a' is shadowed again
           end
         end
       end

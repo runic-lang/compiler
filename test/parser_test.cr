@@ -99,8 +99,8 @@ module Runic
 
     def test_assignment_operators
       OPERATORS::ASSIGNMENT.each do |operator|
-        assert_expression AST::Binary, "a #{operator} 2"
-        assert_expression AST::Binary, "a #{operator}\n2"
+        assert_expression AST::Assignment, "a #{operator} 2"
+        assert_expression AST::Assignment, "a #{operator}\n2"
         assert_raises(SyntaxError) { parser("1 #{operator} 2").next }
         assert_raises(SyntaxError) { parse_all("a\n#{operator}2") }
       end

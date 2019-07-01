@@ -397,7 +397,12 @@ module Runic
           rhs = parse_binary_operator_rhs(token_precedence + 1, rhs)
         end
 
-        lhs = AST::Binary.new(binary_operator, lhs, rhs)
+        lhs =
+          if binary_operator.assignment?
+            AST::Assignment.new(binary_operator, lhs, rhs)
+          else
+            AST::Binary.new(binary_operator, lhs, rhs)
+          end
       end
     end
 
