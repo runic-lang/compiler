@@ -343,7 +343,7 @@ module Runic
     end
 
     class Argument < Variable
-      getter default : Literal?
+      property default : Literal?
 
       def initialize(name, type, @default, location)
         super(name, nil, location)

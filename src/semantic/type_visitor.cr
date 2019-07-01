@@ -35,7 +35,10 @@ module Runic
 
       def visit(node : AST::Argument) : Nil
         if default = node.default
-          cast_literal(node, default)
+          if default.is_a?(AST::Literal)
+            default = cast_literal(node.type, default)
+            node.default = default
+          end
 
           unless node.type == default.type
             raise SemanticError.new("default argument type mismatch: expected #{node.type} but got #{default.type}", default.location)
@@ -45,25 +48,29 @@ module Runic
       end
 
       # Tries to cast a literal so it matches a variable type.
-      private def cast_literal(variable, literal)
-        if variable.type == literal.type
-          return
+      private def cast_literal(type, literal)
+        if type == literal.type
+          return literal
         end
 
-        case variable.type
+        case type
         when .integer?
-          if literal.type.integer?
-            literal.type = variable.type
+          if literal.is_a?(AST::Integer)
+            literal.type = type
 
-            unless literal.as(AST::Integer).valid_type_definition?
-              raise SemanticError.new("can't cast #{literal.value} to #{variable.type}", literal.location)
+            unless literal.valid_type_definition?
+              raise SemanticError.new("can't cast #{literal.value} to #{type}", literal.location)
             end
           end
         when .float?
-          if literal.type.number?
-            literal.type = variable.type
+          if literal.is_a?(AST::Integer)
+            literal = AST::Float.new(literal.value, literal.location, type)
+          elsif literal.is_a?(AST::Float)
+            literal.type = type
           end
         end
+
+        literal
       end
 
       # Makes sure the variable has been defined, accessing the previously
@@ -247,7 +254,8 @@ module Runic
         prototype.args.each_with_index do |expected, i|
           if arg = node.args[i]?
             if arg.is_a?(AST::Literal)
-              cast_literal(expected, arg)
+              arg = cast_literal(expected.type, arg)
+              node.args[i] = arg
             end
             unless arg.type == expected.type
               message = "wrong type for argument '#{expected.name}' of function '#{prototype.name}' (given #{arg.type}, expected #{expected.type})"

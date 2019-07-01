@@ -197,8 +197,14 @@ module Runic
 
         # automatic cast of literals:
         node = visit("add(1, 2)").as(AST::Call)
-        assert_equal ["i32", "f64"], node.args.map(&.as(AST::Number).type.name)
-        assert_equal ["1", "2"], node.args.map(&.as(AST::Number).value)
+
+        arg = node.args[0].as(AST::Integer)
+        assert_type "i32", arg
+        assert_equal "1", arg.value
+
+        arg = node.args[1].as(AST::Float)
+        assert_type "f64", arg
+        assert_equal "2", arg.value
 
         # no automatic cast of variables:
         assert_raises(SemanticError) { visit_each("b = 2; add(1, b)") {} }
