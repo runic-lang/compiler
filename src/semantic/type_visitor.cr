@@ -91,12 +91,6 @@ module Runic
         end
       end
 
-      # Makes sure the constant value has been typed (a constant may reference
-      # another constant).
-      def visit(node : AST::ConstantDefinition) : Nil
-        visit(node.value)
-      end
-
       # Visits the right-hand-side sub-expressions, then types the binary
       # expression.
       #
@@ -138,23 +132,20 @@ module Runic
 
       # Visits the sub-expressions, then types the binary expression.
       def visit(node : AST::Binary) : Nil
-        lhs, rhs = node.lhs, node.rhs
-
         # make sure LHS and RHS are typed
-        visit(lhs)
-        visit(rhs)
+        super
 
         # type the binary expression, TODO: resolve type using corelib:
         # node.type = @program.resolve(node).type
         unless node.type?
-          raise SemanticError.new("invalid operation: #{lhs.type?} ##{node.operator} ##{rhs.type?}", node.location)
+          raise SemanticError.new("invalid operation: #{node.lhs.type?} ##{node.operator} ##{node.rhs.type?}", node.location)
         end
       end
 
       # Visits the sub-expression, then types the unary expression.
       def visit(node : AST::Unary) : Nil
         # make sure the expression is typed
-        visit(node.expression)
+        super
 
         # type the unary expression, TODO: resolve type using corelib
         #node.type = @program.resolve(node).type
@@ -221,9 +212,6 @@ module Runic
       # that passed arguments match the prototype (same number of arguments,
       # same types). Eventually types the expression.
       def visit(node : AST::Call) : Nil
-        if slf = node.receiver
-          node.args.unshift(slf)
-        end
         node.args.each { |arg| visit(arg) }
 
         fn_or_prototype = @program.resolve(node)
@@ -346,10 +334,6 @@ module Runic
       def visit(node : AST::When) : Nil
         node.conditions.each { |n| visit_condition(n) }
         visit(node.body, :case)
-      end
-
-      # These nodes don't need to be visited.
-      def visit(node : AST::Boolean | AST::Float | AST::Module | AST::Require) : Nil
       end
 
       # Simple helper to visit bodies (functions, ifs, ...).

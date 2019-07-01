@@ -25,10 +25,6 @@ module Runic
           fn.prototype.name = "#{node.name}::#{fn.prototype.name}"
         end
       end
-
-      def visit(node : AST::Node) : Nil
-        # skip
-      end
     end
   end
 end

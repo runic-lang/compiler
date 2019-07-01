@@ -10,13 +10,22 @@ module Runic
       #        should save the expression to a temporary variable (unless it's a
       #        simple case).
       def visit(node : AST::Assignment) : Nil
-        visit(node.lhs)
-        visit(node.rhs)
+        super
 
         unless node.operator == "="
           operator = node.operator.chomp('=')
           node.operator = "="
           node.rhs = AST::Binary.new(operator, node.lhs.dup, node.rhs, node.location)
+        end
+      end
+
+      # If the function has a *receiver*, inject it has the first argument of
+      # the method call, so it will become *self*.
+      def visit(node : AST::Call) : Nil
+        super
+
+        if slf = node.receiver
+          node.args.unshift(slf)
         end
       end
 
@@ -34,17 +43,12 @@ module Runic
         end
       end
 
-      # Injects `self` as first method argument.
+      # Injects *self* as first argument of struct methods.
       def visit(node : AST::Struct) : Nil
-        node.methods.each do |fn|
-          fn.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, fn.location))
+        node.methods.each do |n|
+          n.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, n.location))
+          visit(n)
         end
-      end
-
-      # Other nodes don't need to be visited.
-      #
-      # FIXME: actually subnodes should be visited (abstract Visitor should do it).
-      def visit(node : AST::Node) : Nil
       end
     end
   end
