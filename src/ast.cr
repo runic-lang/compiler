@@ -9,11 +9,10 @@ module Runic
     end
 
     module TopLevel
-      @visited = Atomic(Int32).new(0)
+      @visited = Atomic::Flag.new
 
       def visited?
-        _, changed = @visited.compare_and_set(0, 1)
-        !changed
+        !@visited.test_and_set
       end
     end
 

@@ -2,9 +2,9 @@ version: 1.0
 shards:
   clang:
     github: ysbaddaden/clang.cr
-    commit: a1a7a5612d9af79476d409994c529f076fca48ab
+    version: 0.3.0
 
   minitest:
     github: ysbaddaden/minitest.cr
-    version: 0.4.2
+    version: 0.4.3
 
