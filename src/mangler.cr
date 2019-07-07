@@ -25,12 +25,14 @@ module Runic
         case name
         when "+"   then str << (unary?(fn) ? "ps" : "pl")
         when "-"   then str << (unary?(fn) ? "ng" : "mi")
-        when "*"   then str << "ml"
+        when "~"   then str << "co"
+        when "*"   then str << "ml"     # ptr: de(reference)
         when "/"   then str << "dv"
         when "%"   then str << "rm"
-        when "&"   then str << "an"
+        when "&"   then str << "an"     # ptr: ad(dress)
         when "|"   then str << "or"
         when "^"   then str << "eo"
+        #when "="  then str << "as"
         #when "+="  then str << "pL"
         #when "-="  then str << "mI"
         #when "*="  then str << "mL"
@@ -49,10 +51,16 @@ module Runic
         when ">"   then str << "gt"
         when "<="  then str << "le"
         when ">="  then str << "ge"
+        when "<=>" then str << "ss"
         when "!"   then str << "nt"
         when "&&"  then str << "aa"
         when "||"  then str << "oo"
         #when "new" then str << "nw"
+
+        # extended operators
+        when "//"  then str << "v2dv"
+        when "**"  then str << "v2pw"
+
         else
           special(name, str)
         end
@@ -85,6 +93,8 @@ module Runic
       str << name
     end
 
+    # Itanium C++ ABI reference:
+    # <https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-builtin>
     private def self.type(type : Type, str : String::Builder) : Nil
       case type.name
       when "void" then str << 'v'
@@ -101,8 +111,10 @@ module Runic
       when "u128" then str << 'o'
       when "f32"  then str << 'f'
       when "f64"  then str << 'd'
+      #when "f80"  then str << 'e'
       #when "f128" then str << 'g'
       #when "..."  then str << 'z'
+      #when "char" then str << "Di"  # char32_t
       else
         special(type.name, str)
       end
