@@ -44,6 +44,10 @@ module Runic
         declare_llvm_intrinsic_function(name, "f32", "f32")
       when "llvm.floor.f64"
         declare_llvm_intrinsic_function(name, "f64", "f64")
+      when "llvm.pow.f32"
+        declare_llvm_intrinsic_function(name, "f32", "f32", "f32")
+      when "llvm.pow.f64"
+        declare_llvm_intrinsic_function(name, "f64", "f64", "f64")
       else
         raise CodegenError.new("intrinsic '#{name}': no such definition")
       end
@@ -56,6 +60,65 @@ module Runic
       func = LibC.LLVMAddFunction(@module, name, func_type)
       LibC.LLVMSetLinkage(func, EXTERN_LINKAGE)
       func
+    end
+
+    protected def builtin_cast_to_unsigned(variable_name, src_type, dst_type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+
+      case src_type
+      when .unsigned?
+        if src_type.bits < dst_type.bits
+          LibC.LLVMBuildZExt(@builder, value, llvm_type(dst_type), "")
+        else
+          LibC.LLVMBuildTrunc(@builder, value, llvm_type(dst_type), "")
+        end
+      when .integer?
+        if src_type.bits < dst_type.bits
+          LibC.LLVMBuildSExt(@builder, value, llvm_type(dst_type), "")
+        else
+          LibC.LLVMBuildTrunc(@builder, value, llvm_type(dst_type), "")
+        end
+      when .float?
+        LibC.LLVMBuildFPToUI(@builder, value, llvm_type(dst_type), "")
+      end
+    end
+
+    protected def builtin_cast_to_signed(variable_name, src_type, dst_type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+
+      case src_type
+      when .unsigned?
+        if src_type.bits < dst_type.bits
+          LibC.LLVMBuildZExt(@builder, value, llvm_type(dst_type), "")
+        else
+          LibC.LLVMBuildTrunc(@builder, value, llvm_type(dst_type), "")
+        end
+      when .integer?
+        if src_type.bits < dst_type.bits
+          LibC.LLVMBuildSExt(@builder, value, llvm_type(dst_type), "")
+        else
+          LibC.LLVMBuildTrunc(@builder, value, llvm_type(dst_type), "")
+        end
+      when .float?
+        LibC.LLVMBuildFPToSI(@builder, value, llvm_type(dst_type), "")
+      end
+    end
+
+    protected def builtin_cast_to_float(variable_name, src_type, dst_type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+
+      case src_type
+      when .unsigned?
+        LibC.LLVMBuildUIToFP(@builder, value, llvm_type(dst_type), "")
+      when .integer?
+        LibC.LLVMBuildSIToFP(@builder, value, llvm_type(dst_type), "")
+      when .float?
+        if src_type.bits < dst_type.bits
+          LibC.LLVMBuildFPExt(@builder, value, llvm_type(dst_type), "")
+        else
+          LibC.LLVMBuildFPTrunc(@builder, value, llvm_type(dst_type), "")
+        end
+      end
     end
   end
 end

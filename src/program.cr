@@ -150,12 +150,20 @@ module Runic
       end
     end
 
+    def resolve?(node : AST::Binary) : AST::Function?
+      resolve_type(node.lhs).operator(node)
+    end
+
     def resolve(node : AST::Unary) : AST::Function
       if function = resolve_type(node.expression).operator(node)
         function
       else
         raise SemanticError.new("undefined operator #{node.expression.type}##{node.operator}", node)
       end
+    end
+
+    def resolve?(node : AST::Unary) : AST::Function?
+      resolve_type(node.expression).operator(node)
     end
 
     private def resolve_type(node : AST::Node) : AST::Struct

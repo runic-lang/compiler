@@ -79,10 +79,6 @@ struct u16
   end
 
   #[primitive]
-  def /(other : u16) : f64
-  end
-
-  #[primitive]
   def //(other : u16) : u16
   end
 
@@ -90,8 +86,25 @@ struct u16
   def %(other : u16) : u16
   end
 
-  #[primitive]
-  def **(other : u16) : u16
+  def/(other : u16) : float
+    self.to_f / other.to_f
+  end
+
+  def **(exponent : u16) : u16
+    x = self
+    result = 1_u16
+
+    until exponent == 0_u16
+      unless (exponent & 1_u16) == 0_u16
+        result *= x
+        exponent -= 1_u16
+      end
+
+      x *= x
+      exponent >>= 1_u16
+    end
+
+    result
   end
 
   #[primitive]
@@ -119,7 +132,15 @@ struct u16
   end
 
   def <=>(other : u16) : i32
-    (self - other).to_i32
+    if self < other
+      -1
+    else
+      if self > other
+        1
+      else
+        0
+      end
+    end
   end
 
   #[primitive]

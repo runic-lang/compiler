@@ -9,12 +9,18 @@ module Runic
     end
 
     def codegen(node : AST::Function) : LibC::LLVMValueRef
-      if node.attributes.includes?("primitive")
-        return llvm_void_value
+      linkage = PUBLIC_LINKAGE
+
+      if node.attribute?("primitive")
+        if node.operator?
+          # builtin operator primitives are always inlined
+          return llvm_void_value
+        end
+        linkage = PRIVATE_LINKAGE
       end
 
       func = llvm_function(node.prototype, node.mangled_name)
-      LibC.LLVMSetLinkage(func, PUBLIC_LINKAGE)
+      LibC.LLVMSetLinkage(func, linkage)
 
       block = LibC.LLVMAppendBasicBlockInContext(@context, func, "entry")
       LibC.LLVMPositionBuilderAtEnd(@builder, block)
@@ -31,7 +37,7 @@ module Runic
       @debug.flush
 
       if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
-        STDERR.puts print(func)
+        # STDERR.puts node
         raise "FATAL: function validation failed"
       end
 
@@ -71,7 +77,12 @@ module Runic
           @scope.set(arg.name, alloca)
         end
 
-        ret = codegen(node.body)
+        ret =
+          if node.attribute?("primitive")
+            codegen_builtin_function_body(node)
+          else
+            codegen(node.body)
+          end
 
         if !ret || node.void?
           LibC.LLVMBuildRetVoid(@builder)
@@ -92,6 +103,20 @@ module Runic
 
     private def create_entry_block_alloca(func : LibC::LLVMValueRef, node : AST::Variable)
       build_alloca(node)
+    end
+
+    private def codegen_builtin_function_body(node)
+      result =
+        case node.original_name
+        when "to_u8", "to_u16", "to_u32", "to_u64", "to_u128"
+          builtin_cast_to_unsigned("self", node.args[0].type, node.type)
+        when "to_i8", "to_i16", "to_i32", "to_i64", "to_i128"
+          builtin_cast_to_signed("self", node.args[0].type, node.type)
+        when "to_f32", "to_f64"
+          builtin_cast_to_float("self", node.args[0].type, node.type)
+        end
+      raise "unknown primitive function '#{node.name}'" unless result
+      result
     end
   end
 end

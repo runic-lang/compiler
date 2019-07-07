@@ -87,6 +87,10 @@ module Runic
           assert_raises(SyntaxError) { parse_all("1\n#{operator}2") }
         end
       end
+
+      # FIXME: ** shoudl have higher precedence than unary -
+      #assert_expression AST::Unary, "-a**2"
+      #assert_expression AST::Unary, "-1**2"
     end
 
     def test_logical_operators

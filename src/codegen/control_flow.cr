@@ -21,7 +21,6 @@ module Runic
       if body = node.alternative
         else_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "else")
         LibC.LLVMMoveBasicBlockBefore(else_block, end_block)
-        blocks << else_block
 
         # true -> then, false -> else
         LibC.LLVMBuildCondBr(@builder, condition, then_block, else_block)
@@ -29,6 +28,13 @@ module Runic
         # else block:
         LibC.LLVMPositionBuilderAtEnd(@builder, else_block)
         values << codegen(body)
+
+        # else_block is only the entry block into the alternate body, we must
+        # get the current block that will branch to end_block (otherwise PHI
+        # would have invalid entry points):
+        blocks << LibC.LLVMGetInsertBlock(@builder)
+
+        # else -> end
         LibC.LLVMBuildBr(@builder, end_block)
       else
         # true -> then, false -> end

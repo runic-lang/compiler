@@ -364,6 +364,8 @@ module Runic
       parse_binary_operator_rhs(0, lhs)
     end
 
+    # FIXME: unary `-` should have lower precedence than `**` so `-1**2` should
+    #        be parsed as `-(1**2)` not `(-1)**2`.
     private def parse_binary_operator_rhs(expression_precedence, lhs)
       loop do
         token_precedence = OPERATORS.precedence(peek.value)

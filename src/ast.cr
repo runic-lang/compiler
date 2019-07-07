@@ -380,6 +380,7 @@ module Runic
       property operator : String
       getter lhs : Node
       property rhs : Node
+      property! method : Function
 
       def self.new(token : Token, lhs, rhs)
         new(token.value, lhs, rhs, token.location)
@@ -400,6 +401,7 @@ module Runic
     class Unary < Node
       getter operator : String
       getter expression : Node
+      property! method : Function
 
       def self.new(token : Token, expression)
         new(token.value, expression, token.location)
@@ -509,6 +511,10 @@ module Runic
 
       def attribute?(name : String)
         attributes.includes?(name)
+      end
+
+      def operator?
+        OPERATORS::ALL.includes?(prototype.original_name)
       end
 
       def resolve_type

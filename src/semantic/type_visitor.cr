@@ -133,17 +133,27 @@ module Runic
             @scope.set(lhs.name, lhs)
           end
         else
-          raise SemanticError.new("invalid operation: only variables and constants may be assigned a value", lhs.location)
+          raise SemanticError.new("invalid assignment: only variables and constants may be assigned a value", lhs.location)
         end
       end
 
       # Visits the sub-expressions, then types the binary expression.
+      #
       def visit(node : AST::Binary) : Nil
         # make sure LHS and RHS are typed
         super
 
         # type the binary expression
-        node.type = @program.resolve(node).type
+        if method = @program.resolve?(node)
+          node.method = method
+          node.type = method.type
+        elsif node.operator == "&&" || node.operator == "||"
+          # NOTE: hardcoded fallback until support for method overloads and free
+          #       variables is implemented
+          node.type = Type.new("bool")
+        else
+          raise SemanticError.new("invalid binary operation: #{node.lhs.type?} #{node.operator} #{node.rhs.type?}", node.location)
+        end
       end
 
       # Visits the sub-expression, then types the unary expression.
@@ -152,7 +162,19 @@ module Runic
         super
 
         # type the unary expression
-        node.type = @program.resolve(node).type
+        if method = @program.resolve?(node)
+          node.method = method
+          node.type = method.type
+        else
+          # NOTE: hardcoded fallback until support for method overloads is implemented
+          type = node.expression.type
+
+          if node.operator == "-" && type.float? || (type.integer? && !type.unsigned?)
+            node.type = type
+          else
+            raise SemanticError.new("invalid unary operation: #{node.operator}#{node.expression.type?}", node.location)
+          end
+        end
       end
 
       # Makes sure the prototype is fully typed (arguments, return type).

@@ -15,6 +15,8 @@ module Runic
     BINARY = %w(+ - * ** / // % & | ^ << >>)
     ALL = (UNARY + ASSIGNMENT + LOGICAL + BINARY).uniq
 
+    # Returns the precedence score for an operator. A low value means a lower
+    # precedence than a high value.
     def self.precedence(operator)
       case operator
       when "="   then 5
@@ -35,9 +37,6 @@ module Runic
 
       when "||"  then 10
       when "&&"  then 12
-      when "|"   then 14
-      when "^"   then 16
-      when "&"   then 18
 
       when "=="  then 20
       when "!="  then 20
@@ -47,6 +46,10 @@ module Runic
       when "<="  then 30
       when ">"   then 30
       when ">="  then 30
+
+      when "|"   then 32
+      when "^"   then 32
+      when "&"   then 34
 
       when "<<"  then 40
       when ">>"  then 40
