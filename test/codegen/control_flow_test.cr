@@ -14,13 +14,13 @@ class Runic::Codegen::ControlFlowTest < Runic::CodegenTest
     RUNIC
 
     assert_equal 19, execute <<-RUNIC
-    def foo(a : int)
+    def bar(a : int)
       if a > 10
         a = a - 2
       end
       a
     end
-    foo(1) + foo(20)
+    bar(1) + bar(20)
     RUNIC
   end
 

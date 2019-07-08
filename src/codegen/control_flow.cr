@@ -2,21 +2,25 @@ module Runic
   class Codegen
     def codegen(node : AST::If) : LibC::LLVMValueRef
       @debug.emit_location(node)
-      condition = build_condition(node.condition)
 
-      entry = LibC.LLVMGetInsertBlock(@builder)
-      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      entry_block = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry_block)
       then_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "then")
       end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
 
-      blocks = [then_block]
-      values = [] of LibC::LLVMValueRef
+      count = node.alternative ? 2 : 1
+      blocks = Array(LibC::LLVMBasicBlockRef).new(count)
+      values = Array(LibC::LLVMValueRef).new(count)
 
       # then block:
       LibC.LLVMPositionBuilderAtEnd(@builder, then_block)
       values << codegen(node.body)
+      blocks << LibC.LLVMGetInsertBlock(@builder)
       LibC.LLVMBuildBr(@builder, end_block)
-      LibC.LLVMPositionBuilderAtEnd(@builder, entry)
+
+      # if condition:
+      LibC.LLVMPositionBuilderAtEnd(@builder, entry_block)
+      condition = build_condition(node.condition)
 
       if body = node.alternative
         else_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "else")
@@ -28,13 +32,7 @@ module Runic
         # else block:
         LibC.LLVMPositionBuilderAtEnd(@builder, else_block)
         values << codegen(body)
-
-        # else_block is only the entry block into the alternate body, we must
-        # get the current block that will branch to end_block (otherwise PHI
-        # would have invalid entry points):
         blocks << LibC.LLVMGetInsertBlock(@builder)
-
-        # else -> end
         LibC.LLVMBuildBr(@builder, end_block)
       else
         # true -> then, false -> end
@@ -45,16 +43,13 @@ module Runic
       LibC.LLVMPositionBuilderAtEnd(@builder, end_block)
 
       if node.type == "void"
-        # return invalid value (semantic analysis prevents it)
+        # return invalid value (semantic analysis prevents its usage)
         return llvm_void_value
       end
 
-      # return a value:
-      unless values.size == blocks.size
-        raise CodegenError.new("ERROR: #{values.inspect}.size != #{blocks.inspect}.size")
-      end
+      # return value
       phi = LibC.LLVMBuildPhi(@builder, llvm_type(node), "")
-      LibC.LLVMAddIncoming(phi, values, blocks, blocks.size)
+      LibC.LLVMAddIncoming(phi, values, blocks, count)
       phi
     end
 
@@ -62,8 +57,8 @@ module Runic
       @debug.emit_location(node)
       condition = build_condition(node.condition)
 
-      entry = LibC.LLVMGetInsertBlock(@builder)
-      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      entry_block = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry_block)
       then_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "then")
       end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
 
@@ -84,8 +79,8 @@ module Runic
     def codegen(node : AST::While) : LibC::LLVMValueRef
       @debug.emit_location(node)
 
-      entry = LibC.LLVMGetInsertBlock(@builder)
-      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      entry_block = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry_block)
       loop_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "while")
       do_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "do")
       end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
@@ -113,8 +108,8 @@ module Runic
     def codegen(node : AST::Until) : LibC::LLVMValueRef
       @debug.emit_location(node)
 
-      entry = LibC.LLVMGetInsertBlock(@builder)
-      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      entry_block = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry_block)
       loop_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "until")
       do_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "do")
       end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
@@ -142,50 +137,47 @@ module Runic
     def codegen(node : AST::Case) : LibC::LLVMValueRef
       @debug.emit_location(node)
 
-      count = node.cases.size
+      count = node.cases.size + (node.alternative ? 1 : 0)
       blocks = Array(LibC::LLVMBasicBlockRef).new(count)
       values = Array(LibC::LLVMValueRef).new(count)
 
-      entry = LibC.LLVMGetInsertBlock(@builder)
-      parent_block = LibC.LLVMGetBasicBlockParent(entry)
+      entry_block = LibC.LLVMGetInsertBlock(@builder)
+      parent_block = LibC.LLVMGetBasicBlockParent(entry_block)
       end_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "end")
+      ref_block = end_block
 
       value = codegen(node.value)
 
       if body = node.alternative
         else_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "else")
-        LibC.LLVMPositionBuilderAtEnd(@builder, else_block)
-        else_value = codegen(body)
-        LibC.LLVMBuildBr(@builder, end_block)
+        LibC.LLVMMoveBasicBlockBefore(else_block, end_block)
+        ref_block = else_block
 
-        LibC.LLVMPositionBuilderAtEnd(@builder, entry)
         switch = LibC.LLVMBuildSwitch(@builder, value, else_block, count)
+
+        LibC.LLVMPositionBuilderAtEnd(@builder, else_block)
+        values << codegen(body)
+        blocks << LibC.LLVMGetInsertBlock(@builder)
+        LibC.LLVMBuildBr(@builder, end_block)
       else
         switch = LibC.LLVMBuildSwitch(@builder, value, end_block, count)
       end
 
       node.cases.each do |n|
-        block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "when")
-        LibC.LLVMMoveBasicBlockBefore(block, end_block)
-        blocks << block
+        when_block = LibC.LLVMAppendBasicBlockInContext(@context, parent_block, "when")
+        LibC.LLVMMoveBasicBlockBefore(when_block, ref_block)
 
-        LibC.LLVMPositionBuilderAtEnd(@builder, block)
+        LibC.LLVMPositionBuilderAtEnd(@builder, when_block)
         values << codegen(n.body)
+        blocks << LibC.LLVMGetInsertBlock(@builder)
         LibC.LLVMBuildBr(@builder, end_block)
 
         n.conditions.each do |condition|
-          LibC.LLVMAddCase(switch, codegen(condition), block)
+          LibC.LLVMAddCase(switch, codegen(condition), when_block)
         end
       end
 
       LibC.LLVMPositionBuilderAtEnd(@builder, end_block)
-
-      if else_block
-        LibC.LLVMMoveBasicBlockBefore(else_block, end_block)
-        blocks << else_block
-        values << else_value.not_nil!
-        count += 1
-      end
 
       if node.type == "void"
         return llvm_void_value
