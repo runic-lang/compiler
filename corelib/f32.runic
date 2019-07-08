@@ -49,6 +49,7 @@ struct f32
   def to_u128 : u128
   end
 
+  #[inline]
   def to_f32 : f32
     self
   end
@@ -57,17 +58,23 @@ struct f32
   def to_f64 : f64
   end
 
+  #[inline]
   def to_i : i32
     self.to_i32
   end
 
+  #[inline]
   def to_u : u32
     self.to_u32
   end
 
+  #[inline]
   def to_f : f64
     self.to_f64
   end
+  #[inline]
+  #[inline]
+  #[inline]
 
   #[primitive]
   def +(other : f32) : f32
@@ -93,6 +100,7 @@ struct f32
   def **(other : f32) : f32
   end
 
+  #[inline]
   def abs : f32
     if self < 0_f32
       -self
@@ -113,6 +121,7 @@ struct f32
   def truncate : f32
   end
 
+  #[inline]
   def //(other : f32) : f32
     q = (self / other).truncate()
     r = self % other
@@ -127,6 +136,7 @@ struct f32
     end
   end
 
+  #[inline]
   def %%(other : f32) : f32
     result = self % other
     if result < 0_f32
@@ -160,6 +170,7 @@ struct f32
   def >=(other : f32) : bool
   end
 
+  #[inline]
   def <=>(other : f32) : i32
     if self < other
       -1
@@ -180,6 +191,7 @@ struct f32
   #def + : f32
   #end
 
+  #[inline]
   def ! : bool
     false
   end

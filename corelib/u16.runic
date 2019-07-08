@@ -16,6 +16,7 @@ struct u16
   def to_i16 : i16
   end
 
+  #[inline]
   def to_u16 : u16
     self
   end
@@ -54,14 +55,17 @@ struct u16
   def to_f64 : f64
   end
 
+  #[inline]
   def to_i : i32
     self.to_i32
   end
 
+  #[inline]
   def to_u : u32
     self.to_u32
   end
 
+  #[inline]
   def to_f : f64
     self.to_f64
   end
@@ -86,22 +90,27 @@ struct u16
   def %(other : u16) : u16
   end
 
+  #[inline]
   def /(other : u16) : float
     self.to_f / other.to_f
   end
 
+  #[inline]
   def abs : u16
     self
   end
 
+  #[inline]
   def //(other : u16) : u16
     self.div(other)
   end
 
+  #[inline]
   def %%(other : u16) : u16
     self % other
   end
 
+  #[inline]
   def **(exponent : u16) : u16
     x = self
     result = 1_u16
@@ -143,6 +152,7 @@ struct u16
   def >=(other : u16) : bool
   end
 
+  #[inline]
   def <=>(other : u16) : i32
     if self < other
       -1
@@ -159,6 +169,7 @@ struct u16
   def ~ : u16
   end
 
+  #[inline]
   def ! : bool
     false
   end

@@ -15,8 +15,9 @@ module Runic
     PRIVATE_LINKAGE = LibC::LLVMLinkage::Internal
 
     @debug : Debug
+    @opt_level : LibC::LLVMCodeGenOptLevel
 
-    def initialize(debug = DebugLevel::Default, @optimize = true)
+    def initialize(debug = DebugLevel::Default, @opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault, @optimize = true)
       @context = LibC.LLVMContextCreate()
       @builder = LibC.LLVMCreateBuilderInContext(@context)
       @module = LibC.LLVMModuleCreateWithNameInContext("main", @context)
@@ -35,6 +36,12 @@ module Runic
       if fpm = @function_pass_manager
         LibC.LLVMDisposePassManager(fpm)
       end
+      if mpm = @module_pass_manager
+        LibC.LLVMDisposePassManager(mpm)
+      end
+      if pmb = @pass_manager_builder
+        LibC.LLVMPassManagerBuilderDispose(pmb)
+      end
       LibC.LLVMDisposeModule(@module)
       LibC.LLVMDisposeBuilder(@builder)
       LibC.LLVMContextDispose(@context)
@@ -49,6 +56,15 @@ module Runic
       LibC.LLVMSetTarget(@module, triple)
     end
 
+
+    def verify
+      @debug.flush
+
+      if LibC.LLVMVerifyModule(@module, LibC::LLVMVerifierFailureAction::ReturnStatus, nil) == 1
+        emit_llvm("dump.ll")
+        raise CodegenError.new("module validation failed")
+      end
+    end
 
     def emit_llvm(path : String)
       @debug.flush
@@ -71,11 +87,6 @@ module Runic
 
     def emit_object(target_machine, path)
       @debug.flush
-
-      if LibC.LLVMVerifyModule(@module, LibC::LLVMVerifierFailureAction::ReturnStatus, nil) == 1
-        emit_llvm("dump.ll")
-        raise CodegenError.new("module validation failed")
-      end
 
       # write object file
       if LibC.LLVMTargetMachineEmitToFile(target_machine, @module, path,
@@ -119,20 +130,50 @@ module Runic
     end
 
 
+    @pass_manager_builder : LibC::LLVMPassManagerBuilderRef?
     @function_pass_manager : LibC::LLVMPassManagerRef?
+    @module_pass_manager : LibC::LLVMPassManagerRef?
 
-    private def function_pass_manager
+    def optimize
       return unless @optimize
 
-      @function_pass_manager ||= begin
-        fpm = LibC.LLVMCreateFunctionPassManagerForModule(@module)
-        LibC.LLVMAddPromoteMemoryToRegisterPass(fpm)
-        LibC.LLVMAddInstructionCombiningPass(fpm)
-        LibC.LLVMAddReassociatePass(fpm)
-        LibC.LLVMAddGVNPass(fpm)
-        LibC.LLVMAddCFGSimplificationPass(fpm)
+      if fpm = function_pass_manager
         LibC.LLVMInitializeFunctionPassManager(fpm)
-        fpm
+
+        func = LibC.LLVMGetFirstFunction(@module)
+        while func
+          LibC.LLVMRunFunctionPassManager(fpm, func)
+          func = LibC.LLVMGetNextFunction(func)
+        end
+
+        LibC.LLVMFinalizeFunctionPassManager(fpm)
+      end
+
+      if mpm = module_pass_manager
+        LibC.LLVMRunPassManager(mpm, @module)
+      end
+    end
+
+    private def pass_manager_builder
+      @pass_manager_builder ||= begin
+        pmb = LibC.LLVMPassManagerBuilderCreate()
+        LibC.LLVMPassManagerBuilderSetOptLevel(pmb, @opt_level)
+        LibC.LLVMPassManagerBuilderSetSizeLevel(pmb, 0) # 1 => -Os, 2 => -Oz
+        pmb
+      end
+    end
+
+    private def function_pass_manager
+      @function_pass_manager ||= LibC.LLVMCreateFunctionPassManagerForModule(@module).tap do |pm|
+        LibC.LLVMPassManagerBuilderPopulateFunctionPassManager(pass_manager_builder, pm)
+        pm
+      end
+    end
+
+    private def module_pass_manager
+      @module_pass_manager ||= LibC.LLVMCreatePassManager().tap do |pm|
+        LibC.LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, pm)
+        LibC.LLVMAddAlwaysInlinerPass(pm)
       end
     end
 

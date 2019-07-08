@@ -44,4 +44,21 @@ module LLVM
       llvm_init Sparc
     end
   end
+
+  def self.init_global_pass_registry
+    registry = LibC.LLVMGetGlobalPassRegistry()
+    LibC.LLVMInitializeCore(registry)
+    LibC.LLVMInitializeTransformUtils(registry)
+    LibC.LLVMInitializeScalarOpts(registry)
+    LibC.LLVMInitializeObjCARCOpts(registry)
+    LibC.LLVMInitializeVectorization(registry)
+    LibC.LLVMInitializeInstCombine(registry)
+    LibC.LLVMInitializeAggressiveInstCombiner(registry)
+    LibC.LLVMInitializeIPO(registry)
+    LibC.LLVMInitializeInstrumentation(registry)
+    LibC.LLVMInitializeAnalysis(registry)
+    LibC.LLVMInitializeIPA(registry)
+    LibC.LLVMInitializeCodeGen(registry)
+    LibC.LLVMInitializeTarget(registry)
+  end
 end

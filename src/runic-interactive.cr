@@ -9,6 +9,7 @@ module Runic
     class Interactive
       def initialize(@debug = false, optimize = true)
         LLVM.init_native
+        LLVM.init_global_pass_registry if optimize
 
         @lexer = Lexer.new(STDIN, "stdin", interactive: true)
         @parser = Parser.new(@lexer, top_level_expressions: true, interactive: true)

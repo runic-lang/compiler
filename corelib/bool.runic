@@ -1,5 +1,6 @@
 #[primitive]
 struct bool
+  #[inline]
   def ! : bool
     if self
       false
@@ -12,6 +13,7 @@ struct bool
   def ==(other : bool) : bool
   end
 
+  #[inline]
   #def ==(other : T) : bool forall T
   #  false
   #end
@@ -20,10 +22,12 @@ struct bool
   def !=(other : bool) : bool
   end
 
+  #[inline]
   #def !=(other : T) : bool forall T
   #  true
   #end
 
+  #[inline]
   def &&(other : bool) : bool
     if self
       other
@@ -32,6 +36,7 @@ struct bool
     end
   end
 
+  #[inline]
   def ||(other : bool) : bool
     if self
       true
@@ -40,6 +45,7 @@ struct bool
     end
   end
 
+  #[inline]
   def &(other : bool) : bool
     if self
       other
@@ -48,6 +54,7 @@ struct bool
     end
   end
 
+  #[inline]
   def |(other : bool) : bool
     if self
       true
@@ -56,6 +63,7 @@ struct bool
     end
   end
 
+  #[inline]
   def ^(other : bool) : bool
     self != other
   end

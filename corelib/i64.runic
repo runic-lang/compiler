@@ -28,6 +28,7 @@ struct i64
   def to_u32 : u32
   end
 
+  #[inline]
   def to_i64 : i64
     self
   end
@@ -54,14 +55,17 @@ struct i64
   def to_f64 : f64
   end
 
+  #[inline]
   def to_i : i32
     self.to_i32
   end
 
+  #[inline]
   def to_u : u32
     self.to_u32
   end
 
+  #[inline]
   def to_f : f64
     self.to_f64
   end
@@ -86,10 +90,12 @@ struct i64
   def %(other : i64) : i64
   end
 
+  #[inline]
   def /(other : i64) : float
     self.to_f / other.to_f
   end
 
+  #[inline]
   def abs : i64
     if self < 0_i64
       -self
@@ -98,6 +104,7 @@ struct i64
     end
   end
 
+  #[inline]
   def //(other : i64) : i64
     q = self.div(other)
     r = self % other
@@ -112,6 +119,7 @@ struct i64
     end
   end
 
+  #[inline]
   def %%(other : i64) : i64
     result = self % other
     if result < 0_i64
@@ -121,6 +129,7 @@ struct i64
     end
   end
 
+  #[inline]
   def **(exponent : i64) : i64
     if exponent < 0_i64
       1_i64 // (self ** -exponent)
@@ -166,6 +175,7 @@ struct i64
   def >=(other : i64) : bool
   end
 
+  #[inline]
   def <=>(other : i64) : i32
     if self < other
       -1
@@ -182,6 +192,7 @@ struct i64
   #def - : i64
   #end
 
+  ##[inline]
   #def + : i64
   #  self
   #end
@@ -190,6 +201,7 @@ struct i64
   def ~ : i64
   end
 
+  #[inline]
   def ! : bool
     false
   end

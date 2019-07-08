@@ -8,19 +8,27 @@ module Runic
       end
     end
 
-    def codegen(node : AST::Function) : LibC::LLVMValueRef
-      linkage = PUBLIC_LINKAGE
+    private def attribute_ref(name)
+      attr_kind = LibC.LLVMGetEnumAttributeKindForName(name, name.bytesize)
+      LibC.LLVMCreateEnumAttribute(@context, attr_kind, 0)
+    end
 
+    def codegen(node : AST::Function) : LibC::LLVMValueRef
       if node.attribute?("primitive")
         if node.operator?
           # builtin operator primitives are always inlined
           return llvm_void_value
         end
-        linkage = PRIVATE_LINKAGE
       end
 
       func = llvm_function(node.prototype, node.mangled_name)
-      LibC.LLVMSetLinkage(func, linkage)
+
+      if node.attribute?("primitive") || node.attribute?("inline")
+        LibC.LLVMAddAttributeAtIndex(func, LibC::LLVMAttributeFunctionIndex, attribute_ref("alwaysinline"))
+        LibC.LLVMSetLinkage(func, PRIVATE_LINKAGE)
+      else
+        LibC.LLVMSetLinkage(func, PUBLIC_LINKAGE)
+      end
 
       block = LibC.LLVMAppendBasicBlockInContext(@context, func, "entry")
       LibC.LLVMPositionBuilderAtEnd(@builder, block)
@@ -39,10 +47,6 @@ module Runic
       if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
         # STDERR.puts node
         raise "FATAL: function validation failed"
-      end
-
-      if fpm = function_pass_manager
-        LibC.LLVMRunFunctionPassManager(fpm, func)
       end
 
       func

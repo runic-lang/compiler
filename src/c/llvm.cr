@@ -26,6 +26,8 @@ lib LibC
   # FIXME: not generated automatically by c2cr (?)
   alias LLVMModuleFlagEntry = LLVMOpaqueModuleFlagEntry
   alias LLVMValueMetadataEntry = LLVMOpaqueValueMetadataEntry
+  LLVMAttributeReturnIndex = 0_u32
+  LLVMAttributeFunctionIndex = ~0_u32
 end
 
 require "./llvm/analysis"
@@ -33,7 +35,10 @@ require "./llvm/types"
 require "./llvm/core"
 require "./llvm/error_handling"
 require "./llvm/execution_engine"
+require "./llvm/initialization"
 require "./llvm/target"
 require "./llvm/target_machine"
+require "./llvm/transforms/ipo"
+require "./llvm/transforms/pass_manager_builder"
 require "./llvm/transforms/scalar"
 require "./llvm/transforms/utils"

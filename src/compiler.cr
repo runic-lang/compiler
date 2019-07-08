@@ -27,9 +27,11 @@ module Runic
       @program = Program.new
       @codegen = Codegen.new(
         debug: @debug,
+        opt_level: opt_level,
         optimize: !opt_level.code_gen_level_none?
       )
       LLVM.init(target_triple)
+      LLVM.init_global_pass_registry unless opt_level.code_gen_level_none?
       @codegen.target_triple = target_triple
       @codegen.data_layout = data_layout
     end
@@ -60,10 +62,14 @@ module Runic
     end
 
     def emit_llvm(output : String) : Nil
+      @codegen.verify
+      @codegen.optimize
       @codegen.emit_llvm(output)
     end
 
     def emit_object(output : String) : Nil
+      @codegen.verify
+      @codegen.optimize
       @codegen.emit_object(target_machine, output)
     end
 

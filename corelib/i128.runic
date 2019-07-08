@@ -37,6 +37,7 @@ struct i128
   def to_u64 : u64
   end
 
+  #[inline]
   def to_i128 : i128
     self
   end
@@ -53,14 +54,17 @@ struct i128
   def to_f64 : f64
   end
 
+  #[inline]
   def to_i : i32
     self.to_i32
   end
 
+  #[inline]
   def to_u : u32
     self.to_u32
   end
 
+  #[inline]
   def to_f : f64
     self.to_f64
   end
@@ -85,10 +89,12 @@ struct i128
   def %(other : i128) : i128
   end
 
+  #[inline]
   def /(other : i128) : float
     self.to_f / other.to_f
   end
 
+  #[inline]
   def abs : i128
     if self < 0_i128
       -self
@@ -97,6 +103,7 @@ struct i128
     end
   end
 
+  #[inline]
   def //(other : i128) : i128
     q = self.div(other)
     r = self % other
@@ -111,6 +118,7 @@ struct i128
     end
   end
 
+  #[inline]
   def %%(other : i128) : i128
     result = self % other
     if result < 0_i128
@@ -120,6 +128,7 @@ struct i128
     end
   end
 
+  #[inline]
   def **(exponent : i128) : i128
     if exponent < 0_i128
       1_i128 // (self ** -exponent)
@@ -165,6 +174,7 @@ struct i128
   def >=(other : i128) : bool
   end
 
+  #[inline]
   def <=>(other : i128) : i32
     if self < other
       -1
@@ -181,6 +191,7 @@ struct i128
   #def - : i128
   #end
 
+  ##[inline]
   #def + : i128
   #  self
   #end
@@ -189,6 +200,7 @@ struct i128
   def ~ : i128
   end
 
+  #[inline]
   def ! : bool
     false
   end

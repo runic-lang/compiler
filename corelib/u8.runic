@@ -8,6 +8,7 @@ struct u8
   def to_i8 : i8
   end
 
+  #[inline]
   def to_u8 : u8
     self
   end
@@ -54,14 +55,17 @@ struct u8
   def to_f64 : f64
   end
 
+  #[inline]
   def to_i : i32
     self.to_i32
   end
 
+  #[inline]
   def to_u : u32
     self.to_u32
   end
 
+  #[inline]
   def to_f : f64
     self.to_f64
   end
@@ -86,22 +90,27 @@ struct u8
   def %(other : u8) : u8
   end
 
+  #[inline]
   def /(other : u8) : float
     self.to_f / other.to_f
   end
 
+  #[inline]
   def abs : u8
     self
   end
 
+  #[inline]
   def //(other : u8) : u8
     self.div(other)
   end
 
+  #[inline]
   def %%(other : u8) : u8
     self % other
   end
 
+  #[inline]
   def **(exponent : u8) : u8
     x = self
     result = 1_u8
@@ -143,6 +152,7 @@ struct u8
   def >=(other : u8) : bool
   end
 
+  #[inline]
   def <=>(other : u8) : i32
     if self < other
       -1
@@ -159,6 +169,7 @@ struct u8
   def ~ : u8
   end
 
+  #[inline]
   def ! : bool
     false
   end
