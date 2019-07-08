@@ -412,22 +412,16 @@ module Runic
       if peek.operator?
         if OPERATORS::UNARY.includes?(peek.value)
           operator = consume
-          expression = parse_unary
-
-          # number sign: -1, +1.2
-          case expression
-          when AST::Integer, AST::Float
-            unless expression.sign
-              case operator.value
-              when "+", "-"
-                expression.sign = operator.value
-                return expression
-              end
-            end
+          if (operator.value == "-" || operator.value == "+") && (peek.integer? || peek.float?)
+            # number sign: -1, +1.2
+            number = parse_primary.as(AST::Number)
+            number.sign = operator.value
+            parse_call_expression(number)
+          else
+            # unary expression: -foo, ~123, ...
+            expression = parse_unary
+            AST::Unary.new(operator, expression)
           end
-
-          # unary expression: -foo, ~123, ...
-          AST::Unary.new(operator, expression)
         else
           raise SyntaxError.new("unexpected operator #{peek.value.inspect}", peek.location)
         end
@@ -436,9 +430,7 @@ module Runic
       end
     end
 
-    private def parse_call_expression
-      expression = parse_primary
-
+    private def parse_call_expression(expression = parse_primary)
       while peek.value == "."
         skip # .
         expression = parse_identifier_expression(expression)

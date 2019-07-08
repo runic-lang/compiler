@@ -75,6 +75,8 @@ module Runic
       assert_next :float, "8171.29732"
       assert_next :float, "2147.000001", "2_147.000_001" # i32
       assert_tokens ["123.456", ".", "789"], "123.456.789"
+      assert_tokens ["123.456", ".", "abs"], "123.456.abs"
+      assert_tokens ["123", ".", "abs"], "123.abs"
     end
 
     def test_exponential_float_literals

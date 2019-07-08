@@ -58,6 +58,7 @@ module Runic
 
     @char : Char?
     @previous_char : Char?
+    @previous_previous_char : Char?
 
     def initialize(@source : IO, file = "MEMORY", @interactive = false)
       @location = Location.new(file, line: 1, column: 1)
@@ -96,7 +97,7 @@ module Runic
       when '~', '!', '+', '-', '*', '/', '<', '>', '=', '%', '&', '|', '^'
         Token.new(:operator, consume_operator, location)
       when '['
-        if @previous_char == '#'
+        if prev_char == '#'
           Token.new(:attribute, consume_attribute.to_s, location)
         else
           Token.new(:mark, consume.to_s, location)
@@ -134,6 +135,16 @@ module Runic
       @char ||= @source.read_char
     end
 
+    private def prev_char
+      @previous_char
+    end
+
+    private def rewind_to_prev_char
+      @source.seek(-1, IO::Seek::Current)
+      @char = @previous_char
+      @previous_char = @previous_previous_char
+    end
+
     # Picks the previously peeked character and consumes it or directly consumes
     # a char from the source. Since the char is consumed the location is updated
     # to point to the next char.
@@ -150,6 +161,7 @@ module Runic
         @location.increment_column
       end
 
+      @previous_previous_char = @previous_char
       @previous_char = char
     end
 
@@ -243,12 +255,20 @@ module Runic
         end
 
         case char
-        when .number?
+        when .ascii_number?
           str << consume
         when '.'
           if found_dot == 0
             found_dot += 1
-            str << consume
+            skip # .
+
+            unless peek_char.try(&.ascii_number?)
+              # method call / field accessor
+              rewind_to_prev_char
+              break
+            end
+
+            str << '.'
           else
             # method call / field accessor (maybe)
             break

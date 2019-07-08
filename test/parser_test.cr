@@ -216,6 +216,11 @@ module Runic
       assert_expression AST::Call, "bar(1, 2, abc)"
       assert_expression AST::Call, "bar(1, foo(1), 2)"
 
+      assert_expression AST::Call, "2_i8.abs"
+      assert_expression AST::Call, "2.abs"
+      assert_expression AST::Call, "-2.abs"
+      assert_expression AST::Call, "-2.0.abs"
+
       node = parser("bar(1, 2)").next.as(AST::Call)
       assert_equal "bar", node.callee
       assert_equal 2, node.args.size
