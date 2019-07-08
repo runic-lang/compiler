@@ -104,7 +104,7 @@ module Runic
     end
 
     def test_binary_operators
-      %w(+ - * ** / // << >> % ^ & | || &&).each do |op|
+      %w(+ - * ** / // << >> % %% ^ & | || &&).each do |op|
         assert_tokens ["1", op, "2"], "1 #{op} 2"
         assert_tokens ["1", op, "2"], "1 #{op} 2"
         assert_tokens ["a", op, "b"], "a#{op}b"

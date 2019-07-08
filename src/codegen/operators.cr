@@ -33,8 +33,7 @@ module Runic
         when "*" then codegen_multiplication(node)
         when "**" then codegen_exponentiation(node)
         when "/" then codegen_float_division(node)
-        when "//" then codegen_floor_division(node)
-        when "%" then codegen_modulo(node)
+        when "%" then codegen_remainder(node)
 
         when "&" then codegen_bitwise_and(node)
         when "|" then codegen_bitwise_or(node)
@@ -118,21 +117,7 @@ module Runic
       end
     end
 
-    private def codegen_floor_division(node : AST::Binary)
-      codegen_operation(node) do |type, lhs, rhs|
-        case type
-        when .unsigned?
-          LibC.LLVMBuildUDiv(@builder, lhs, rhs, "")
-        when .integer?
-          LibC.LLVMBuildSDiv(@builder, lhs, rhs, "")
-        when .float?
-          result = LibC.LLVMBuildFDiv(@builder, lhs, rhs, "")
-          LibC.LLVMBuildCall(@builder, llvm_intrinsic("floor", type), [result], 1, "")
-        end
-      end
-    end
-
-    private def codegen_modulo(node : AST::Binary)
+    private def codegen_remainder(node : AST::Binary)
       codegen_operation(node) do |type, lhs, rhs|
         case type
         when .unsigned?

@@ -79,15 +79,27 @@ struct u16
   end
 
   #[primitive]
-  def //(other : u16) : u16
+  def div(other : u16) : u16
   end
 
   #[primitive]
   def %(other : u16) : u16
   end
 
-  def/(other : u16) : float
+  def /(other : u16) : float
     self.to_f / other.to_f
+  end
+
+  def abs : u16
+    self
+  end
+
+  def //(other : u16) : u16
+    self.div(other)
+  end
+
+  def %%(other : u16) : u16
+    self % other
   end
 
   def **(exponent : u16) : u16

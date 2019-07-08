@@ -97,7 +97,7 @@ module Runic
       end
 
       def test_types_math_binary_expressions
-        %w(+ - * ** // %).each do |op|
+        %w(+ - * ** // % %%).each do |op|
           %w(i u).each do |sign|
             %w(8 16 32 64 128).each do |bit|
               ty = "#{sign}#{bit}"

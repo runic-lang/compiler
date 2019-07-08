@@ -86,15 +86,54 @@ struct f32
   end
 
   #[primitive]
-  def //(other : f32) : f32
-  end
-
-  #[primitive]
   def %(other : f32) : f32
   end
 
   #[primitive]
   def **(other : f32) : f32
+  end
+
+  def abs : f32
+    if self < 0_f32
+      -self
+    else
+      self
+    end
+  end
+
+  #[primitive]
+  def floor : f32
+  end
+
+  #[primitive]
+  def ceil : f32
+  end
+
+  #[primitive]
+  def truncate : f32
+  end
+
+  def //(other : f32) : f32
+    q = (self / other).truncate()
+    r = self % other
+    if r < 0_f32
+      if other > 0_f32
+        q - 1_f32
+      else
+        q + 1_f32
+      end
+    else
+      q
+    end
+  end
+
+  def %%(other : f32) : f32
+    result = self % other
+    if result < 0_f32
+      result + other.abs()
+    else
+      result
+    end
   end
 
   #[primitive]

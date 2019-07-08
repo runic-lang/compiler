@@ -79,15 +79,27 @@ struct u8
   end
 
   #[primitive]
-  def //(other : u8) : u8
+  def div(other : u8) : u8
   end
 
   #[primitive]
   def %(other : u8) : u8
   end
 
-  def/(other : u8) : float
+  def /(other : u8) : float
     self.to_f / other.to_f
+  end
+
+  def abs : u8
+    self
+  end
+
+  def //(other : u8) : u8
+    self.div(other)
+  end
+
+  def %%(other : u8) : u8
+    self % other
   end
 
   def **(exponent : u8) : u8

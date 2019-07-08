@@ -28,8 +28,8 @@ class Runic::Codegen::OperatorsTest < Runic::CodegenTest
 
   def test_addition
     {% for b in %w(8 16 32 64 128) %}
-      assert_op 123_i128, "100_i128 + 23_i128"
-      assert_op 255_u128, "200_u128 + 55_u128"
+      assert_op 123_i{{b.id}}, "100_i{{b.id}} + 23_i{{b.id}}"
+      assert_op 255_u{{b.id}}, "200_u{{b.id}} + 55_u{{b.id}}"
     {% end %}
 
     assert_op 123_f32, "100_f32 + 23_f32"
@@ -110,15 +110,23 @@ class Runic::Codegen::OperatorsTest < Runic::CodegenTest
 
   def test_floor_division
     {% for b in %w(8 16 32 64 128) %}
-      assert_op 2_i{{b.id}}, "5_i{{b.id}} // 2_i{{b.id}}"
-      assert_op 2_u{{b.id}}, "5_u{{b.id}} // 2_u{{b.id}}"
+      assert_op UInt{{b.id}}.new(1), "7_u{{b.id}} // 4_u{{b.id}}"
+
+      assert_op Int{{b.id}}.new(1), "7_i{{b.id}} // 4_i{{b.id}}"
+      assert_op Int{{b.id}}.new(-1), "7_i{{b.id}} // -4_i{{b.id}}"
+      assert_op Int{{b.id}}.new(-2), "-7_i{{b.id}} // 4_i{{b.id}}"
+      assert_op Int{{b.id}}.new(2), "-7_i{{b.id}} // -4_i{{b.id}}"
     {% end %}
 
-    assert_op 2_f32, "5_f32 // 2_f32"
-    assert_op 2_f64, "5_f64 // 2_f64"
+    {% for b in %w(32 64) %}
+      assert_op 1_f{{b.id}}, "7_f{{b.id}} // 4_f{{b.id}}"
+      assert_op -1_f{{b.id}}, "7_f{{b.id}} // -4_f{{b.id}}"
+      assert_op -2_f{{b.id}}, "-7_f{{b.id}} // 4_f{{b.id}}"
+      assert_op 2_f{{b.id}}, "-7_f{{b.id}} // -4_f{{b.id}}"
+    {% end %}
   end
 
-  def test_modulo
+  def test_remainder
     {% for b in %w(8 16 32 64 128) %}
       assert_op 4_i{{b.id}}, "9_i{{b.id}} % 5_i{{b.id}}"
       assert_op 4_u{{b.id}}, "9_u{{b.id}} % 5_u{{b.id}}"
@@ -126,6 +134,36 @@ class Runic::Codegen::OperatorsTest < Runic::CodegenTest
 
     assert_op 3_f32, "9_f32 % 6_f32"
     assert_op 4_f64, "9_f64 % 5_f64"
+  end
+
+  def test_abs
+    {% for b in %w(8 16 32 64 128) %}
+      assert_op 9_i{{b.id}}, "9_i{{b.id}}.abs"
+      assert_op 9_i{{b.id}}, "-9_i{{b.id}}.abs"
+    {% end %}
+
+    assert_op 9_f32, "9_f32.abs"
+    assert_op 9_f32, "-9_f32.abs"
+    assert_op 9_f64, "9_f64.abs"
+    assert_op 9_f64, "-9_f64.abs"
+  end
+
+  def test_floor_remainder
+    {% for b in %w(8 16 32 64 128) %}
+      assert_op 3_u{{b.id}}, "7_u{{b.id}} %% 4_u{{b.id}}"
+
+      assert_op 3_i{{b.id}}, "7_i{{b.id}} %% 4_i{{b.id}}"
+      assert_op 1_i{{b.id}}, "-7_i{{b.id}} %% 4_i{{b.id}}"
+      assert_op 3_i{{b.id}}, "7_i{{b.id}} %% -4_i{{b.id}}"
+      assert_op 1_i{{b.id}}, "-7_i{{b.id}} %% -4_i{{b.id}}"
+    {% end %}
+
+    {% for b in %w(32 64) %}
+      assert_op 3_f{{b.id}}, "7_f{{b.id}} %% 4_f{{b.id}}"
+      assert_op 1_f{{b.id}}, "-7_f{{b.id}} %% 4_f{{b.id}}"
+      assert_op 3_f{{b.id}}, "7_f{{b.id}} %% -4_f{{b.id}}"
+      assert_op 1_f{{b.id}}, "-7_f{{b.id}} %% -4_f{{b.id}}"
+    {% end %}
   end
 
   def test_exponentiation

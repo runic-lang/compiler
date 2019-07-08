@@ -40,14 +40,22 @@ module Runic
 
     private def declare_llvm_intrinsic(name : String) : LibC::LLVMValueRef
       case name
-      when "llvm.floor.f32"
+      when "llvm.floor.f32",
+           "llvm.ceil.f32",
+           "llvm.trunc.f32"
         declare_llvm_intrinsic_function(name, "f32", "f32")
-      when "llvm.floor.f64"
+
+      when "llvm.floor.f64",
+           "llvm.ceil.f64",
+           "llvm.trunc.f64"
         declare_llvm_intrinsic_function(name, "f64", "f64")
+
       when "llvm.pow.f32"
         declare_llvm_intrinsic_function(name, "f32", "f32", "f32")
+
       when "llvm.pow.f64"
         declare_llvm_intrinsic_function(name, "f64", "f64", "f64")
+
       else
         raise CodegenError.new("intrinsic '#{name}': no such definition")
       end
@@ -119,6 +127,38 @@ module Runic
           LibC.LLVMBuildFPTrunc(@builder, value, llvm_type(dst_type), "")
         end
       end
+    end
+
+    protected def builtin_div(lhs_name, rhs_name, type)
+      lhs = LibC.LLVMBuildLoad(@builder, @scope.get(lhs_name), lhs_name)
+      rhs = LibC.LLVMBuildLoad(@builder, @scope.get(rhs_name), rhs_name)
+
+      case type
+      when .unsigned?
+        LibC.LLVMBuildUDiv(@builder, lhs, rhs, "")
+      when .integer?
+        LibC.LLVMBuildSDiv(@builder, lhs, rhs, "")
+      when .float?
+        LibC.LLVMBuildFDiv(@builder, lhs, rhs, "")
+      end
+    end
+
+    protected def builtin_floor(variable_name, type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+      func = llvm_intrinsic("floor", type)
+      LibC.LLVMBuildCall(@builder, func, [value], 1, "")
+    end
+
+    protected def builtin_ceil(variable_name, type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+      func = llvm_intrinsic("ceil", type)
+      LibC.LLVMBuildCall(@builder, func, [value], 1, "")
+    end
+
+    protected def builtin_truncate(variable_name, type)
+      value = LibC.LLVMBuildLoad(@builder, @scope.get(variable_name), variable_name)
+      func = llvm_intrinsic("trunc", type)
+      LibC.LLVMBuildCall(@builder, func, [value], 1, "")
     end
   end
 end

@@ -110,10 +110,24 @@ module Runic
         case node.original_name
         when "to_u8", "to_u16", "to_u32", "to_u64", "to_u128"
           builtin_cast_to_unsigned("self", node.args[0].type, node.type)
+
         when "to_i8", "to_i16", "to_i32", "to_i64", "to_i128"
           builtin_cast_to_signed("self", node.args[0].type, node.type)
+
         when "to_f32", "to_f64"
           builtin_cast_to_float("self", node.args[0].type, node.type)
+
+        when "div"
+          builtin_div("self", "other", node.type)
+
+        when "floor"
+          builtin_floor("self", node.type)
+
+        when "ceil"
+          builtin_ceil("self", node.type)
+
+        when "truncate"
+          builtin_truncate("self", node.type)
         end
       raise "unknown primitive function '#{node.name}'" unless result
       result

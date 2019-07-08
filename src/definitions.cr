@@ -10,9 +10,9 @@ module Runic
   module OPERATORS
     # TODO: typeof and sizeof are unary operators
     UNARY = %w(~ ! + -)
-    ASSIGNMENT = %w(= += -= *= **= /= //= %= &= &&= |= ||= ^= <<= >>=)
+    ASSIGNMENT = %w(= += -= *= **= /= //= %= %%= &= &&= |= ||= ^= <<= >>=)
     LOGICAL = %w(== != <=> < <= > >= || &&)
-    BINARY = %w(+ - * ** / // % & | ^ << >>)
+    BINARY = %w(+ - * ** / // % %% & | ^ << >>)
     ALL = (UNARY + ASSIGNMENT + LOGICAL + BINARY).uniq
 
     # Returns the precedence score for an operator. A low value means a lower
@@ -27,6 +27,7 @@ module Runic
       when "/="  then 5
       when "//=" then 5
       when "%="  then 5
+      when "%%=" then 5
       when "&="  then 5
       when "&&=" then 5
       when "|="  then 5
@@ -61,6 +62,7 @@ module Runic
       when "/"   then 60
       when "//"  then 60
       when "%"   then 60
+      when "%%"  then 60
 
       when "**"  then 70
 

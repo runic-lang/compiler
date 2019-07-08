@@ -78,15 +78,46 @@ struct i128
   end
 
   #[primitive]
-  def //(other : i128) : i128
+  def div(other : i128) : i128
   end
 
   #[primitive]
   def %(other : i128) : i128
   end
 
-  def/(other : i128) : float
+  def /(other : i128) : float
     self.to_f / other.to_f
+  end
+
+  def abs : i128
+    if self < 0_i128
+      -self
+    else
+      self
+    end
+  end
+
+  def //(other : i128) : i128
+    q = self.div(other)
+    r = self % other
+    if r < 0_i128
+      if other > 0_i128
+        q - 1_i128
+      else
+        q + 1_i128
+      end
+    else
+      q
+    end
+  end
+
+  def %%(other : i128) : i128
+    result = self % other
+    if result < 0_i128
+      result + other.abs()
+    else
+      result
+    end
   end
 
   def **(exponent : i128) : i128

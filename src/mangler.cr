@@ -59,6 +59,7 @@ module Runic
 
         # extended operators
         when "//"  then str << "v2dv"
+        when "%%"  then str << "v2rm"
         when "**"  then str << "v2pw"
 
         else
