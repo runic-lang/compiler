@@ -52,6 +52,7 @@ module Runic
       abstract def with_lexical_block(lexical_block, &block)
       abstract def create_subprogram(node : AST::Function, func : LibC::LLVMValueRef)
       abstract def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
+      abstract def auto_variable(variable : AST::Variable, alloca : LibC::LLVMValueRef)
       abstract def emit_location(node : AST::Node)
 
       class NULL < Debug
@@ -69,6 +70,9 @@ module Runic
         end
 
         def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
+        end
+
+        def auto_variable(variable : AST::Variable, alloca : LibC::LLVMValueRef)
         end
 
         def emit_location(node : AST::Node)
@@ -183,20 +187,43 @@ module Runic
         end
 
         def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
+          insert_declare_at_end(alloca) do
+            LibC.LLVMDIBuilderCreateParameterVariable(
+              self,
+              @lexical_blocks.last? || compile_unit,
+              arg.name,
+              arg.name.bytesize,
+              arg_no,
+              file,
+              arg.location.line,
+              di_type(arg),
+              1, # AlwaysPreserve
+              LibC::LLVMDIFlags::DIFlagZero
+            )
+          end
+        end
+
+        def auto_variable(variable : AST::Variable, alloca : LibC::LLVMValueRef)
+          insert_declare_at_end(alloca) do
+            LibC.LLVMDIBuilderCreateAutoVariable(
+              self,
+              @lexical_blocks.last? || compile_unit,
+              variable.name,
+              variable.name.bytesize,
+              file,
+              variable.location.line,
+              di_type(variable),
+              1, # AlwaysPreserve
+              LibC::LLVMDIFlags::DIFlagZero,
+              0 # AlignInBits
+            )
+          end
+        end
+
+        protected def insert_declare_at_end(alloca : LibC::LLVMValueRef)
           return unless @level.full?
 
-          di_local_variable = LibC.LLVMDIBuilderCreateParameterVariable(
-            self,
-            @lexical_blocks.last? || compile_unit,
-            arg.name,
-            arg.name.bytesize,
-            arg_no,
-            file,
-            arg.location.line,
-            di_type(arg),
-            1, # AlwaysPreserve
-            LibC::LLVMDIFlags::DIFlagZero
-          )
+          di_local_variable = yield
           location = LibC.LLVMGetCurrentDebugLocation(@builder)
 
           LibC.LLVMDIBuilderInsertDeclareAtEnd(

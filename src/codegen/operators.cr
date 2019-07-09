@@ -5,16 +5,23 @@ module Runic
   class Codegen
     def codegen(node : AST::Assignment) : LibC::LLVMValueRef
       rhs = codegen(node.rhs)
+
       @debug.emit_location(node)
 
       case node.operator
       when "="
         case node.lhs
         when AST::Variable
-          # store value on the stack
-          lhse = node.lhs.as(AST::Variable)
-          alloca = @scope.fetch(lhse.name) { build_alloca(lhse) }
+          # get or create alloca (stack pointer)
+          variable = node.lhs.as(AST::Variable)
+          alloca = @scope.fetch(variable.name) { build_alloca(variable) }
+
+          # create debug descriptor
+          @debug.auto_variable(variable, alloca)
+
+          # store value (on stack)
           LibC.LLVMBuildStore(@builder, rhs, alloca)
+
           return rhs
         end
         raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
