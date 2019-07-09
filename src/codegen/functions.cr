@@ -45,7 +45,7 @@ module Runic
       @debug.flush
 
       if LibC.LLVMVerifyFunction(func, LibC::LLVMVerifierFailureAction::PrintMessage) == 1
-        # STDERR.puts node
+        STDERR.puts emit_llvm(func)
         raise "FATAL: function validation failed"
       end
 
