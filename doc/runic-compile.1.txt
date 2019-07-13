@@ -10,7 +10,8 @@ SYNOPSYS
 [verse]
 *runic c[ompile]* [-O<n>] [--emit=<object|llvm>] [-g] [--debug] [--no-debug]
               [--target=<triple>] [--cpu=<name>] [--features=<+opt+opt>]
-              [-o <file>] [--output=<file>] [--corelib=<no|path>] <file.runic>
+              [-o <file>] [--output=<file>] [--no-corelib] [--corelib=<path>]
+              <file.runic>
 
 DESCRIPTION
 -----------
@@ -57,12 +58,12 @@ OPTIONS
         enable aggressive optimizations for the longest compilation time and
         maybe generate larger code (for faster execution).
 
---corelib=<no|path>::
-    _no_;;
-        disable automatic loading of the core library by setting.
-    _<path>_;;
-        load an alternative core library by specifying it's path (relative or
-        absolute); for example: `--corelib=./src/arduino.runic`.
+--no-corelib::
+    Don't load the corelib.
+
+--corelib=<path>::
+    Load an alternative core library by specifying it's path (relative or
+    absolute); for example: `--corelib=./src/arduino.runic`.
 
 Cross Compilation Options:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

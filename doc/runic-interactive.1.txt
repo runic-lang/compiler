@@ -8,7 +8,8 @@ runic-interactive - interactive session.
 SYNOPSYS
 --------
 [verse]
-*runic i[nteractive]* [--debug] [--no-optimize] [--help]
+*runic i[nteractive]* [--no-corelib] [--corelib=<path>] [--debug]
+              [--no-optimize] [--help]
 
 DESCRIPTION
 -----------
@@ -18,6 +19,13 @@ away.
 
 OPTIONS
 -------
+
+--no-corelib::
+    Don't load the corelib.
+
+--corelib=<path>::
+    Load an alternative core library by specifying it's path (relative or
+    absolute); for example: `--corelib=./src/arduino.runic`.
 
 --debug::
     Print the generated LLVM IR whenever a function is generated.

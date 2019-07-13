@@ -1,35 +1,42 @@
+require "./cli"
+require "./config"
 require "./parser"
 require "./semantic"
-require "./version"
 
 module Runic
   module Command
     struct AST
-      {% for option in %w(semantic location) %}
-        def self.{{option.id}}
-          @@{{option.id}} || false
-        end
-
-        def self.{{option.id}}=(@@{{option.id}} : Bool)
-        end
-      {% end %}
-
       @semantic : Bool
       @location : Bool
 
-      def initialize(source : IO, file : String, @semantic = AST.semantic, @location = AST.location)
+      def initialize(source : IO, @file : String, @semantic : Bool, @location : Bool, corelib : String?)
         @nested = 0
-        lexer = Lexer.new(source, file)
+        lexer = Lexer.new(source, @file)
         @program = Program.new
         @parser = Parser.new(lexer, top_level_expressions: true)
+
+        if @semantic && corelib
+          @program.require(corelib)
+        end
       end
 
       def run
         while node = @parser.next
+          if @semantic && node.is_a?(Runic::AST::Require)
+            @program.require(node)
+          end
           @program.register(node)
         end
-        Semantic.analyze(@program) if @semantic
-        @program.each { |node| to_h(node) }
+
+        if @semantic
+          Semantic.analyze(@program)
+        end
+
+        @program.each do |node|
+          if node.location.file == @file
+            to_h(node)
+          end
+        end
       end
 
       def to_h(node : Runic::AST::Integer)
@@ -289,46 +296,50 @@ module Runic
 end
 
 filenames = [] of String
+semantic = false
+location = false
+corelib = Runic.corelib
 
-ARGV.each_with_index do |arg|
+cli = Runic::CLI.new
+cli.parse do |arg|
   case arg
+  when "--semantic"
+    semantic = true
+  when "--location"
+    location = true
+  when "--corelib"
+    corelib = cli.argument_value("--corelib")
+  when "--no-corelib"
+    corelib = nil
   when "--version", "version"
-    puts "runic-ast version #{Runic.version_string}"
-    exit 0
-  when "--help", "help"
+    cli.report_version("runic-ast")
+  when "--help"
     STDERR.puts "<todo: ast command help message>"
     exit 0
-  when "--semantic"
-    Runic::Command::AST.semantic = true
-  when "--location"
-    Runic::Command::AST.location = true
   else
-    if arg.starts_with?('-')
-      abort "Unknown option: #{arg}"
-    else
-      filenames << arg
-    end
+    filenames << cli.filename
   end
 end
 
 case filenames.size
 when 0
+  ast = Runic::Command::AST.new(STDIN, "<stdin>", semantic, location, corelib)
   STDERR.puts "reading from stdin..."
-  Runic::Command::AST.new(STDIN, "<stdin>").run
+  ast.run
 when 1
   filename = filenames.first
 
   if File.exists?(filename)
     File.open(filename, "r") do |io|
-      Runic::Command::AST.new(io, filename).run
+      Runic::Command::AST.new(io, filename, semantic, location, corelib).run
     rescue error : Runic::SyntaxError
       error.pretty_report(STDERR)
     rescue error : Runic::SemanticError
       error.pretty_report(STDERR)
     end
   else
-    abort "fatal : no such file or directory '#{filename}'."
+    cli.fatal "no such file or directory '#{filename}'."
   end
 else
-  abort "fatal : you may only specify one file to parse."
+  cli.fatal "you may only specify one file to parse."
 end

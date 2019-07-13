@@ -1,5 +1,5 @@
+require "./cli"
 require "./lexer"
-require "./version"
 
 module Runic
   module Command
@@ -21,20 +21,16 @@ end
 
 filenames = [] of String
 
-ARGV.each_with_index do |arg|
+cli = Runic::CLI.new
+cli.parse do |arg|
   case arg
   when "--version", "version"
-    puts "runic-lex version #{Runic.version_string}"
-    exit 0
+    cli.report_version("runic-lex")
   when "--help", "help"
     STDERR.puts "<todo: lex command help message>"
     exit 0
   else
-    if arg.starts_with?('-')
-      abort "Unknown option: #{arg}"
-    else
-      filenames << arg
-    end
+    filenames << cli.filename
   end
 end
 
@@ -50,8 +46,8 @@ when 1
       Runic::Command::Lex.new(io, filename).run
     end
   else
-    abort "fatal : no such file or directory '#{filename}'"
+    cli.fatal "no such file or directory '#{filename}'"
   end
 else
-  abort "fatal : you may only specify one file to parse."
+  cli.fatal "you may only specify one file to parse."
 end

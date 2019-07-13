@@ -1,3 +1,4 @@
+require "./cli"
 require "./config"
 require "./documentation"
 require "./documentation/html_generator"
@@ -8,31 +9,19 @@ output = "doc"
 sources = [] of String
 format = "html"
 
-macro argument_value(var, name)
-  if idx = ARGV[i].index('=')
-    {{var}} = ARGV[i][(idx + 1)..-1]
-  elsif value = ARGV[i += 1]?
-    {{var}} = value unless value.starts_with?('-')
-  else
-    abort "fatal : missing value for {{name.id}}"
-  end
-end
-
-i = -1
-while arg = ARGV[i += 1]?
+cli = Runic::CLI.new
+cli.parse do |arg|
   case arg
   when "-o", .starts_with?("--output")
-    argument_value(output, "--output")
+    output = cli.argument_value("--output")
   when "-f", .starts_with?("--format")
-    argument_value(format, "--format")
+    format = cli.argument_value("--format")
+  when "--version"
+    cli.report_version("runic-documentation")
   when "--help"
     Runic.open_manpage("documentation")
   else
-    if arg.starts_with?('-')
-      abort "Unknown option: #{arg}"
-    else
-      sources << arg
-    end
+    sources << cli.filename
   end
 end
 
@@ -48,7 +37,7 @@ when "yaml"
 when "json"
   generator_class = Runic::Documentation::JSONGenerator
 else
-  abort "fatal : unsupported format '#{format}'"
+  cli.fatal "unsupported format '#{format}'"
 end
 
 begin

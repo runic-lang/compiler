@@ -1,3 +1,4 @@
+require "./cli"
 require "./compiler"
 require "./config"
 
@@ -11,27 +12,17 @@ debug = Runic::DebugLevel::Default
 emit = "object"
 corelib = Runic.corelib
 
-macro argument_value(var, name)
-  if idx = ARGV[i].index('=')
-    {{var}} = ARGV[i][(idx + 1)..-1]
-  elsif value = ARGV[i += 1]?
-    {{var}} = value unless value.starts_with?('-')
-  else
-    abort "fatal : missing value for {{name.id}}"
-  end
-end
-
-i = -1
-while arg = ARGV[i += 1]?
+cli = Runic::CLI.new
+cli.parse do |arg|
   case arg
   when "-o", "--output"
-    argument_value(output, "--output")
+    output = cli.argument_value("--output")
   when .starts_with?("--target")
-    argument_value(target_triple, "--target")
+    target_triple = cli.argument_value("--target")
   when .starts_with?("--cpu")
-    argument_value(cpu, "--cpu")
+    cpu = cli.argument_value("--cpu")
   when .starts_with?("--features")
-    argument_value(features, "--features")
+    features = cli.argument_value("--features")
   when "-O0"
     opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelNone
   when "-O1"
@@ -45,24 +36,23 @@ while arg = ARGV[i += 1]?
   when "--no-debug"
     debug = Runic::DebugLevel::None
   when .starts_with?("--emit")
-    argument_value(emit, "--emit")
+    emit = cli.argument_value("--emit")
   when .starts_with?("--corelib")
-    argument_value(corelib, "--corelib")
-    corelib = nil if corelib = "none"
+    corelib = cli.argument_value("--corelib")
+  when .starts_with?("--no-corelib")
+    corelib = nil
+  when "--version", "version"
+    cli.report_version("runic-compile")
   when "--help"
     Runic.open_manpage("compile")
   else
-    if arg.starts_with?('-')
-      abort "Unknown option: #{arg}"
-    else
-      filenames << arg
-    end
+    filenames << cli.filename
   end
 end
 
 begin
   if filenames.empty?
-    abort "fatal : no input file."
+    cli.fatal "no input file."
   end
 
   filename = filenames.first
@@ -84,7 +74,7 @@ begin
     if File.exists?(filename)
       compiler.parse(filename)
     else
-      abort "fatal : no such file or directory '#{filename}'."
+      cli.fatal "no such file or directory '#{filename}'."
     end
   end
 

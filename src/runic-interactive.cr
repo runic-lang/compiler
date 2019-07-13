@@ -1,3 +1,4 @@
+require "./cli"
 require "./lexer"
 require "./parser"
 require "./semantic"
@@ -7,7 +8,7 @@ require "./config"
 module Runic
   module Command
     class Interactive
-      def initialize(@debug = false, optimize = true)
+      def initialize(corelib : String?, @debug = false, optimize = true)
         LLVM.init_native
         LLVM.init_global_pass_registry if optimize
 
@@ -16,6 +17,12 @@ module Runic
         @program = Program.new
         @semantic = Semantic.new(@program)
         @generator = Codegen.new(debug: DebugLevel::None, optimize: optimize)
+
+        if corelib
+          @program.require(corelib)
+          @semantic.visit(@program)
+          @program.each { |node| @generator.codegen(node) }
+        end
       end
 
       def main_loop : Nil
@@ -68,32 +75,13 @@ module Runic
       end
 
       def handle_require : Nil
-        ret = self.require(@parser.next.as(AST::Require), Dir.current)
-        print "=> "
-        puts ret.inspect
-      end
-
-      protected def require(node : AST::Require, relative_path : String? = nil) : Bool
-        path = @program.resolve_require(node, relative_path)
-        return false unless path
-
-        File.open(path, "r") do |file|
-          lexer = Lexer.new(file, path, interactive: false)
-          parser = Parser.new(lexer, top_level_expressions: false)
-
-          while node = parser.next
-            case node
-            when AST::Require
-              self.require(node)
-            else
-              @semantic.visit(node)
-              @program.register(node)
-              debug @generator.codegen(node)
-            end
-          end
+        if @program.require(@parser.next.as(AST::Require), Dir.current)
+          @semantic.visit(@program)
+          @program.each { |node| @generator.codegen(node) }
+          puts "=> true"
+        else
+          puts "=> false"
         end
-
-        true
       end
 
       def handle_extern : Nil
@@ -170,19 +158,26 @@ end
 
 debug = false
 optimize = true
+corelib = Runic.corelib
 
-i = -1
-while arg = ARGV[i += 1]?
+cli = Runic::CLI.new
+cli.parse do |arg|
   case arg
+  when "--corelib"
+    corelib = cli.argument_value("--corelib")
+  when "--no-corelib"
+    corelib = nil
   when "--debug"
     debug = true
   when "--no-optimize"
     optimize = false
+  when "--version"
+    cli.report_version("runic-interactive")
   when "--help"
     Runic.open_manpage("interactive")
   else
-    abort "Unknown option: #{arg}"
+    cli.unknown_option!
   end
 end
 
-Runic::Command::Interactive.new(debug, optimize).main_loop
+Runic::Command::Interactive.new(corelib, debug, optimize).main_loop

@@ -1,5 +1,5 @@
+require "./cli"
 require "./config"
-require "./version"
 
 module Runic
   def self.process_options(args)
@@ -8,16 +8,18 @@ module Runic
       exit 0
     end
 
-    args.each_with_index do |arg, index|
+    cli = Runic::CLI.new
+
+    cli.parse do |arg|
       case arg
       when "--version", "version"
-        puts "runic version #{version_string}"
+        cli.report_version("runic")
         exit 0
       when "--help"
         print_help_message
         exit 0
       when "help"
-        if command = args[index + 1]?
+        if command = cli.consume?
           open_manpage(aliased(command))
         else
           print_help_message
@@ -25,9 +27,9 @@ module Runic
         end
       else
         if arg.starts_with?('-')
-          abort "Unknown option: #{arg}"
+          cli.unknown_option!
         else
-          return {aliased(arg), args[(index + 1)..-1]}
+          return {aliased(arg), cli.remaining_arguments}
         end
       end
     end

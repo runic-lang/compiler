@@ -57,6 +57,34 @@ module Runic
       path
     end
 
+    def require(node : AST::Require, relative_path : String? = nil) : Bool
+      if path = resolve_require(node, relative_path)
+        self.require(path)
+      else
+        false
+      end
+    end
+
+    def require(path : String) : Bool
+      File.open(path, "r") do |file|
+        lexer = Lexer.new(file, path, interactive: false)
+        parser = Parser.new(lexer, top_level_expressions: false)
+
+        while node = parser.next
+          case node
+          when AST::Require
+            self.require(node)
+          else
+            self.register(node)
+          end
+        end
+      end
+
+      true
+    rescue Errno
+      false
+    end
+
     private def search_require_path(name : String) : String?
       REQUIRE_PATH.each do |require_path|
         path = File.join(require_path, name)
