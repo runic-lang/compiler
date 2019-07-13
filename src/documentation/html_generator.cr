@@ -110,7 +110,7 @@ module Runic
                 # html.element("h2", "Functions", id: "#functions")
 
                 node.methods.each do |fn|
-                  html.element("article", id: "function-#{fn.name}") do
+                  html.element("article", id: "function-#{fn.original_name}") do
                     html.element("h3") do
                       html.element("code") { signature(html, fn) }
                       location(html, fn)
@@ -147,7 +147,7 @@ module Runic
 
       private def signature(html : HTML::Builder, fn : AST::Function)
         html.text "def "
-        html.element("a", fn.name, href: "#function-#{fn.name}")
+        html.element("a", fn.original_name, href: "#function-#{fn.original_name}")
 
         args = fn.args
         if args.first.try(&.name) == "self"
@@ -273,7 +273,7 @@ module Runic
 
       private def sidebar_entry(html : HTML::Builder, fn : AST::Function)
         html.element("li") do
-          html.element("a", fn.name, href: "#function-#{fn.name}")
+          html.element("a", fn.original_name, href: "#function-#{fn.original_name}")
         end
       end
     end

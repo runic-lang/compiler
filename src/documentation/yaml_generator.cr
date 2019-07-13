@@ -54,7 +54,7 @@ module Runic
       private def generate(yaml : YAML::Builder, fn : AST::Function)
         yaml.mapping do
           yaml.scalar "name"
-          yaml.scalar fn.name
+          yaml.scalar fn.original_name
 
           sequence(yaml, "attributes", fn.attributes) do |name|
             yaml.scalar name

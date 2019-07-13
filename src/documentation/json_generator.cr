@@ -52,7 +52,7 @@ module Runic
       private def generate(json : JSON::Builder, fn : AST::Function)
         json.object do
           json.scalar "name"
-          json.scalar fn.name
+          json.scalar fn.original_name
 
           array(json, "arguments", fn.args) do |arg, index|
             next if index == 0 && arg.name == "self"
