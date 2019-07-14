@@ -551,17 +551,28 @@ module Runic
       AST::Call.new(receiver, identifier, args, kwargs)
     end
 
-    private def parse_if_expression
-      location = consume.location # if
+    private def parse_if_expression(is_elsif = false)
+      location = consume.location # if, elsif
 
       condition = parse_expression
-      body = parse_body("end", "else")
+      body = parse_body("elsif", "else", "end")
 
-      if peek.value == "else"
-        skip # else
-        alternative = parse_body("end")
+      alternative =
+        case peek.value
+        when "elsif"
+          nodes = [] of AST::Node
+          nodes << parse_if_expression(is_elsif: true)
+          AST::Body.new(nodes, peek.location)
+        when "else"
+          skip # else
+          parse_body("end")
+        else
+          # end
+        end
+
+      unless is_elsif
+        skip # end
       end
-      skip # end
 
       AST::If.new(condition, body, alternative, location)
     end

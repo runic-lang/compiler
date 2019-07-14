@@ -271,7 +271,7 @@ module Runic
       assert_match "duplicated named argument", ex.message
     end
 
-    def test_ifs
+    def test_if
       node = assert_expression AST::If, "if test; end"
       assert_empty node.body
       assert_nil node.alternative
@@ -313,6 +313,47 @@ module Runic
       RUNIC
       assert_equal 1, node.body.size
       assert AST::Call === node.body[0]
+    end
+
+    def test_elsif
+      node = assert_expression AST::If, <<-RUNIC
+      if a > 0
+        1
+      elsif a < 0
+        -1
+      elsif a == 0
+        0
+      else
+        unreachable()
+      end
+      RUNIC
+
+      # if: a > 0
+      #   body: 1
+      #   else:
+      #     if: a < 0
+      #       body: 1
+      #       else:
+      #         if: a == 0
+      #           body: 1
+      #           else: unreachable()
+      3.times do |i|
+        node = node.as(AST::If)
+        assert AST::Binary === node.condition
+        assert AST::Literal === node.body.first
+        assert alternate = node.alternative
+
+        if alternate
+          assert_equal 1, alternate.expressions.size
+          node = alternate.expressions.first
+
+          if i < 2
+            assert AST::If === node
+          else
+            assert AST::Call === node
+          end
+        end
+      end
     end
 
     def test_unless
