@@ -97,7 +97,7 @@ struct i16
 
   #[inline]
   def abs : i16
-    if self < 0_i16
+    if self < 0
       -self
     else
       self
@@ -108,11 +108,11 @@ struct i16
   def //(other : i16) : i16
     q = self.div(other)
     r = self % other
-    if r < 0_i16
-      if other > 0_i16
-        q - 1_i16
+    if r < 0
+      if other > 0
+        q - 1
       else
-        q + 1_i16
+        q + 1
       end
     else
       q
@@ -122,7 +122,7 @@ struct i16
   #[inline]
   def %%(other : i16) : i16
     result = self % other
-    if result < 0_i16
+    if result < 0
       result + other.abs()
     else
       result
@@ -131,20 +131,20 @@ struct i16
 
   #[inline]
   def **(exponent : i16) : i16
-    if exponent < 0_i16
+    if exponent < 0
       1_i16 // (self ** -exponent)
     else
       x = self
       result = 1_i16
 
-      until exponent == 0_i16
-        unless (exponent & 1_i16) == 0_i16
+      until exponent == 0
+        unless (exponent & 1) == 0
           result *= x
-          exponent -= 1_i16
+          exponent -= 1
         end
 
         x *= x
-        exponent >>= 1_i16
+        exponent >>= 1
       end
 
       result

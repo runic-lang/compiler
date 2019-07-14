@@ -115,14 +115,14 @@ struct u8
     x = self
     result = 1_u8
 
-    until exponent == 0_u8
-      unless (exponent & 1_u8) == 0_u8
+    until exponent == 0
+      unless (exponent & 1) == 0
         result *= x
-        exponent -= 1_u8
+        exponent -= 1
       end
 
       x *= x
-      exponent >>= 1_u8
+      exponent >>= 1
     end
 
     result

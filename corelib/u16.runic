@@ -115,14 +115,14 @@ struct u16
     x = self
     result = 1_u16
 
-    until exponent == 0_u16
-      unless (exponent & 1_u16) == 0_u16
+    until exponent == 0
+      unless (exponent & 1) == 0
         result *= x
-        exponent -= 1_u16
+        exponent -= 1
       end
 
       x *= x
-      exponent >>= 1_u16
+      exponent >>= 1
     end
 
     result

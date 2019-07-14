@@ -114,14 +114,14 @@ struct u128
     x = self
     result = 1_u128
 
-    until exponent == 0_u128
-      unless (exponent & 1_u128) == 0_u128
+    until exponent == 0
+      unless (exponent & 1) == 0
         result *= x
-        exponent -= 1_u128
+        exponent -= 1
       end
 
       x *= x
-      exponent >>= 1_u128
+      exponent >>= 1
     end
 
     result

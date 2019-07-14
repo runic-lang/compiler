@@ -102,7 +102,7 @@ struct f32
 
   #[inline]
   def abs : f32
-    if self < 0_f32
+    if self < 0
       -self
     else
       self
@@ -125,11 +125,11 @@ struct f32
   def //(other : f32) : f32
     q = (self / other).truncate()
     r = self % other
-    if r < 0_f32
-      if other > 0_f32
-        q - 1_f32
+    if r < 0
+      if other > 0
+        q - 1
       else
-        q + 1_f32
+        q + 1
       end
     else
       q
@@ -139,7 +139,7 @@ struct f32
   #[inline]
   def %%(other : f32) : f32
     result = self % other
-    if result < 0_f32
+    if result < 0
       result + other.abs()
     else
       result

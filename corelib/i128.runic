@@ -96,7 +96,7 @@ struct i128
 
   #[inline]
   def abs : i128
-    if self < 0_i128
+    if self < 0
       -self
     else
       self
@@ -107,11 +107,11 @@ struct i128
   def //(other : i128) : i128
     q = self.div(other)
     r = self % other
-    if r < 0_i128
-      if other > 0_i128
-        q - 1_i128
+    if r < 0
+      if other > 0
+        q - 1
       else
-        q + 1_i128
+        q + 1
       end
     else
       q
@@ -121,7 +121,7 @@ struct i128
   #[inline]
   def %%(other : i128) : i128
     result = self % other
-    if result < 0_i128
+    if result < 0
       result + other.abs()
     else
       result
@@ -130,20 +130,20 @@ struct i128
 
   #[inline]
   def **(exponent : i128) : i128
-    if exponent < 0_i128
+    if exponent < 0
       1_i128 // (self ** -exponent)
     else
       x = self
       result = 1_i128
 
-      until exponent == 0_i128
-        unless (exponent & 1_i128) == 0_i128
+      until exponent == 0
+        unless (exponent & 1) == 0
           result *= x
-          exponent -= 1_i128
+          exponent -= 1
         end
 
         x *= x
-        exponent >>= 1_i128
+        exponent >>= 1
       end
 
       result
