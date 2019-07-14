@@ -148,9 +148,11 @@ module Runic
           node.body.each { |n| to_h(n) }
         end
 
-        print "  alternate:"
-        nested do
-          node.body.each { |n| to_h(n) }
+        if alternative = node.alternative
+          print "  else:"
+          nested do
+            alternative.each { |n| to_h(n) }
+          end
         end
       end
 
