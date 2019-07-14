@@ -117,6 +117,16 @@ module Runic
         assert_type "f32", visit("1_f32 / 2_f32")
       end
 
+      def test_casts_untyped_literal_in_binary_expressions
+        assert_type "i8", visit("1_i8 + 2")
+        assert_type "i16", visit("2 + 2_i16")
+        assert_type "f64", visit("1_f64 + 2")
+        assert_type "f32", visit("1 + 2_f32")
+        assert_type "u64", visit("102901920109_u64 + 2")
+        assert_raises(SemanticError) { visit("1_u8 + 256") }
+        assert_raises(SemanticError) { visit("1_i16 + 32768") }
+      end
+
       def test_types_bitwise_binary_expressions
         # bitwise operators
         %w(& | ^ << >>).each do |op|

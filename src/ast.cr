@@ -23,6 +23,10 @@ module Runic
       def initialize(@location)
       end
 
+      def typed?
+        @type
+      end
+
       def type? : Type?
         if type = @type
           type
@@ -378,7 +382,7 @@ module Runic
 
     class Binary < Node
       property operator : String
-      getter lhs : Node
+      property lhs : Node
       property rhs : Node
       property! method : Function
 

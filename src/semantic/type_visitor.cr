@@ -137,9 +137,14 @@ module Runic
         end
       end
 
-      # Visits the sub-expressions, then types the binary expression.
-      #
+      # Visits the sub-expressions, then types the binary expression. Unless an
+      # operator is defined for the given types, an implicitly typed LHS or RHS
+      # literal will be cast to the
+      # cast an implicitly typed literal
       def visit(node : AST::Binary) : Nil
+        is_rhs_untyped_literal = node.rhs.is_a?(AST::Literal) && !node.rhs.typed?
+        is_lhs_untyped_literal = node.lhs.is_a?(AST::Literal) && !node.lhs.typed?
+
         # make sure LHS and RHS are typed
         super
 
@@ -147,12 +152,30 @@ module Runic
         if method = @program.resolve?(node)
           node.method = method
           node.type = method.type
+
         elsif node.operator == "&&" || node.operator == "||"
           # NOTE: hardcoded fallback until support for method overloads and free
           #       variables is implemented
           node.type = Type.new("bool")
+
         else
-          raise SemanticError.new("invalid binary operation: #{node.lhs.type?} #{node.operator} #{node.rhs.type?}", node.location)
+          casted = false
+
+          # cast untyped LHS or RHS literal (if any)
+          if is_rhs_untyped_literal
+            node.rhs = cast_literal(node.lhs.type, node.rhs)
+            casted = true
+          elsif is_lhs_untyped_literal
+            node.lhs = cast_literal(node.rhs.type, node.lhs)
+            casted = true
+          end
+
+          if casted && (method = @program.resolve?(node))
+            node.method = method
+            node.type = method.type
+          else
+            raise SemanticError.new("invalid binary operation: #{node.lhs.type?} #{node.operator} #{node.rhs.type?}", node.location)
+          end
         end
       end
 
