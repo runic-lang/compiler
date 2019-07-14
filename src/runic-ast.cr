@@ -21,21 +21,22 @@ module Runic
       end
 
       def run
+        nodes = [] of Runic::AST::Node
+
         while node = @parser.next
           if @semantic && node.is_a?(Runic::AST::Require)
             @program.require(node)
           end
           @program.register(node)
+          nodes << node
         end
 
         if @semantic
           Semantic.analyze(@program)
         end
 
-        @program.each do |node|
-          if node.location.file == @file
-            to_h(node)
-          end
+        nodes.each do |node|
+          to_h(node)
         end
       end
 
@@ -116,11 +117,14 @@ module Runic
             to_h(receiver)
           end
         end
-        print "  args:"
-        nested do
-          node.args.each_with_index do |arg, index|
-            next if node.receiver && index == 0
-            to_h(arg)
+
+        unless node.args.empty?
+          print "  args:"
+          nested do
+            node.args.each_with_index do |arg, index|
+              next if node.receiver && index == 0
+              to_h(arg)
+            end
           end
         end
 
