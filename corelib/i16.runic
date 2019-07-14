@@ -179,12 +179,10 @@ struct i16
   def <=>(other : i16) : i32
     if self < other
       -1
+    elsif self > other
+      1
     else
-      if self > other
-        1
-      else
-        0
-      end
+      0
     end
   end
 
