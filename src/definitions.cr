@@ -9,7 +9,7 @@ module Runic
 
   module OPERATORS
     # TODO: typeof and sizeof are unary operators
-    UNARY = %w(~ ! + -)
+    UNARY = %w(~ ! + - & *)
     ASSIGNMENT = %w(= += -= *= **= /= //= %= %%= &= &&= |= ||= ^= <<= >>=)
     LOGICAL = %w(== != <=> < <= > >= || &&)
     BINARY = %w(+ - * ** / // % %% & | ^ << >>)

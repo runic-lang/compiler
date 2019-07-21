@@ -110,7 +110,7 @@ module Runic
       documentation = consume_documentation
 
       location = consume.location # struct
-      name = consume_type
+      name = consume_type(pointer: false)
       expect_line_terminator
 
       # TODO: allow reopening structs
@@ -171,15 +171,22 @@ module Runic
       AST::Body.new(body, location)
     end
 
-    private def consume_type
-      skip if peek.value == ":"
-      case type = expect(:identifier).value
-      when "int"
-        "i32"
-      when "uint"
-        "u32"
-      when "float"
-        "f64"
+    private def consume_type(pointer = true)
+      if peek.value == ":"
+        skip
+      end
+
+      type = expect(:identifier).value
+
+      case type
+      when "int"   then type = "i32"
+      when "uint"  then type = "u32"
+      when "float" then type = "f64"
+      end
+
+      if pointer && peek.value == "*"
+        skip
+        type + "*"
       else
         type
       end
@@ -222,7 +229,6 @@ module Runic
         arg_name = expect(:identifier).value
 
         if peek.value == ":"
-          skip # ':'
           arg_type = consume_type
         end
 
@@ -258,8 +264,12 @@ module Runic
       consume_args do
         arg_name = expect(:identifier).value
 
-        if peek.value == ":"
+        case peek.value
+        when ":"
           {arg_name, consume_type, nil}
+        when "*"
+          skip # *
+          {"x#{index += 1}", arg_name + "*", nil}
         else
           {"x#{index += 1}", arg_name, nil}
         end
@@ -417,11 +427,30 @@ module Runic
             number = parse_primary.as(AST::Number)
             number.sign = operator.value
             parse_call_expression(number)
+          elsif operator.value == "&"
+            # reference: &foo
+            pointee = AST::Variable.new(expect(:identifier))
+            AST::Reference.new(pointee, operator.location)
+          elsif operator.value == "*"
+            # dereference: *foo, *foo()
+            AST::Dereference.new(parse_identifier_expression, operator.location)
           else
             # unary expression: -foo, ~123, ...
             expression = parse_unary
             AST::Unary.new(operator, expression)
           end
+        elsif peek.value.each_char.all? { |c| c == '*' }
+          # dereference: **foo, ***foo(), ****bar, ...
+          operator = consume
+          pointee = parse_identifier_expression
+
+          (operator.value.bytesize - 1).downto(0).each do |index|
+            location = operator.location
+            index.times { location.increment_column }
+            pointee = AST::Dereference.new(pointee, location)
+          end
+
+          pointee
         else
           raise SyntaxError.new("unexpected operator #{peek.value.inspect}", peek.location)
         end

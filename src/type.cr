@@ -67,17 +67,17 @@ module Runic
       integer? || float?
     end
 
+    def pointer?
+      name.ends_with?('*')
+    end
+
+    def pointee_type
+      raise "BUG: #{self} isn't a pointer type!" unless pointer?
+      Type.new(name[0..-2])
+    end
+
     def to_s(io : IO)
-      #case name
-      #when "i32"
-      #  io << "int"
-      #when "u32"
-      #  io << "uint"
-      #when "f64"
-      #  io << "float"
-      #else
-        io << name
-      #end
+      io << name
     end
   end
 end

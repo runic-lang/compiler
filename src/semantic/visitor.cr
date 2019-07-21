@@ -19,6 +19,14 @@ module Runic
       def visit(node : AST::Variable) : Nil
       end
 
+      def visit(node : AST::Reference) : Nil
+        visit(node.pointee)
+      end
+
+      def visit(node : AST::Dereference) : Nil
+        visit(node.pointee)
+      end
+
       def visit(node : AST::Argument) : Nil
         if n = node.default
           visit(n)

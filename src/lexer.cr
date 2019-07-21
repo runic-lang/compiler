@@ -468,7 +468,7 @@ module Runic
         end
       end
 
-      unless OPERATORS::ALL.includes?(operator)
+      unless OPERATORS::ALL.includes?(operator) || operator.each_char.all? { |c| c == '*' }
         raise SyntaxError.new("invalid operator #{operator}", location)
       end
 

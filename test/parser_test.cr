@@ -63,8 +63,19 @@ module Runic
       assert_expression AST::Variable, "foo_bar"
     end
 
+    def test_references
+      assert_expression AST::Reference, "&foo"
+      assert_raises(SyntaxError) { parse_all("&foo()") }
+      assert_raises(SyntaxError) { parse_all("&1") }
+
+      assert_expression AST::Dereference, "*foo"
+      assert_expression AST::Dereference, "*foo()"
+      # assert_raises(SyntaxError) { parse_all("*1") }
+    end
+
     def test_unary_operators
       OPERATORS::UNARY.each do |operator|
+        next if operator == "&" || operator == "*"
         assert_expression AST::Unary, "#{operator}foo"
         assert_expression AST::Unary, "#{operator}\nfoo"
       end
@@ -83,12 +94,12 @@ module Runic
         assert_expression AST::Binary, "1 #{operator}\n2"
 
         # some binary operators like + and - are also unary operators
-        unless OPERATORS::UNARY.includes?(operator)
+        unless OPERATORS::UNARY.includes?(operator) || operator == "**"
           assert_raises(SyntaxError) { parse_all("1\n#{operator}2") }
         end
       end
 
-      # FIXME: ** shoudl have higher precedence than unary -
+      # FIXME: ** should have higher precedence than unary -
       #assert_expression AST::Unary, "-a**2"
       #assert_expression AST::Unary, "-1**2"
     end
@@ -142,6 +153,10 @@ module Runic
       assert_equal ["x1", "x2", "x3"], node.args.map(&.name)
       assert_equal ["i32", "i64", "f32"], node.args.map(&.type.name)
 
+      node = parser("extern foo(i32*, f32*) : f32*").next.as(AST::Prototype)
+      assert_equal "f32*", node.type.name
+      assert_equal ["i32*", "f32*"], node.args.map(&.type.name)
+
       parse_each("extern foo : void; extern bar : f32") do |node|
         assert AST::Prototype === node
       end
@@ -158,6 +173,10 @@ module Runic
       assert_nil node.type? # need semantic analysis to determine the return type
       assert_equal ["a", "b", "c"], node.args.map(&.name)
       assert_equal ["i32", "u64", "f64"], node.args.map(&.type.name)
+
+      node = parser("def bar(a : int*, b : i8*) : float*; end").next.as(AST::Function)
+      assert_equal "f64*", node.type.name
+      assert_equal ["i32*", "i8*"], node.args.map(&.type.name)
 
       parse_each("def foo; 1 + 2; end; def bar; 3 * 4; end") do |node|
         assert AST::Function === node

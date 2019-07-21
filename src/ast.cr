@@ -346,6 +346,34 @@ module Runic
       end
     end
 
+    class Reference < Node
+      getter pointee : AST::Node
+
+      def initialize(@pointee, @location)
+      end
+
+      def pointee_type
+        pointee.type
+      end
+
+      private def resolve_type
+        if type = pointee.type?
+          type.name + "*"
+        end
+      end
+    end
+
+    class Dereference < Node
+      getter pointee : AST::Node
+
+      def initialize(@pointee, @location)
+      end
+
+      private def resolve_type
+        pointee.type?
+      end
+    end
+
     class Argument < Variable
       property default : Literal?
 

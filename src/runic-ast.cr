@@ -60,6 +60,16 @@ module Runic
         print "- constant: #{node.name}#{to_options(node)}"
       end
 
+      def to_h(node : Runic::AST::Reference)
+        print "- reference:#{to_options(node)}"
+        nested { to_h(node.pointee) }
+      end
+
+      def to_h(node : Runic::AST::Dereference)
+        print "- dereference:#{to_options(node)}"
+        nested { to_h(node.pointee) }
+      end
+
       def to_h(node : Runic::AST::ConstantDefinition)
         print "- constant: #{node.name}#{to_options(node)}"
         print "  value:"
