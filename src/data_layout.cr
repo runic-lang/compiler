@@ -34,6 +34,11 @@ module Runic
       mem_size : Int32,
       index_size : Int32
 
+    def self.from(_module : LibC::LLVMModuleRef) : self
+      ptr = LibC.LLVMGetDataLayoutStr(_module)
+      parse(String.new(ptr))
+    end
+
     def self.parse(layout : String) : self
       new.tap(&.parse(layout))
     end
@@ -78,6 +83,10 @@ module Runic
       align = @alignments.find { |align| align.type == type && align.bit_size == bit_size }
       raise "BUG: missing data layout align for #{type} at #{bit_size} bits" unless align
       align
+    end
+
+    def pointer_size_in_bits
+      8_u64 * @pointer_align.mem_size
     end
 
     def parse(str : String) : Nil

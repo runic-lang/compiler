@@ -3,6 +3,7 @@ require "./codegen/debug"
 require "./codegen/functions"
 require "./codegen/literals"
 require "./codegen/operators"
+require "./codegen/pointers"
 require "./codegen/structures"
 require "./llvm"
 require "./errors"
@@ -233,30 +234,34 @@ module Runic
     end
 
     private def llvm_type(type : Type)
-      case type.name
-      when "bool"
-        LibC.LLVMInt1TypeInContext(@context)
-      when "i8", "u8"
-        LibC.LLVMInt8TypeInContext(@context)
-      when "i16", "u16"
-        LibC.LLVMInt16TypeInContext(@context)
-      when "i32", "u32"
-        LibC.LLVMInt32TypeInContext(@context)
-      when "i64", "u64"
-        LibC.LLVMInt64TypeInContext(@context)
-      when "i128", "u128"
-        LibC.LLVMInt128TypeInContext(@context)
-      when "f64"
-        LibC.LLVMDoubleTypeInContext(@context)
-      when "f32"
-        LibC.LLVMFloatTypeInContext(@context)
-      #when "long", "ulong"
-      #  LibC.LLVMInt32TypeInContext(@context)   # 32-bit: x86, arm, mips, ...
-      #  LibC.LLVMInt64TypeInContext(@context)   # 64-bit: x86_64, aarch64, mips64, ...
-      when "void"
-        LibC.LLVMVoidTypeInContext(@context)
+      if type.pointer?
+        LibC.LLVMPointerType(llvm_type(type.pointee_type), 0)
       else
-        raise CodegenError.new("unsupported #{type}")
+        case type.name
+        when "bool"
+          LibC.LLVMInt1TypeInContext(@context)
+        when "i8", "u8"
+          LibC.LLVMInt8TypeInContext(@context)
+        when "i16", "u16"
+          LibC.LLVMInt16TypeInContext(@context)
+        when "i32", "u32"
+          LibC.LLVMInt32TypeInContext(@context)
+        when "i64", "u64"
+          LibC.LLVMInt64TypeInContext(@context)
+        when "i128", "u128"
+          LibC.LLVMInt128TypeInContext(@context)
+        when "f64"
+          LibC.LLVMDoubleTypeInContext(@context)
+        when "f32"
+          LibC.LLVMFloatTypeInContext(@context)
+        #when "long", "ulong"
+        #  LibC.LLVMInt32TypeInContext(@context)   # 32-bit: x86, arm, mips, ...
+        #  LibC.LLVMInt64TypeInContext(@context)   # 64-bit: x86_64, aarch64, mips64, ...
+        when "void"
+          LibC.LLVMVoidTypeInContext(@context)
+        else
+          raise CodegenError.new("unsupported #{type}")
+        end
       end
     end
   end

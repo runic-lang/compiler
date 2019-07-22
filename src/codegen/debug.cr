@@ -1,5 +1,6 @@
 require "../codegen"
 require "../c/llvm/debug_info"
+require "../data_layout"
 
 module Runic
   DW_LANG_C = LibC::LLVMDWARFSourceLanguage.new(0x0001)
@@ -110,6 +111,10 @@ module Runic
           LibC.LLVMAddNamedMetadataOperand(@module, name, metadata)
         end
 
+        private def data_layout
+          @data_layout ||= DataLayout.from(@module)
+        end
+
         def path=(path)
           producer = "Runic Compiler"
 
@@ -181,8 +186,17 @@ module Runic
 
         private def create_function_type(node : AST::Function)
           types = Array(LibC::LLVMMetadataRef).new(node.args.size + 1)
-          types << di_type(node.type)                    # return type is at index #0
-          node.args.each { |arg| types << di_type(arg) } # followed by argument types (if any)
+
+          # return type is at index #0
+          if node.type.void?
+            types << LibC::LLVMMetadataRef.null
+          else
+            types << di_type(node.type)
+          end
+
+          # followed by argument types (if any)
+          node.args.each { |arg| types << di_type(arg) }
+
           LibC.LLVMDIBuilderCreateSubroutineType(self, file, types, types.size, LibC::LLVMDIFlags::DIFlagZero)
         end
 
@@ -237,11 +251,23 @@ module Runic
         end
 
         private def di_type(node : AST::Node)
-          di_type(node.type.name)
+          di_type(node.type)
         end
 
         private def di_type(type : Type)
-          di_type(type.name)
+          if type.pointer?
+            LibC.LLVMDIBuilderCreatePointerType(
+              self,
+              di_type(type.pointee_type),
+              data_layout.pointer_size_in_bits, # SizeInBits
+              0,                                # AlignInBits (optional)
+              0,                                # AddressSpace (optional)
+              type.name,
+              type.name.bytesize
+            )
+          else
+            di_type(type.name)
+          end
         end
 
         private def di_type(type : String)
