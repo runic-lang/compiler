@@ -4,30 +4,39 @@ require "./intrinsics"
 module Runic
   class Codegen
     def codegen(node : AST::Assignment) : LibC::LLVMValueRef
+      lhs = node.lhs
       rhs = codegen(node.rhs)
 
-      @debug.emit_location(node)
-
-      case node.operator
-      when "="
-        case node.lhs
-        when AST::Variable
-          # get or create alloca (stack pointer)
-          variable = node.lhs.as(AST::Variable)
-          alloca = @scope.fetch(variable.name) { build_alloca(variable) }
-
-          # create debug descriptor
-          @debug.auto_variable(variable, alloca)
-
-          # store value (on stack)
-          LibC.LLVMBuildStore(@builder, rhs, alloca)
-
-          return rhs
-        end
-        raise CodegenError.new("invalid LHS for assignment: #{node.lhs.class}")
+      unless node.operator == "="
+        raise CodegenError.new("unsupported #{lhs.type} #{node.operator} #{node.rhs.type} assignment")
       end
 
-      raise CodegenError.new("unsupported #{node.lhs.type} #{node.operator} #{node.rhs.type} assignment")
+      case lhs
+      when AST::Variable
+        # get or create alloca (stack pointer)
+        alloca = @scope.fetch(lhs.name) do
+          build_alloca(lhs) do |alloca|
+            @debug.auto_variable(lhs, alloca)
+          end
+        end
+      when AST::Dereference
+        case pointee = lhs.pointee
+        when AST::Variable
+          # get alloca (points somewhere):
+          alloca = @scope.get(pointee.name)
+          alloca = LibC.LLVMBuildLoad(@builder, alloca, "")
+        end
+      end
+
+      unless alloca
+        raise CodegenError.new("invalid LHS for assignment: #{lhs.class.name}")
+      end
+
+      # set value (stack, dereferenced pointer):
+      @debug.emit_location(node)
+      LibC.LLVMBuildStore(@builder, rhs, alloca)
+
+      rhs
     end
 
     def codegen(node : AST::Binary) : LibC::LLVMValueRef

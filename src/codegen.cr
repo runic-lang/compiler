@@ -199,7 +199,9 @@ module Runic
 
     private def build_alloca(node : AST::Variable)
       @debug.emit_location(node)
-      LibC.LLVMBuildAlloca(@builder, llvm_type(node.type), "#{node.name}_ptr")
+      alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(node.type), "#{node.name}_ptr")
+      yield alloca
+      alloca
     end
 
     # Returns false (0_i1) if the expression evaluates to false or a null

@@ -69,10 +69,10 @@ module Runic
 
           # create alloca (stack pointer)
           param = LibC.LLVMGetParam(func, arg_no)
-          alloca = create_entry_block_alloca(func, arg)
 
-          # create debug descriptor
-          @debug.parameter_variable(arg, arg_no, alloca)
+          alloca = build_alloca(arg) do |alloca|
+            @debug.parameter_variable(arg, arg_no, alloca)
+          end
 
           # store initial value (on stack)
           LibC.LLVMBuildStore(@builder, param, alloca)
@@ -103,10 +103,6 @@ module Runic
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
       end
-    end
-
-    private def create_entry_block_alloca(func : LibC::LLVMValueRef, node : AST::Variable)
-      build_alloca(node)
     end
 
     private def codegen_builtin_function_body(node)
