@@ -10,6 +10,7 @@ module Runic
       assert_mangle "_Z5myFunhtjyo", "myFun", ["u8", "u16", "u32", "u64", "u128"]
       assert_mangle "_Z5myFunfd", "myFun", ["f32", "f64"]
       assert_mangle "_Z5myFuni6MyType9OtherType", "myFun", ["i32", "MyType", "OtherType"]
+      assert_mangle "_Z9incrementPix", "increment", ["i32*", "i64"]
     end
 
     def test_mangle_namespaced_functions

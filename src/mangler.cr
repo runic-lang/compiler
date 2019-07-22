@@ -97,27 +97,32 @@ module Runic
     # Itanium C++ ABI reference:
     # <https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-builtin>
     private def self.type(type : Type, str : String::Builder) : Nil
-      case type.name
-      when "void" then str << 'v'
-      when "bool" then str << 'b'
-      when "i8"   then str << 'a'
-      when "u8"   then str << 'h'
-      when "i16"  then str << 's'
-      when "u16"  then str << 't'
-      when "i32"  then str << 'i'
-      when "u32"  then str << 'j'
-      when "i64"  then str << 'x'
-      when "u64"  then str << 'y'
-      when "i128" then str << 'n'
-      when "u128" then str << 'o'
-      when "f32"  then str << 'f'
-      when "f64"  then str << 'd'
-      #when "f80"  then str << 'e'
-      #when "f128" then str << 'g'
-      #when "..."  then str << 'z'
-      #when "char" then str << "Di"  # char32_t
+      if type.pointer?
+        str << 'P'
+        type(type.pointee_type, str)
       else
-        special(type.name, str)
+        case type.name
+        when "void" then str << 'v'
+        when "bool" then str << 'b'
+        when "i8"   then str << 'a'
+        when "u8"   then str << 'h'
+        when "i16"  then str << 's'
+        when "u16"  then str << 't'
+        when "i32"  then str << 'i'
+        when "u32"  then str << 'j'
+        when "i64"  then str << 'x'
+        when "u64"  then str << 'y'
+        when "i128" then str << 'n'
+        when "u128" then str << 'o'
+        when "f32"  then str << 'f'
+        when "f64"  then str << 'd'
+        #when "f80"  then str << 'e'
+        #when "f128" then str << 'g'
+        #when "..."  then str << 'z'
+        #when "char" then str << "Di"  # char32_t
+        else
+          special(type.name, str)
+        end
       end
     end
   end
