@@ -370,7 +370,9 @@ module Runic
       end
 
       private def resolve_type
-        pointee.type?
+        if type = pointee.type?
+          type.name[0..-2]
+        end
       end
     end
 

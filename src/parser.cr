@@ -392,6 +392,8 @@ module Runic
             case lhs
             when AST::Variable
               break
+            when AST::Dereference
+              break if lhs.pointee.is_a?(AST::Variable)
             when AST::Constant
               if @top_level_expressions && binary_operator.value == "="
                 value = parse_unary

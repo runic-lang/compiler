@@ -96,6 +96,26 @@ module Runic
         assert_raises(SemanticError) { visit("2 + INCREMENT") }
       end
 
+      def test_types_references
+        assert_type "i32", visit("foo = 1")
+        assert_raises(SemanticError) { visit("*foo") }
+
+        assert_type "i32*", visit("bar = &foo")
+        assert_type "i32", visit("*bar")
+        assert_raises(SemanticError) { visit("**bar") }
+
+        assert_type "i32**", visit("baz = &bar")
+        assert_type "i32*", visit("*baz")
+        assert_type "i32", visit("**baz")
+        assert_raises(SemanticError) { visit("***baz") }
+
+        assert_type "i32***", visit("mor = &baz")
+        assert_type "i32**", visit("*mor")
+        assert_type "i32*", visit("**mor")
+        assert_type "i32", visit("***mor")
+        assert_raises(SemanticError) { visit("****mor") }
+      end
+
       def test_types_math_binary_expressions
         %w(+ - * ** // % %%).each do |op|
           %w(i u).each do |sign|

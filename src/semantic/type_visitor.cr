@@ -132,8 +132,26 @@ module Runic
             # memorize the variable (so we know its type later)
             @scope.set(lhs.name, lhs)
           end
+        when AST::Dereference
+          # make sure *LHS is typed
+          visit(lhs)
+
+          # type assignment from RHS if dereferenced LHS type is RHS type
+          if lhs.type == node.rhs.type
+            node.type = node.rhs.type
+          else
+            raise SemanticError.new("can't assign #{node.rhs.type} to #{lhs.pointee.type}", node.location)
+          end
         else
           raise SemanticError.new("invalid assignment: only variables and constants may be assigned a value", lhs.location)
+        end
+      end
+
+      def visit(node : AST::Dereference)
+        super
+
+        unless node.pointee.type.pointer?
+          raise SemanticError.new("can't dereference #{node.pointee.type}: not a pointer", node.location)
         end
       end
 
