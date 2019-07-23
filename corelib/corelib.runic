@@ -17,3 +17,5 @@ require "./u128"
 
 require "./f32"
 require "./f64"
+
+require "./string"

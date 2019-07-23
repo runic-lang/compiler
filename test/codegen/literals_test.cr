@@ -20,6 +20,14 @@ class Runic::Codegen::LiteralsTest < Runic::CodegenTest
     assert_equal 12345.6789012345, execute("12345.6789012345")
   end
 
+  def test_strings
+    ptr = execute(%[a = "hello world"; a.to_unsafe])
+    flunk unless ptr.is_a?(UInt8*)
+    assert_equal "hello world".bytes.to_unsafe.to_slice(11), ptr.to_slice(11)
+
+    p execute(%["lorem ipsum"])
+  end
+
   def test_constant_definition
     source = <<-RUNIC
     INCREMENT = 1

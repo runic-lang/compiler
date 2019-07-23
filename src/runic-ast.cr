@@ -48,6 +48,10 @@ module Runic
         print "- float: #{node.sign}#{node.value}#{to_options(node)}"
       end
 
+      def to_h(node : Runic::AST::StringLiteral)
+        print "- string: #{node.value}#{to_options(node)}"
+      end
+
       def to_h(node : Runic::AST::Boolean)
         print "- boolean: #{node.value}#{to_options(node)}"
       end

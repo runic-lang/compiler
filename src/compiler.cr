@@ -26,6 +26,7 @@ module Runic
       @target_triple = target_triple ||= String.new(LibC.LLVMGetDefaultTargetTriple())
       @program = Program.new
       @codegen = Codegen.new(
+        @program,
         debug: @debug,
         opt_level: opt_level,
         optimize: !opt_level.code_gen_level_none?
@@ -58,7 +59,7 @@ module Runic
     end
 
     def codegen(path : String) : Nil
-      @codegen.codegen(path, @program)
+      @codegen.codegen(path)
     end
 
     def emit_llvm(output : String) : Nil

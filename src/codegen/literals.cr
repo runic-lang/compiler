@@ -25,6 +25,27 @@ module Runic
       LibC.LLVMConstRealOfStringAndSize(llvm_type(node), value, value.bytesize)
     end
 
+    def codegen(node : AST::StringLiteral) : LibC::LLVMValueRef
+      @debug.emit_location(node)
+
+      if st = @program.structs["String"]?
+        if fn = st.method("initialize")
+          if func = LibC.LLVMGetNamedFunction(@module, fn.symbol_name)
+            slf = LibC.LLVMBuildAlloca(@builder, llvm_type("String"), "")
+            args = [
+              slf,
+              LibC.LLVMBuildGlobalStringPtr(@builder, node.value, ""),   # ptr
+              LibC.LLVMConstInt(llvm_type("i32"), node.bytesize, false), # bytesize TODO: uint (should be arch-dependent)
+            ]
+            LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+            return LibC.LLVMBuildLoad(@builder, slf, "")
+          end
+        end
+      end
+
+      raise CodegenError.new("undefined function 'String::initialize'")
+    end
+
     def codegen(node : AST::Variable) : LibC::LLVMValueRef
       if alloca = @scope.get(node.name)
         @debug.emit_location(node)

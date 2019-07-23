@@ -386,6 +386,16 @@ module Runic
             LibC.LLVMDIBuilderCreateBasicType(self, "u64", 3, 64, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           when "u128"
             LibC.LLVMDIBuilderCreateBasicType(self, "u128", 4, 128, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
+          #when "String"
+          #  LibC.LLVMDIBuilderCreatePointerType(
+          #    self,
+          #    di_type("u8"),
+          #    codegen.data_layout.pointer_size_in_bits, # SizeInBits
+          #    0,                                        # AlignInBits (optional)
+          #    0,                                        # AddressSpace (optional)
+          #    "String",
+          #    "String".bytesize
+          #  )
           else
             if st = program.resolve_type?(name)
               di_type(st)

@@ -531,6 +531,8 @@ module Runic
         AST::Integer.new(consume)
       when :float
         AST::Float.new(consume)
+      when :string
+        AST::StringLiteral.new(consume)
       when :identifier
         case peek.value
         when "true", "false"

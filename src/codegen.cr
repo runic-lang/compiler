@@ -19,7 +19,7 @@ module Runic
     @debug : Debug
     @opt_level : LibC::LLVMCodeGenOptLevel
 
-    def initialize(debug = DebugLevel::Default, @opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault, @optimize = true)
+    def initialize(@program : Program, debug = DebugLevel::Default, @opt_level = LibC::LLVMCodeGenOptLevel::CodeGenLevelDefault, @optimize = true)
       @context = LibC.LLVMContextCreate()
       @builder = LibC.LLVMCreateBuilderInContext(@context)
       @module = LibC.LLVMModuleCreateWithNameInContext("main", @context)
@@ -119,13 +119,33 @@ module Runic
       end
     end
 
-    def execute(ret, func : LibC::LLVMValueRef)
+    def execute(ret : T.class, func : LibC::LLVMValueRef) : T? forall T
+      execute(ret, func) do |func_ptr|
+        Proc(T)
+          .new(func_ptr, Pointer(Void).null)
+          .call
+      end
+    end
+
+    def execute(ret : String.class, func : LibC::LLVMValueRef) : String?
+      execute(ret, func) do |func_ptr|
+        sret = uninitialized {UInt8*, Int32}
+
+        Proc(Pointer({UInt8*, Int32}), Void)
+          .new(func_ptr, Pointer(Void).null)
+          .call(pointerof(sret))
+
+        String.new(sret[0], sret[1])
+      end
+    end
+
+    private def execute(ret, func)
       # (re)inject module since it may have been removed
       LibC.LLVMAddModule(execution_engine, @module)
 
       # get pointer to compiled function, cast to proc and execute
       if func_ptr = LibC.LLVMGetPointerToGlobal(execution_engine, func)
-        Proc(typeof(ret)).new(func_ptr, Pointer(Void).null).call
+        yield func_ptr
       end
     ensure
       # remove module so next run will recompile code
@@ -200,10 +220,10 @@ module Runic
     end
 
 
-    def codegen(path : String, program : Program) : Nil
+    def codegen(path : String) : Nil
       @debug.path = path
-      @debug.program = program
-      program.each { |node| codegen(node) }
+      @debug.program = @program
+      @program.each { |node| codegen(node) }
     end
 
     def codegen(nodes : AST::Body) : LibC::LLVMValueRef

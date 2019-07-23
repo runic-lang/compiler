@@ -16,7 +16,7 @@ module Runic
         @parser = Parser.new(@lexer, top_level_expressions: true, interactive: true)
         @program = Program.new
         @semantic = Semantic.new(@program)
-        @generator = Codegen.new(debug: DebugLevel::None, optimize: optimize)
+        @generator = Codegen.new(@program, debug: DebugLevel::None, optimize: optimize)
 
         if corelib
           @program.require(corelib)
@@ -106,30 +106,33 @@ module Runic
         begin
           case node.type.name
           when "bool"
-            result = @generator.execute(true, func)
+            result = @generator.execute(Bool, func)
 
           when "i8"
-            result = @generator.execute(1_i8, func)
+            result = @generator.execute(Int8, func)
           when "i16"
-            result = @generator.execute(1_i16, func)
+            result = @generator.execute(Int16, func)
           when "i32"
-            result = @generator.execute(1_i32, func)
+            result = @generator.execute(Int32, func)
           when "i64"
-            result = @generator.execute(1_i64, func)
+            result = @generator.execute(Int64, func)
 
           when "u8"
-            result = @generator.execute(1_u8, func)
+            result = @generator.execute(UInt8, func)
           when "u16"
-            result = @generator.execute(1_u16, func)
+            result = @generator.execute(UInt16, func)
           when "u32"
-            result = @generator.execute(1_u32, func)
+            result = @generator.execute(UInt32, func)
           when "u64"
-            result = @generator.execute(1_u64, func)
+            result = @generator.execute(UInt64, func)
 
           when "f32"
-            result = @generator.execute(1_f32, func)
+            result = @generator.execute(Float32, func)
           when "f64"
-            result = @generator.execute(1_f64, func)
+            result = @generator.execute(Float64, func)
+
+          when "String"
+            result = @generator.execute(String, func)
 
           else
             puts "WARNING: unsupported return type '#{node.type}' (yet)"

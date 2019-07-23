@@ -6,6 +6,7 @@ require "./type"
 module Runic
   module AST
     module Literal
+      abstract def value : String
     end
 
     module TopLevel
@@ -266,6 +267,27 @@ module Runic
     class Float < Number
       private def resolve_type
         "f64"
+      end
+    end
+
+    class StringLiteral < Node
+      include Literal
+
+      getter value : String
+
+      def self.new(token : Token)
+        new(token.value, token.location)
+      end
+
+      def initialize(@value, @location)
+      end
+
+      def bytesize
+        @value.bytesize
+      end
+
+      def resolve_type
+        "String"
       end
     end
 

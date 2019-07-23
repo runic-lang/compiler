@@ -58,6 +58,12 @@ module Runic
       assert_expression AST::Float, "1e7"
     end
 
+    def test_strings
+      assert_expression AST::StringLiteral, %("lorem ipsum")
+      assert_expression AST::StringLiteral, %("lorem ipsum\n dolor sit amet")
+      assert_expression AST::StringLiteral, %("hello \\"world\\"")
+    end
+
     def test_variables
       assert_expression AST::Variable, "a"
       assert_expression AST::Variable, "foo_bar"

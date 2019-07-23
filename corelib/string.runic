@@ -1,0 +1,17 @@
+struct String
+  @ptr : u8*
+  @bytesize : uint
+
+  def initialize(ptr : u8*, bytesize : uint)
+    @ptr = ptr
+    @bytesize = bytesize
+  end
+
+  def bytesize
+    @bytesize
+  end
+
+  def to_unsafe
+    @ptr
+  end
+end

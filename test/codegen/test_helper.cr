@@ -36,19 +36,21 @@ module Runic
       # JIT execution + return primitive result
       begin
         case main.type.name
-        when "bool" then return generator.execute(true, func)
-        when "i8" then return generator.execute(1_i8, func)
-        when "i16" then return generator.execute(1_i16, func)
-        when "i32" then return generator.execute(1_i32, func)
-        when "i64" then return generator.execute(1_i64, func)
-        when "i128" then return generator.execute(1_i128, func)
-        when "u8" then return generator.execute(1_u8, func)
-        when "u16" then return generator.execute(1_u16, func)
-        when "u32" then return generator.execute(1_u32, func)
-        when "u64" then return generator.execute(1_u64, func)
-        when "u128" then return generator.execute(1_u128, func)
-        when "f32" then return generator.execute(1_f32, func)
-        when "f64" then return generator.execute(1_f64, func)
+        when "bool" then return generator.execute(Bool, func)
+        when "i8" then return generator.execute(Int8, func)
+        when "i16" then return generator.execute(Int16, func)
+        when "i32" then return generator.execute(Int32, func)
+        when "i64" then return generator.execute(Int64, func)
+        when "i128" then return generator.execute(Int128, func)
+        when "u8" then return generator.execute(UInt8, func)
+        when "u16" then return generator.execute(UInt16, func)
+        when "u32" then return generator.execute(UInt32, func)
+        when "u64" then return generator.execute(UInt64, func)
+        when "u128" then return generator.execute(UInt128, func)
+        when "f32" then return generator.execute(Float32, func)
+        when "f64" then return generator.execute(Float64, func)
+        when "u8*" then return generator.execute(Pointer(UInt8), func)
+        when "String" then return generator.execute(String, func)
         else raise "unsupported return type '#{main.type}' (yet)"
         end
       ensure
@@ -57,16 +59,12 @@ module Runic
       end
     end
 
-    private def program
-      @program ||= Program.new
-    end
-
     private def semantic
       @semantic ||= Semantic.new(program)
     end
 
     private def generator
-      @codegen ||= Codegen.new(debug: DebugLevel::None, optimize: true)
+      @codegen ||= Codegen.new(program, debug: DebugLevel::None, optimize: true)
     end
 
     private def require_corelib
