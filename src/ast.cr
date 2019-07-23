@@ -482,14 +482,20 @@ module Runic
       getter original_name : String
       getter args : Array(Argument)
       getter documentation : String
+      @mangle : Bool
 
-      def initialize(@name, @args, type, @documentation, @location)
+      def initialize(@name, @args, type, @documentation, @location, @mangle = true)
+        @mangle = false if name == "main"
         @original_name = @name
         @type = Type.new(type) if type
       end
 
       def mangled_name
-        name == "main" ? name : Mangler.mangle(self)
+        if @mangle
+          Mangler.mangle(self)
+        else
+          name
+        end
       end
 
       def arg_count

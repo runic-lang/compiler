@@ -207,7 +207,7 @@ module Runic
       name = consume_prototype_name
       args = consume_extern_args
       return_type = peek.value == ":" ? consume_type : "void"
-      AST::Prototype.new(name, args, return_type, documentation, location)
+      AST::Prototype.new(name, args, return_type, documentation, location, mangle: false)
     end
 
     private def consume_prototype_name
