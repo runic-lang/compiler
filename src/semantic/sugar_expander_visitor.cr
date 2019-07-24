@@ -46,9 +46,17 @@ module Runic
 
       # Injects *self* as first argument of struct methods.
       def visit(node : AST::Struct) : Nil
+        self_type =
+          if node.attribute?("primitive")
+            # self is passed by value for primitive types (bool, int, float)
+            Type.new(node.name)
+          else
+            # self is passed by reference for other structs:
+            Type.new("#{node.name}*")
+          end
+
         node.methods.each do |n|
-          # FIXME: `self` is actually a `Pointer<T>` not a `T` for non primitive structs!
-          n.args.unshift(AST::Argument.new("self", Type.new(node.name), nil, n.location))
+          n.args.unshift(AST::Argument.new("self", self_type, nil, n.location))
           visit(n)
         end
       end

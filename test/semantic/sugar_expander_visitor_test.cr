@@ -53,7 +53,7 @@ module Runic
         assert_equal 2, fn.args.size
         assert_equal "self", fn.args[0].name
         assert_equal "since", fn.args[1].name
-        assert_equal Type.new("User"), fn.args[0].type
+        assert_equal Type.new("User*"), fn.args[0].type
         assert_equal Type.new("i32"), fn.args[1].type
       end
 
