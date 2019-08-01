@@ -110,7 +110,13 @@ module Runic
       documentation = consume_documentation
 
       location = consume.location # struct
-      name = consume_type(pointer: false)
+
+      identifier = expect(:identifier)
+      name = identifier.value
+      if name[0].ascii_lowercase? && !attributes.includes?("primitive")
+        raise SyntaxError.new("non primitive types must start with an uppercase letter", identifier.location)
+      end
+
       expect_line_terminator
 
       # TODO: allow reopening structs
@@ -178,7 +184,7 @@ module Runic
       AST::Body.new(body, location)
     end
 
-    private def consume_type(*, colon = false, pointer = true)
+    private def consume_type(*, colon = false)
       if colon || peek.value == ":"
         skip
       end
@@ -191,7 +197,7 @@ module Runic
       when "float" then type = "f64"
       end
 
-      if pointer && peek.value == "*"
+      if peek.value == "*"
         skip
         type + "*"
       else

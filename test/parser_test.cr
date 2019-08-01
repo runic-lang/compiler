@@ -500,6 +500,20 @@ module Runic
       assert_equal node.location, node.locations.first
     end
 
+    def test_non_primitive_struct
+      node = assert_expression AST::Struct, "struct Foo; end"
+      assert_equal "Foo", node.name
+      assert_empty node.attributes
+      assert_empty node.variables
+      assert_empty node.methods
+      assert_empty node.prototypes
+      assert_empty node.documentation
+      assert_equal node.location, node.locations.first
+
+      ex = assert_raises(SyntaxError) { parse_all "struct foo; end" }
+      assert_match "non primitive types must start with an uppercase letter", ex.message
+    end
+
     def test_struct_documentation_and_attributes
       node = assert_expression AST::Struct, <<-RUNIC
       # Docs for the `bool` primitive type.
