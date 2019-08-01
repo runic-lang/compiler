@@ -489,7 +489,7 @@ module Runic
       assert_equal "running", node.body.first.as(AST::If).condition.as(AST::Variable).name
     end
 
-    def test_struct
+    def test_primitive_struct
       node = assert_expression AST::Struct, "#[primitive]\nstruct int32\nend"
       assert_equal "int32", node.name
       assert_equal ["primitive"], node.attributes
@@ -548,7 +548,7 @@ module Runic
       assert_match "primitive types can't declare instance variables", ex.message
     end
 
-    def test_struct_variable_accesors
+    def test_struct_variable_accessors
       node = assert_expression AST::Struct, <<-RUNIC
       struct Time
         @seconds : i64
@@ -562,8 +562,8 @@ module Runic
       end
       RUNIC
 
-      assert_equal 1, node.variables.size
-      assert_equal 3, node.methods.size
+      assert_equal %w(seconds), node.variables.map(&.name)
+      assert_equal %w(initialize seconds seconds=), node.methods.map(&.original_name)
     end
 
     def test_modules

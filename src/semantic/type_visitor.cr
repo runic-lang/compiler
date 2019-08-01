@@ -1,4 +1,5 @@
 require "./visitor"
+require "./initialized_instance_variables"
 require "../scope"
 
 module Runic
@@ -14,7 +15,7 @@ module Runic
     class TypeVisitor < Visitor
       def initialize(@program : Program)
         @scope = Scope(AST::Variable).new
-        @ivars = {} of String => AST::InstanceVariable
+        @ivars = InitializedInstanceVariables.new
       end
 
       # Validates that the integer literal's type fits its definition or its
@@ -86,12 +87,16 @@ module Runic
         end
       end
 
-      # Types ivar accessors from memoized definitions.
+      # Type the instance variable when used as accessors, asserting that it was
+      # defined for the current struct, and initialized in the current
+      # scope/branch.
       def visit(node : AST::InstanceVariable) : Nil
-        if ivar = @ivars[node.name]?
+        ivar = @ivars[node]
+
+        if @ivars.initialized?(ivar)
           node.type = ivar.type
         else
-          raise SemanticError.new("undefined instance variable @#{node.name}", node.location)
+          raise SemanticError.new("accessing uninitialized instance variable '@#{ivar.name}'", ivar.location)
         end
       end
 
@@ -143,14 +148,13 @@ module Runic
             @scope.set(lhs.name, lhs)
           end
         when AST::InstanceVariable
-          if ivar = @ivars[lhs.name]?
-            if node.rhs.type == ivar.type
-              node.type = lhs.type = node.rhs.type
-            else
-              raise SemanticError.new("can't assign #{node.rhs.type} to @#{lhs.name} (#{ivar.type})", node.location)
-            end
+          ivar = @ivars[lhs]
+
+          if node.rhs.type == ivar.type
+            @ivars.assigned(ivar)
+            node.type = lhs.type = node.rhs.type
           else
-            raise SemanticError.new("undefined instance variable @#{lhs.name}", lhs.location)
+            raise SemanticError.new("can't assign #{node.rhs.type} to '@#{lhs.name}' (#{ivar.type})", node.location)
           end
         when AST::Dereference
           # make sure *LHS is typed
@@ -363,10 +367,16 @@ module Runic
       # TODO: return a nilable type if there is no alternate branch.
       def visit(node : AST::If) : Nil
         visit_condition(node.condition)
+
+        @ivars.push
+        @ivars.add_branch
         visit(node.body, :if)
 
         if alt_body = node.alternative
+          @ivars.add_branch
           visit(alt_body, :if)
+
+          @ivars.collect
 
           if (then_type = node.body.type?) && (else_type = alt_body.type?)
             if then_type == else_type
@@ -374,6 +384,8 @@ module Runic
               return
             end
           end
+        else
+          @ivars.reset
         end
 
         node.type = "void"
@@ -384,26 +396,46 @@ module Runic
       # TODO: return a nilable type.
       def visit(node : AST::Unless) : Nil
         visit_condition(node.condition)
+        @ivars.push
+        @ivars.add_branch
         visit(node.body, :unless)
+        @ivars.reset
         node.type = "void"
       end
 
       def visit(node : AST::While) : Nil
         visit_condition(node.condition)
+        @ivars.push
+        @ivars.add_branch
         visit(node.body, :while)
+        @ivars.reset
+        node.type = "void"
       end
 
       def visit(node : AST::Until) : Nil
         visit_condition(node.condition)
+        @ivars.push
+        @ivars.add_branch
         visit(node.body, :until)
+        @ivars.reset
+        node.type = "void"
       end
 
       def visit(node : AST::Case) : Nil
         visit_condition(node.value)
-        node.cases.each { |n| visit(n) }
+
+        @ivars.push
+
+        node.cases.each do |n|
+          @ivars.add_branch
+          visit(n)
+        end
 
         if body = node.alternative
+          @ivars.add_branch
           visit(body, :case)
+
+          @ivars.collect
 
           if type = body.type?
             if node.cases.all? { |n| n.type == type }
@@ -411,6 +443,8 @@ module Runic
               return
             end
           end
+        else
+          @ivars.reset
         end
 
         node.type = "void"
@@ -439,27 +473,30 @@ module Runic
         @scope.push(:struct) do
           node.variables.each do |ivar|
             unless ivar.type?
-              raise SemanticError.new("@#{ivar.name} definition for struct #{ivar.name} doesn't have a type", ivar.location)
+              raise SemanticError.new("'@#{ivar.name}' definition for struct #{ivar.name} doesn't have a type", ivar.location)
             end
-            if original = @ivars[ivar.name]?
-              raise ConflictError.new("duplicated @#{ivar.name} definition for struct #{node.name}", ivar.location, original.location)
-            end
-            @ivars[ivar.name] = ivar
+
+            # TODO: make it a parser error?
+            # if original = @ivars[ivar]?
+            #   raise ConflictError.new("duplicated '@#{ivar.name}' definition for struct #{node.name}", ivar.location, original.location)
+            # end
           end
 
-          node.methods.each { |fn| visit(fn) }
-        end
-      ensure
-        @ivars.clear
-      end
+          @ivars.visit(node) do
+            if fn = node.methods.find { |fn| fn.original_name == "initialize" }
+              fn.type = "void"
 
-      # Type the instance variable when used as accessors, asserting that it was
-      # defined for the current struct.
-      def visit(node : AST::InstanceVariable) : Nil
-        if ivar = @ivars[node.name]?
-          node.type = ivar.type
-        else
-          raise SemanticError.new("undefined instance variable @#{node.name}", node.location)
+              @ivars.visit_initializer(fn) do
+                visit(fn)
+              end
+            elsif !node.variables.empty?
+              raise SemanticError.new("struct #{node.name} has no 'initialize' method but instance variables must be initialized", node.location)
+            end
+
+            node.methods.each do |fn|
+              visit(fn) unless fn.original_name == "initialize"
+            end
+          end
         end
       end
 

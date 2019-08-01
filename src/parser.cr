@@ -138,7 +138,7 @@ module Runic
         when :linefeed, :semicolon
           skip_line_terminator
         else
-          raise SyntaxError.new("unexpected '#{peek}'", peek.location)
+          raise SyntaxError.new("expected 'def', 'end' or '@' but got '#{peek}'", peek.location)
         end
       end
 

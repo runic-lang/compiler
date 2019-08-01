@@ -394,8 +394,112 @@ module Runic
         assert_raises(SemanticError) { visit_each("case 1; when 2; foo = 1; end; foo") {} }
       end
 
+      def test_types_struct_variables_and_methods
+        node = visit(<<-RUNIC).as(AST::Struct)
+        struct Foo
+          @bar : i32
+          @baz : f64
+
+          def initialize(bar : i32, baz : f64)
+            @bar = bar
+            @baz = baz
+          end
+
+          def bar; @bar; end
+          def baz; @baz; end
+        end
+        RUNIC
+
+        assert_type "i32", node.variables[0]
+        assert_type "f64", node.variables[1]
+        assert_type "void", node.methods.find { |m| m.name == "initialize" }
+        assert_type "i32", node.methods.find { |m| m.name == "bar" }
+        assert_type "f64", node.methods.find { |m| m.name == "baz" }
+      end
+
+      def test_verifies_struct_variable_accessors
+        ex = assert_raises(SemanticError) { visit "struct Foo; @bar : i32; def initialize; @bar; end; end" }
+        assert_match "accessing uninitialized instance variable '@bar'", ex.message
+
+        ex = assert_raises(SemanticError) { visit "struct Foo; def bar; @unknown; end; end" }
+        assert_match "undefined instance variable '@unknown'", ex.message
+
+        ex = assert_raises(SemanticError) { visit "struct Foo; def bar; @unknown = 0; end; end" }
+        assert_match "undefined instance variable '@unknown'", ex.message
+
+        ex = assert_raises(SemanticError) do
+          visit(<<-RUNIC)
+          struct Foo
+            @bar : i32
+            def initialize; @bar = 0; end
+            def set(value : f64); @bar = value; end
+          end
+          RUNIC
+        end
+        assert_match "can't assign f64 to '@bar' (i32)", ex.message
+      end
+
+      def test_verifies_struct_variables_are_initialized
+        # valid: no ivars to initialize
+        visit("struct Foo; end")
+
+        # invalid: no initialize method
+        ex = assert_raises(SemanticError) { visit("struct Foo; @bar : i32; @baz : f64; end") }
+        assert_match "struct Foo has no 'initialize' method but instance variables must be initialized", ex.message
+
+        # invalid: some ivars aren't initialized
+        ex = assert_raises(SemanticError) do
+          visit <<-RUNIC
+          struct Foo
+            @bar : i32
+            @baz : f64
+
+            def initialize(bar : i32)
+              @bar = bar
+            end
+          end
+          RUNIC
+        end
+        assert_match "instance variable '@baz' of struct Foo isn't always initialized", ex.message
+
+        # valid: ivar is initialized in all branches:
+        visit <<-RUNIC
+        struct Foo
+          @bar : i32
+
+          def initialize(bar : i32)
+            if bar > 0
+              @bar = bar
+            else
+              @bar = -1
+            end
+          end
+        end
+        RUNIC
+
+        # invalid: some ivars may be uninitialized
+        ex = assert_raises(SemanticError) do
+          visit <<-RUNIC
+          struct Foo
+            @bar : i32
+
+            def initialize(bar : i32)
+              if bar > 0
+                @bar = bar
+              end
+            end
+          end
+          RUNIC
+        end
+        assert_match "instance variable '@bar' of struct Foo isn't always initialized", ex.message
+      end
+
       private def assert_type(name : String, node : AST::Node, file = __FILE__, line = __LINE__)
         assert_equal name, node.type?.try(&.name), file: file, line: line
+      end
+
+      private def assert_type(name : String, node : Nil, file = __FILE__, line = __LINE__)
+        flunk "expected Node but got Nil", file: file, line: line
       end
 
       private def assert_types(names : Array(String), nodes : Array(AST::Node), file = __FILE__, line = __LINE__)

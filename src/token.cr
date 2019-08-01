@@ -45,8 +45,10 @@ module Runic
         io << "comment"
       when :eof
         io << "EOF"
-      when :float, :identifier, :integer, :keyword
+      when :float, :integer, :keyword
         value.inspect(io)
+      when :identifier
+        value.to_s(io)
       when :ivar
         io << '@'
         value.to_s(io)
