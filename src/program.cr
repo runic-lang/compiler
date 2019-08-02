@@ -194,12 +194,18 @@ module Runic
       resolve_type(node.expression).operator(node)
     end
 
-    private def resolve_type(node : AST::Node) : AST::Struct
-      if st = @structs[node.type.name]?
-        st
-      else
-        raise SemanticError.new("undefined struct #{node.type.name}", node)
-      end
+    def resolve_type(node : AST::Reference) : AST::Struct
+      resolve_type?(node.pointee_type.name) ||
+        raise SemanticError.new("undefined struct #{node.type.name}", node.location)
+    end
+
+    def resolve_type(node : AST::Node) : AST::Struct
+      resolve_type?(node.type.name) ||
+        raise SemanticError.new("undefined struct #{node.type.name}", node.location)
+    end
+
+    def resolve_type?(name : String) : AST::Struct?
+      @structs[name]?
     end
   end
 end

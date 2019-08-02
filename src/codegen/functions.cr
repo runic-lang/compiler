@@ -97,11 +97,32 @@ module Runic
     end
 
     def codegen(node : AST::Call) : LibC::LLVMValueRef
-      if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+      if node.constructor?
+        _, alloca = build_stack_constructor(node)
+        LibC.LLVMBuildLoad(@builder, alloca, "") # return self
+      elsif func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
         args = node.args.map { |arg| codegen(arg) }
         LibC.LLVMBuildCall(@builder, func, args, args.size, "")
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
+      end
+    end
+
+    protected def build_stack_constructor(node : AST::Call, alloca : LibC::LLVMValueRef? = nil)
+      args = node.args.map_with_index do |arg, i|
+        if i == 0 && alloca
+          # override temporary 'self' alloca with the specified alloca:
+          alloca
+        else
+          codegen(arg)
+        end
+      end
+
+      if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+        value = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+        {value, args.first}
+      else
+        {llvm_void_value, args.first}
       end
     end
 

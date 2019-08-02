@@ -64,6 +64,10 @@ module Runic
         print "- constant: #{node.name}#{to_options(node)}"
       end
 
+      def to_h(node : Runic::AST::Alloca)
+        print "- alloca: #{to_options(node)}"
+      end
+
       def to_h(node : Runic::AST::Reference)
         print "- reference:#{to_options(node)}"
         nested { to_h(node.pointee) }

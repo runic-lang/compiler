@@ -51,5 +51,10 @@ module Runic
         @constant_values[node.name] = value
       end
     end
+
+    def codegen(node : AST::Alloca) : LibC::LLVMValueRef
+      @debug.emit_location(node)
+      LibC.LLVMBuildAlloca(@builder, llvm_type(node.type), "")
+    end
   end
 end

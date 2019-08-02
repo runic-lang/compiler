@@ -10,8 +10,10 @@ module Runic
         else
           raise CodegenError.new("using variable before definition: #{pointee.name}")
         end
+      when AST::Alloca
+        codegen(node.pointee)
       else
-        raise "BUG: unknown reference pointee #{pointee.class.name} (only variables are supported)"
+        raise "BUG: unknown reference pointee #{pointee.class.name} (only variables an allocas are supported)"
       end
     end
 

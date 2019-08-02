@@ -317,6 +317,16 @@ module Runic
       end
     end
 
+    class Alloca < Node
+      def initialize(type, @location)
+        self.type = type
+      end
+
+      private def resolve_type
+        # unreachable
+      end
+    end
+
     class Variable < Node
       @name : String
       property shadow : Int32
@@ -486,6 +496,10 @@ module Runic
         expressions.unsafe_fetch(i)
       end
 
+      def size
+        expressions.size
+      end
+
       def resolve_type
         expressions.last?.try(&.type?)
       end
@@ -579,11 +593,12 @@ module Runic
     end
 
     class Call < Node
-      getter receiver : Node?
+      property receiver : Node?
       getter callee : String
       getter args : Array(Node)
       getter kwargs : Hash(String, Node)
       property prototype : Prototype?
+      property? constructor = false
 
       def self.new(receiver : Node?, identifier : Token, args, kwargs)
         new(receiver, identifier.value, args, kwargs, identifier.location)
@@ -740,10 +755,12 @@ module Runic
         attributes.includes?(name)
       end
 
+      def method(name : String)
+        methods.find { |method| method.original_name == name }
+      end
+
       def method(node : AST::Call)
-        methods.find do |method|
-          method.original_name == node.callee
-        end
+        method(node.callee)
       end
 
       def operator(node : AST::Binary)

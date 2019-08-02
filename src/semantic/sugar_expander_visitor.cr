@@ -19,17 +19,6 @@ module Runic
         end
       end
 
-      # If the function has a *receiver*, inject it has the first argument of
-      # the method call, so it will become *self*.
-      def visit(node : AST::Call) : Nil
-        super
-
-      # FIXME: `self` is actually a `Pointer<T>` not a `T` for non primitive structs!
-        if slf = node.receiver
-          node.args.unshift(slf)
-        end
-      end
-
       # Recursively expands the name of nested modules and structs to include
       # the module name.
       def visit(node : AST::Module) : Nil

@@ -6,7 +6,7 @@ module Runic
     delegate :inspect, to: name
 
     # :nodoc:
-    def self.new(type : self) : self
+    def self.new(type : Type) : Type
       type
     end
 
@@ -23,11 +23,11 @@ module Runic
       end
     end
 
-    def <=>(other : self)
+    def <=>(other : Type)
       bits <=> other.bits
     end
 
-    def ==(other : self)
+    def ==(other : Type)
       name == other.name
     end
 

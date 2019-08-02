@@ -35,12 +35,6 @@ module Runic
         assert_equal "1", mul.rhs.as(AST::Integer).value
       end
 
-      def test_injects_call_receiver_as_first_arg
-        node = visit("foo.to_i(16)").as(AST::Call)
-        assert_equal 2, node.args.size
-        assert_same node.receiver, node.args.first
-      end
-
       def test_injects_self_as_first_arg_to_struct_methods
         node = visit <<-RUNIC
         struct User

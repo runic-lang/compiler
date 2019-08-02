@@ -16,6 +16,9 @@ module Runic
         visit(node.value)
       end
 
+      def visit(node : AST::Alloca) : Nil
+      end
+
       def visit(node : AST::Variable) : Nil
       end
 

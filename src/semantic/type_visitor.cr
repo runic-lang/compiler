@@ -295,34 +295,92 @@ module Runic
         visit(node.prototype)
       end
 
-      # Visits passed arguments, so they're typed. Makes sure that a prototype
-      # has been defined for the called function (extern or def), then verifies
-      # that passed arguments match the prototype (same number of arguments,
-      # same types). Eventually types the expression.
+      # Visits passed arguments, so they're typed.
+      #
+      # Detects whether the expression is a struct constructor (allocated on the
+      # stack) or a function call.
+      #
+      # In case of a constructor, visits the associated struct (to type the
+      # 'initialize' method), associates the call to the struct 'initialize'
+      # method and injects an alloca node (stack allocation) as the receiver of
+      # the call.
+      #
+      # In case of a regular call, verifies that a prototype has been defined
+      # for the called function (extern or def), visits the function (so the
+      # expression can be typed)
+      #
+      # Eventually verifies that passed arguments match the prototype (same
+      # number of arguments, same types), and types the expression.
       def visit(node : AST::Call) : Nil
         node.args.each { |arg| visit(arg) }
 
-        fn_or_prototype = @program.resolve(node)
-        visit(fn_or_prototype)
+        if st = @program.resolve_type?(node.callee)
+          if st.attribute?("primitive")
+            raise SemanticError.new("can't initialize primitive structs", node.location)
+          end
 
-        case fn_or_prototype
-        when AST::Function
-          prototype = fn_or_prototype.prototype
-        when AST::Prototype
-          prototype = fn_or_prototype
+          visit(st)
+
+          # allocate space on the stack and pass it by reference to the
+          # initialize call:
+          receiver = AST::Reference.new(AST::Alloca.new(st.name, node.location), node.location)
+          node.receiver = receiver
+          node.args.unshift(receiver)
+
+          node.constructor = true
+          node.type = Type.new(st.name)
+
+          if fn = st.method("initialize")
+            node.prototype = fn.prototype
+          end
+
         else
-          raise "FATAL: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
+          if receiver = node.receiver
+            visit(receiver)
+
+            # inject receiver as the 'self' argument, either by value for
+            # primitive types, by reference for struct instances or pass the
+            # reference for referenced struct instances:
+            st = @program.resolve_type(receiver)
+
+            if st.attribute?("primitive") || receiver.is_a?(AST::Reference)
+              node.args.unshift(receiver)
+            else
+              node.args.unshift(AST::Reference.new(receiver, receiver.location))
+            end
+          end
+
+          if fn_or_prototype = @program.resolve(node)
+            visit(fn_or_prototype)
+
+            case fn_or_prototype
+            when AST::Function
+              node.prototype = fn_or_prototype.prototype
+            when AST::Prototype
+              node.prototype = fn_or_prototype
+            else
+              raise "FATAL: expected AST::Function or AST::Prototype but got #{fn_or_prototype.class.name}"
+            end
+          end
+
+          node.type = fn_or_prototype.type
         end
 
+        verify_call_arguments(node, node.prototype)
+      end
+
+      private def verify_call_arguments(node : AST::Call, prototype : AST::Prototype?)
         # validate arg count:
         actual = node.args.size + node.kwargs.size
-        arg_count = prototype.arg_count
+        arg_count = prototype.try(&.arg_count) || (1..1)
 
         unless arg_count.includes?(actual)
           expected = arg_count.begin == arg_count.end ? arg_count.begin : arg_count
-          message = "wrong number of arguments for '#{prototype.name}' (given #{actual}, expected #{expected})"
+          message = "wrong number of arguments for '#{node.callee}' (given #{actual}, expected #{expected})"
           raise SemanticError.new(message, (node.args.first? || node).location)
         end
+
+        return unless prototype
 
         # insert named args:
         unless node.kwargs.empty?
@@ -354,9 +412,6 @@ module Runic
             raise "unreachable"
           end
         end
-
-        node.prototype = prototype
-        node.type = prototype.type
       end
 
       # Makes sure to visit inner nodes (condition, body, alternate body if
@@ -483,7 +538,7 @@ module Runic
           end
 
           @ivars.visit(node) do
-            if fn = node.methods.find { |fn| fn.original_name == "initialize" }
+            if fn = node.method("initialize")
               fn.type = "void"
 
               @ivars.visit_initializer(fn) do

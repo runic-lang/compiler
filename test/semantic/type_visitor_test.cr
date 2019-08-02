@@ -240,6 +240,37 @@ module Runic
         assert_raises(SemanticError) { visit_each("b = 2; add(1, b)") {} }
       end
 
+      def test_types_stack_constructor_calls
+        register("struct Foo; end")
+
+        node = visit("Foo()").as(AST::Call)
+        assert_type "Foo", node
+        assert_type "Foo*", node.receiver
+        assert node.constructor?
+        assert_nil node.prototype
+
+        point = register <<-RUNIC
+        struct Point
+          @x : i32
+          @y : i32
+
+          def initialize(x : i32, y : i32)
+            @x = x
+            @y = y
+          end
+        end
+        RUNIC
+
+        node = visit("Point(1, 2)").as(AST::Call)
+        assert_type "Point", node
+        assert_type "Point*", node.receiver
+        assert node.constructor?
+
+        assert_equal node.prototype, point.as(AST::Struct)
+          .method("initialize").as(AST::Function)
+          .prototype
+      end
+
       def test_expands_default_arguments_in_calls
         register("def add(a : i32, b = 0.0); end")
 

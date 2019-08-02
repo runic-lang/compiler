@@ -5,38 +5,50 @@ module Runic
   class Codegen
     def codegen(node : AST::Assignment) : LibC::LLVMValueRef
       lhs = node.lhs
-      rhs = codegen(node.rhs)
 
       unless node.operator == "="
         raise CodegenError.new("unsupported #{lhs.type} #{node.operator} #{node.rhs.type} assignment")
       end
 
-      case lhs
-      when AST::Variable
-        # get or create alloca (stack pointer)
-        alloca = @scope.fetch(lhs.name) do
-          build_alloca(lhs) do |alloca|
-            @debug.auto_variable(lhs, alloca)
-          end
-        end
-      when AST::InstanceVariable
-        alloca = build_ivar(lhs.name)
-      when AST::Dereference
-        case pointee = lhs.pointee
-        when AST::Variable
-          alloca = LibC.LLVMBuildLoad(@builder, @scope.get(pointee.name), "")
+      if (n = node.rhs).is_a?(AST::Call) && n.constructor?
+        # avoid creating a temporary alloca when LHS can be used; this avoids
+        # using 2 allocas + struct copy when initializing a struct on the stack:
+        if alloca = get_or_build_assignment_alloca(lhs)
+          build_stack_constructor(n, alloca)
+          return LibC.LLVMBuildLoad(@builder, alloca, "") # return self
         end
       end
 
-      unless alloca
+      rhs = codegen(node.rhs)
+
+      if alloca = get_or_build_assignment_alloca(lhs)
+        # set value (stack, dereferenced pointer, ...):
+        @debug.emit_location(node)
+        LibC.LLVMBuildStore(@builder, rhs, alloca)
+      else
         raise CodegenError.new("invalid LHS for assignment: #{lhs.class.name}")
       end
 
-      # set value (stack, dereferenced pointer):
-      @debug.emit_location(node)
-      LibC.LLVMBuildStore(@builder, rhs, alloca)
-
       rhs
+    end
+
+    private def get_or_build_assignment_alloca(node : AST::Node) : LibC::LLVMValueRef?
+      case node
+      when AST::Variable
+        # get or create alloca (stack pointer)
+        @scope.fetch(node.name) do
+          build_alloca(node) do |alloca|
+            @debug.auto_variable(node, alloca)
+          end
+        end
+      when AST::InstanceVariable
+        build_ivar(node.name)
+      when AST::Dereference
+        case pointee = node.pointee
+        when AST::Variable
+          LibC.LLVMBuildLoad(@builder, @scope.get(pointee.name), "")
+        end
+      end
     end
 
     def codegen(node : AST::Binary) : LibC::LLVMValueRef
