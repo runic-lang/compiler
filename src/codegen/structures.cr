@@ -14,7 +14,7 @@ module Runic
     end
 
     def codegen(node : AST::InstanceVariable) : LibC::LLVMValueRef
-      LibC.LLVMBuildLoad(@builder, build_ivar(node.name), "@#{node.name}")
+      LibC.LLVMBuildLoad(@builder, build_ivar(node.name), "")
     end
 
     def build_ivar(name : String) : LibC::LLVMValueRef

@@ -17,9 +17,8 @@ module Runic
 
       # parse + analysis + codegen of expression(s)
       parse_each(source) do |node|
-        if node.is_a?(AST::Function)
-          program.register(node)
-        elsif node.is_a?(AST::ConstantDefinition)
+        case node
+        when AST::ConstantDefinition, AST::Function, AST::Struct
           program.register(node)
         else
           main.body << node
