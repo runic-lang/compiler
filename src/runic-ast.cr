@@ -358,8 +358,10 @@ when 1
       Runic::Command::AST.new(io, filename, semantic, location, corelib).run
     rescue error : Runic::SyntaxError
       error.pretty_report(STDERR)
+      exit 1
     rescue error : Runic::SemanticError
       error.pretty_report(STDERR)
+      exit 1
     end
   else
     cli.fatal "no such file or directory '#{filename}'."

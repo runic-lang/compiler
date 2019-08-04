@@ -45,6 +45,8 @@ begin
   rdoc.generate(generator_class.new(output))
 rescue error : Runic::SyntaxError
   error.pretty_report(STDERR)
+  exit 1
 rescue error : Runic::SemanticError
   error.pretty_report(STDERR)
+  exit 1
 end

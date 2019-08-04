@@ -7,7 +7,7 @@ module Runic
       @message
     end
 
-    def pretty_report(io : IO, source = false)
+    def pretty_report(io : IO, source = true)
       io.print "#{self.class.name[7..-1]}: #{original_message}\n".colorize(:yellow).mode(:bold)
       return unless source
 
@@ -15,7 +15,7 @@ module Runic
 
       File.open(location.file) do |source|
         # skip previous lines
-        (location.line - 2).times { source.gets }
+        (location.line - 1).times { source.gets }
 
         # print source line
         prefix = " #{location.line} | "
