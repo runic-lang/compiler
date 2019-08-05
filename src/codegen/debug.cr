@@ -48,7 +48,9 @@ module Runic
       def initialize(@level : DebugLevel)
       end
 
-      abstract def path=(path : String)
+      abstract def path=(value : String)
+      abstract def program=(value : Program)
+      abstract def codegen=(value : Codegen)
       abstract def flush
       abstract def with_lexical_block(lexical_block, &block)
       abstract def create_subprogram(node : AST::Function, func : LibC::LLVMValueRef)
@@ -57,7 +59,13 @@ module Runic
       abstract def emit_location(node : AST::Node)
 
       class NULL < Debug
-        def path=(path : String)
+        def path=(value : String)
+        end
+
+        def program=(value : Program)
+        end
+
+        def codegen=(value : Codegen)
         end
 
         def flush
@@ -82,11 +90,13 @@ module Runic
 
       class DWARF < Debug
         private getter! compile_unit : LibC::LLVMMetadataRef?
-        private getter! file : LibC::LLVMMetadataRef?
+        property! program : Program?
+        property! codegen : Codegen?
 
         def initialize(@module : LibC::LLVMModuleRef, @builder : LibC::LLVMBuilderRef, @context : LibC::LLVMContextRef, @level : DebugLevel, @optimized = false)
           @di_builder = LibC.LLVMCreateDIBuilder(@module)
           @lexical_blocks = [] of LibC::LLVMMetadataRef
+          @structs = {} of String => LibC::LLVMMetadataRef
 
           return if @level.none?
           add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Warning.value, "Debug Info Version", LibC.LLVMDebugMetadataVersion())
@@ -118,13 +128,10 @@ module Runic
         def path=(path)
           producer = "Runic Compiler"
 
-          basename, dirname = File.basename(path), File.dirname(path)
-          @file = LibC.LLVMDIBuilderCreateFile(self, basename, basename.bytesize, dirname, dirname.bytesize)
-
           @compile_unit = LibC.LLVMDIBuilderCreateCompileUnit(
             self,
             DW_LANG_C,
-            file,
+            di_file(path),
             producer,
             producer.bytesize,
             @optimized ? 1 : 0,
@@ -173,7 +180,7 @@ module Runic
             node.name.bytesize,
             node.name,           # mangled symbol
             node.name.bytesize,
-            file,
+            di_file(node.location),
             node.location.line,
             create_function_type(node),
             false,               # true=internal linkage
@@ -185,19 +192,23 @@ module Runic
         end
 
         private def create_function_type(node : AST::Function)
-          types = Array(LibC::LLVMMetadataRef).new(node.args.size + 1)
+          if @level.full?
+            types = Array(LibC::LLVMMetadataRef).new(node.args.size + 1)
 
-          # return type is at index #0
-          if node.type.void?
-            types << LibC::LLVMMetadataRef.null
+            # return type is at index #0
+            if node.type.void?
+              types << LibC::LLVMMetadataRef.null
+            else
+              types << di_type(node.type)
+            end
+
+            # followed by argument types (if any)
+            node.args.each { |arg| types << di_type(arg) }
           else
-            types << di_type(node.type)
+            types = [] of LibC::LLVMMetadataRef
           end
 
-          # followed by argument types (if any)
-          node.args.each { |arg| types << di_type(arg) }
-
-          LibC.LLVMDIBuilderCreateSubroutineType(self, file, types, types.size, LibC::LLVMDIFlags::DIFlagZero)
+          LibC.LLVMDIBuilderCreateSubroutineType(self, di_file(node.location), types, types.size, LibC::LLVMDIFlags::DIFlagZero)
         end
 
         def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
@@ -208,7 +219,7 @@ module Runic
               arg.name,
               arg.name.bytesize,
               arg_no,
-              file,
+              di_file(arg.location),
               arg.location.line,
               di_type(arg),
               1, # AlwaysPreserve
@@ -224,7 +235,7 @@ module Runic
               @lexical_blocks.last? || compile_unit,
               variable.name,
               variable.name.bytesize,
-              file,
+              di_file(variable.location),
               variable.location.line,
               di_type(variable),
               1, # AlwaysPreserve
@@ -250,11 +261,42 @@ module Runic
           )
         end
 
-        private def di_type(node : AST::Node)
+        private def di_file(location : Location)
+          di_file(location.file)
+        end
+
+        private def di_file(path : String)
+          basename = File.basename(path)
+          dirname = File.dirname(path)
+          LibC.LLVMDIBuilderCreateFile(self, basename, basename.bytesize, dirname, dirname.bytesize)
+        end
+
+        private def di_type(node : AST::Struct) : LibC::LLVMMetadataRef
+          @structs[node.name] ||= LibC.LLVMDIBuilderCreateStructType(
+            self,
+            compile_unit,
+            node.name,
+            node.name.bytesize,
+            di_file(node.location),
+            node.location.line,
+            codegen.sizeof(node) * 8,              # SizeInBits
+            0,                                     # AlignInBits
+            LibC::LLVMDIFlags::DIFlagZero,         # Flags
+            nil,                                   # DerivedFrom (?)
+            node.variables.map { |n| di_type(n) }, # Elements
+            node.variables.size,
+            0,                                     # RunTimeLang (optional)
+            nil,                                   # VTableHolder (?)
+            node.name,                             # UniqueId
+            node.name.bytesize
+          )
+        end
+
+        private def di_type(node : AST::Node) : LibC::LLVMMetadataRef
           di_type(node.type)
         end
 
-        private def di_type(type : Type)
+        private def di_type(type : Type) : LibC::LLVMMetadataRef
           if type.pointer?
             LibC.LLVMDIBuilderCreatePointerType(
               self,
@@ -270,8 +312,8 @@ module Runic
           end
         end
 
-        private def di_type(type : String)
-          case type
+        private def di_type(name : String) : LibC::LLVMMetadataRef
+          case name
           when "bool"
             LibC.LLVMDIBuilderCreateBasicType(self, "i1", 2, 1, DW_ATE_boolean, LibC::LLVMDIFlags::DIFlagZero)
           when "f32"
@@ -299,7 +341,11 @@ module Runic
           when "u128"
             LibC.LLVMDIBuilderCreateBasicType(self, "u128", 4, 128, DW_ATE_unsigned, LibC::LLVMDIFlags::DIFlagZero)
           else
-            raise CodegenError.new("unsupported #{type}")
+            if st = program.resolve_type?(name)
+              di_type(st)
+            else
+              raise CodegenError.new("unsupported #{name}")
+            end
           end
         end
 

@@ -23,12 +23,6 @@ module Runic
       @builder = LibC.LLVMCreateBuilderInContext(@context)
       @module = LibC.LLVMModuleCreateWithNameInContext("main", @context)
 
-      if debug.none?
-        @debug = Debug::NULL.new(debug)
-      else
-        @debug = Debug::DWARF.new(@module, @builder, @context, debug, @optimize)
-      end
-
       # custom types (i.e. structs):
       @llvm_types = {} of String => LibC::LLVMTypeRef
 
@@ -40,6 +34,13 @@ module Runic
 
       # name(+index) of current struct ivars:
       @ivars = [] of String
+
+      if debug.none?
+        @debug = Debug::NULL.new(debug)
+      else
+        @debug = Debug::DWARF.new(@module, @builder, @context, debug, @optimize)
+        @debug.codegen = self
+      end
     end
 
     def finalize
@@ -190,6 +191,7 @@ module Runic
 
     def codegen(path : String, program : Program) : Nil
       @debug.path = path
+      @debug.program = program
       program.each { |node| codegen(node) }
     end
 
@@ -282,6 +284,14 @@ module Runic
 
     private def build_llvm_struct(name : String)
       @llvm_types[name] ||= LibC.LLVMStructCreateNamed(@context, "struct.#{name}")
+    end
+
+    protected def sizeof(node : AST::Struct)
+      LibC.LLVMABISizeOfType(target_data, llvm_type(node.name))
+    end
+
+    private def target_data
+      @target_data ||= LibC.LLVMGetModuleDataLayout(@module)
     end
   end
 end
