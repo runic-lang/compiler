@@ -56,6 +56,7 @@ module Runic
       abstract def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
       abstract def auto_variable(variable : AST::Variable, alloca : LibC::LLVMValueRef)
       abstract def emit_location(node : AST::Node)
+      abstract def emit_location(location : Location)
 
       class NULL < Debug
         def path=(value : String)
@@ -84,6 +85,9 @@ module Runic
         end
 
         def emit_location(node : AST::Node)
+        end
+
+        def emit_location(node : Location)
         end
       end
 
@@ -345,10 +349,14 @@ module Runic
         end
 
         def emit_location(node : AST::Node)
+          emit_location(node.location)
+        end
+
+        def emit_location(l : Location)
           location = LibC.LLVMDIBuilderCreateDebugLocation(
             @context,
-            node.location.line,
-            node.location.column,
+            l.line,
+            l.column,
             @lexical_blocks.last? || compile_unit,
             nil)
           LibC.LLVMSetCurrentDebugLocation(@builder, LibC.LLVMMetadataAsValue(@context, location))

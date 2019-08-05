@@ -10,12 +10,27 @@ module Runic
         raise CodegenError.new("unsupported #{lhs.type} #{node.operator} #{node.rhs.type} assignment")
       end
 
-      if (n = node.rhs).is_a?(AST::Call) && n.constructor?
-        # avoid creating a temporary alloca when LHS can be used; this avoids
-        # using 2 allocas + struct copy when initializing a struct on the stack:
-        if alloca = get_or_build_assignment_alloca(lhs)
-          build_stack_constructor(n, alloca)
-          return LibC.LLVMBuildLoad(@builder, alloca, "") # return self
+      # avoid creating a temporary alloca when LHS can be used; this avoids
+      # using 2 allocas + struct copy when initializing a struct on the stack:
+      case n = node.rhs
+      when AST::Call
+        if n.constructor?
+          if alloca = get_or_build_assignment_alloca(lhs)
+            build_stack_constructor(n, alloca)
+            return LibC.LLVMBuildLoad(@builder, alloca, "") # return self
+          end
+        elsif n.type.aggregate?
+          if alloca = get_or_build_assignment_alloca(lhs)
+            build_sret_call(n, alloca)
+            return LibC.LLVMBuildLoad(@builder, alloca, "") # return sret
+          end
+        end
+      when AST::Binary #, AST::Unary
+        if n.type.aggregate?
+          if alloca = get_or_build_assignment_alloca(lhs)
+            build_sret_call(n, alloca)
+            return LibC.LLVMBuildLoad(@builder, alloca, "") # return sret
+          end
         end
       end
 
@@ -82,16 +97,10 @@ module Runic
         else
           unsupported_operation!(node)
         end
+      elsif func = LibC.LLVMGetNamedFunction(@module, method.mangled_name)
+        build_call(func, method.type, [node.lhs, node.rhs], node.location)
       else
-        lhs = codegen(node.lhs)
-        rhs = codegen(node.rhs)
-        @debug.emit_location(node)
-
-        if func = LibC.LLVMGetNamedFunction(@module, method.mangled_name)
-          LibC.LLVMBuildCall(@builder, func, [lhs, rhs], 2, "")
-        else
-          raise CodegenError.new("undefined function '#{method.name}'")
-        end
+        raise CodegenError.new("undefined function '#{method.name}'")
       end
     end
 

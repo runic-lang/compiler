@@ -64,13 +64,22 @@ module Runic
         end
       end
 
-      return_type = llvm_type(node.type)
-      func_type = LibC.LLVMFunctionType(return_type, param_types, param_types.size, 0)
+      return_type =
+        if sret = node.type.aggregate?
+          param_types.unshift(llvm_type("#{node.type.name}*"))
+          llvm_type("void")
+        else
+          llvm_type(node.type)
+        end
 
+      func_type = LibC.LLVMFunctionType(return_type, param_types, param_types.size, 0)
       func = LibC.LLVMAddFunction(@module, name, func_type)
 
+      if sret
+        LibC.LLVMAddAttributeAtIndex(func, 1, attribute_ref("sret"))
+      end
       byval.each do |arg_no|
-        LibC.LLVMAddAttributeAtIndex(func, 1 + arg_no, attribute_ref("byval"))
+        LibC.LLVMAddAttributeAtIndex(func, (sret ? 2 : 1) + arg_no, attribute_ref("byval"))
       end
 
       func
@@ -81,7 +90,12 @@ module Runic
 
       # bind func params as named variables
       @scope.push(:function) do
+        if node.type.aggregate?
+          sret = LibC.LLVMGetParam(func, 0)
+        end
+
         node.args.each_with_index do |arg, arg_no|
+          arg_no += 1 if sret
           @debug.emit_location(arg)
 
           if arg.type.aggregate?
@@ -110,6 +124,9 @@ module Runic
 
         if !ret || node.void?
           LibC.LLVMBuildRetVoid(@builder)
+        elsif sret
+          LibC.LLVMBuildStore(@builder, ret, sret)
+          LibC.LLVMBuildRetVoid(@builder)
         else
           LibC.LLVMBuildRet(@builder, ret)
         end
@@ -120,42 +137,8 @@ module Runic
       if node.constructor?
         _, alloca = build_stack_constructor(node)
         LibC.LLVMBuildLoad(@builder, alloca, "") # return self
-
       elsif func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
-        byval = [] of Int32
-
-        args = node.args.map_with_index do |arg, arg_no|
-          value = codegen(arg)
-
-          if arg.type.aggregate?
-            byval << arg_no
-
-            # pass an existing alloca if possible
-            case arg
-            when AST::Variable
-              @scope.get(arg.name) ||
-                raise CodegenError.new("using variable before definition: #{arg.name}")
-            when AST::InstanceVariable
-              build_ivar(arg.name)
-            else
-              # must store the value on the stack to pass it byval
-              alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(arg.type), "")
-              LibC.LLVMBuildStore(@builder, value, alloca)
-              alloca
-            end
-          else
-            # pass basic type directly (fits in register)
-            value
-          end
-        end
-
-        call = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
-
-        byval.each do |arg_no|
-          LibC.LLVMAddCallSiteAttribute(call, 1 + arg_no, attribute_ref("byval"))
-        end
-
-        call
+        build_call(func, node.type, node.args, node.location)
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
       end
@@ -171,11 +154,85 @@ module Runic
         end
       end
 
+      @debug.emit_location(node)
+
       if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
         value = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
         {value, args.first}
       else
         {llvm_void_value, args.first}
+      end
+    end
+
+    protected def build_sret_call(node : AST::Call, sret : LibC::LLVMValueRef)
+      if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+        build_call(func, node.type, node.args, node.location, sret)
+      else
+        raise CodegenError.new("undefined function '#{node.callee}'")
+      end
+    end
+
+    protected def build_sret_call(node : AST::Binary, sret : LibC::LLVMValueRef)
+      if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
+        build_call(func, node.method.type, [node.lhs, node.rhs], node.location, sret)
+      else
+        raise CodegenError.new("undefined function '#{node.method.name}'")
+      end
+    end
+
+    #protected def build_sret_call(node : AST::Unary, sret : LibC::LLVMValueRef)
+    #  if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
+    #    build_call(func, node.method.type, [node.lhs], node.location, sret)
+    #  else
+    #    raise CodegenError.new("undefined function '#{node.method.name}'")
+    #  end
+    #end
+
+    protected def build_call(func : LibC::LLVMValueRef, type : Type, args : Array(AST::Node), location : Location, sret : LibC::LLVMValueRef? = nil)
+      byval = [] of Int32
+
+      args = args.map_with_index do |arg, arg_no|
+        value = codegen(arg)
+
+        if arg.type.aggregate?
+          byval << arg_no
+
+          # pass an existing alloca if possible
+          case arg
+          when AST::Variable
+            @scope.get(arg.name) ||
+              raise CodegenError.new("using variable before definition: #{arg.name}")
+          when AST::InstanceVariable
+            build_ivar(arg.name)
+          else
+            # must store the value on the stack to pass it byval
+            alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(arg.type), "")
+            LibC.LLVMBuildStore(@builder, value, alloca)
+            alloca
+          end
+        else
+          # pass basic type directly (fits in register)
+          value
+        end
+      end
+
+      if type.aggregate?
+        sret ||= LibC.LLVMBuildAlloca(@builder, llvm_type(type), "")
+        args.unshift(sret)
+      end
+
+      @debug.emit_location(location)
+      call = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+
+      byval.each do |arg_no|
+        LibC.LLVMAddCallSiteAttribute(call, (sret ? 2 : 1) + arg_no, attribute_ref("byval"))
+      end
+
+      if sret
+        LibC.LLVMAddCallSiteAttribute(call, 1, attribute_ref("sret"))
+        LibC.LLVMBuildLoad(@builder, sret, "")
+      else
+        call
       end
     end
 
