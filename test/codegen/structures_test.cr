@@ -26,4 +26,31 @@ class Runic::Codegen::StructuresTest < Runic::CodegenTest
     a.x + b.y
     RUNIC
   end
+
+  def test_byval
+    assert_equal 0, execute(<<-RUNIC)
+    struct Foo
+      @value : i32
+
+      def initialize(value : i32)
+        @value = value
+      end
+
+      def value
+        @value
+      end
+    end
+
+    def get(foo : Foo) : i32
+      foo.value
+    end
+
+    foo = Foo(0)
+    get(foo)
+    RUNIC
+  end
+
+  def test_sret
+    skip
+  end
 end

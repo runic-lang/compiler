@@ -36,7 +36,7 @@ module Runic
     end
 
     def primitive?
-      void? || bool? || integer? || unsigned? || float?
+      void? || bool? || number?
     end
 
     def void?
@@ -74,6 +74,10 @@ module Runic
     def pointee_type
       raise "BUG: #{self} isn't a pointer type!" unless pointer?
       Type.new(name[0..-2])
+    end
+
+    def aggregate?
+      !primitive? && !pointer?
     end
 
     def to_s(io : IO)

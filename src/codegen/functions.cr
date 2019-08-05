@@ -53,10 +53,27 @@ module Runic
     end
 
     protected def llvm_function(node : AST::Prototype, name : String) : LibC::LLVMValueRef
-      param_types = node.args.map { |arg| llvm_type(arg) }
+      byval = [] of Int32
+
+      param_types = node.args.map_with_index do |arg, arg_no|
+        if arg.type.aggregate?
+          byval << arg_no
+          llvm_type("#{arg.type.name}*")
+        else
+          llvm_type(arg)
+        end
+      end
+
       return_type = llvm_type(node.type)
       func_type = LibC.LLVMFunctionType(return_type, param_types, param_types.size, 0)
-      LibC.LLVMAddFunction(@module, name, func_type)
+
+      func = LibC.LLVMAddFunction(@module, name, func_type)
+
+      byval.each do |arg_no|
+        LibC.LLVMAddAttributeAtIndex(func, 1 + arg_no, attribute_ref("byval"))
+      end
+
+      func
     end
 
     private def codegen_function_body(node : AST::Function, func : LibC::LLVMValueRef)
@@ -67,15 +84,18 @@ module Runic
         node.args.each_with_index do |arg, arg_no|
           @debug.emit_location(arg)
 
-          # create alloca (stack pointer)
-          param = LibC.LLVMGetParam(func, arg_no)
-
-          alloca = build_alloca(arg) do |alloca|
-            @debug.parameter_variable(arg, arg_no, alloca)
+          if arg.type.aggregate?
+            # arg is passed byval (use it directly):
+            alloca = LibC.LLVMGetParam(func, arg_no)
+          else
+            # create alloca (stack pointer) and store value:
+            param = LibC.LLVMGetParam(func, arg_no)
+            alloca = build_alloca(arg)
+            LibC.LLVMBuildStore(@builder, param, alloca)
           end
 
-          # store initial value (on stack)
-          LibC.LLVMBuildStore(@builder, param, alloca)
+          # debug info
+          @debug.parameter_variable(arg, arg_no, alloca)
 
           # remember symbol
           @scope.set(arg.name, alloca)
@@ -100,9 +120,42 @@ module Runic
       if node.constructor?
         _, alloca = build_stack_constructor(node)
         LibC.LLVMBuildLoad(@builder, alloca, "") # return self
+
       elsif func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
-        args = node.args.map { |arg| codegen(arg) }
-        LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+        byval = [] of Int32
+
+        args = node.args.map_with_index do |arg, arg_no|
+          value = codegen(arg)
+
+          if arg.type.aggregate?
+            byval << arg_no
+
+            # pass an existing alloca if possible
+            case arg
+            when AST::Variable
+              @scope.get(arg.name) ||
+                raise CodegenError.new("using variable before definition: #{arg.name}")
+            when AST::InstanceVariable
+              build_ivar(arg.name)
+            else
+              # must store the value on the stack to pass it byval
+              alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(arg.type), "")
+              LibC.LLVMBuildStore(@builder, value, alloca)
+              alloca
+            end
+          else
+            # pass basic type directly (fits in register)
+            value
+          end
+        end
+
+        call = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+
+        byval.each do |arg_no|
+          LibC.LLVMAddCallSiteAttribute(call, 1 + arg_no, attribute_ref("byval"))
+        end
+
+        call
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
       end
