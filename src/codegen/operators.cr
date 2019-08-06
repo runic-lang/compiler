@@ -100,7 +100,7 @@ module Runic
           unsupported_operation!(node)
         end
       elsif func = LibC.LLVMGetNamedFunction(@module, method.mangled_name)
-        build_call(func, method.type, [node.lhs, node.rhs], node.location)
+        build_call(func, method.type, node.lhs, [node.rhs], node.location)
       else
         raise CodegenError.new("undefined function '#{method.name}'")
       end

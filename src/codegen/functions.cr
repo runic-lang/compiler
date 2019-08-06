@@ -68,7 +68,6 @@ module Runic
       return_type =
         if sret = node.type.aggregate?
           # TODO: return as integer if the struct fits in a register (data_layout.native_integers.max)
-
           param_types.unshift(llvm_type("#{node.type.name}*"))
           llvm_type("void")
         else
@@ -95,12 +94,21 @@ module Runic
       @scope.push(:function) do
         if node.type.aggregate?
           # TODO: unless the struct fits in a register (data_layout.native_integers.max)
+
+          # the function returns a struca which may not fit inside a register,
+          # so we pass a pointer to a caller stack allocated struct (sret) as
+          # the first argument to the function
           sret = LibC.LLVMGetParam(func, 0)
+          @debug.sret_variable(sret, Type.new("#{node.type.name}*"), node.location)
         end
 
+        # then we declare all arguments to the function:
         node.args.each_with_index do |arg, arg_no|
-          arg_no += 1 if sret
           @debug.emit_location(arg)
+
+          if sret
+            arg_no += 1
+          end
 
           if arg.type.aggregate?
             # TODO: bitcast from integer if the struct fits in a register (data_layout.native_integers.max)
@@ -108,16 +116,17 @@ module Runic
             # arg is passed byval (use it directly):
             alloca = LibC.LLVMGetParam(func, arg_no)
           else
-            # create alloca (stack pointer) and store value:
+            # create alloca (stack pointer) to store the param value (it will be
+            # optimized by LLVM if possible):
             param = LibC.LLVMGetParam(func, arg_no)
             alloca = build_alloca(arg)
             LibC.LLVMBuildStore(@builder, param, alloca)
           end
 
-          # debug info
+          # declare debug info
           @debug.parameter_variable(arg, arg_no, alloca)
 
-          # remember symbol
+          # remember variable
           @scope.set(arg.name, alloca)
         end
 
@@ -131,7 +140,11 @@ module Runic
         if !ret || node.void?
           LibC.LLVMBuildRetVoid(@builder)
         elsif sret
-          # TODO: unless the struct fits in a register (data_layout.native_integers.max)
+          # TODO: avoid the eventual copy by using the sret variable directly in
+          #       the function body (?) for example by having the semantic
+          #       analysis determine which variable is eventually returned, and
+          #       in case of returning an expression, use a temporary variable
+          #       (to identify as sret).
           LibC.LLVMBuildStore(@builder, ret, sret)
           LibC.LLVMBuildRetVoid(@builder)
         else
@@ -145,7 +158,7 @@ module Runic
         _, alloca = build_stack_constructor(node)
         LibC.LLVMBuildLoad(@builder, alloca, "") # return self
       elsif func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
-        build_call(func, node.type, node.args, node.location)
+        build_call(func, node.type, nil, node.args, node.location)
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
       end
@@ -173,7 +186,7 @@ module Runic
 
     protected def build_sret_call(node : AST::Call, sret : LibC::LLVMValueRef)
       if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
-        build_call(func, node.type, node.args, node.location, sret)
+        build_call(func, node.type, nil, node.args, node.location, sret)
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
       end
@@ -181,7 +194,7 @@ module Runic
 
     protected def build_sret_call(node : AST::Binary, sret : LibC::LLVMValueRef)
       if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
-        build_call(func, node.method.type, [node.lhs, node.rhs], node.location, sret)
+        build_call(func, node.method.type, node.lhs, [node.rhs], node.location, sret)
       else
         raise CodegenError.new("undefined function '#{node.method.name}'")
       end
@@ -189,57 +202,80 @@ module Runic
 
     #protected def build_sret_call(node : AST::Unary, sret : LibC::LLVMValueRef)
     #  if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
-    #    build_call(func, node.method.type, [node.lhs], node.location, sret)
+    #    build_call(func, node.method.type, node.lhs, [] of AST::Node, node.location, sret)
     #  else
     #    raise CodegenError.new("undefined function '#{node.method.name}'")
     #  end
     #end
 
-    protected def build_call(func : LibC::LLVMValueRef, type : Type, args : Array(AST::Node), location : Location, sret : LibC::LLVMValueRef? = nil)
+    protected def build_call(func : LibC::LLVMValueRef, type : Type, receiver : AST::Node?, args : Array(AST::Node), location : Location, sret : LibC::LLVMValueRef? = nil)
+      params = Array(LibC::LLVMValueRef).new(args.size + (receiver ? 1 : 0))
       byval = [] of Int32
 
-      args = args.map_with_index do |arg, arg_no|
+      if receiver
+        # inject receiver as first argument (self), this should only happen for
+        # custom binary/unary operator methods on non-primitive types; remember
+        # that 'self' is always passed by reference:
+        if receiver.primitive? || receiver.is_a?(AST::Reference)
+          params << codegen(receiver)
+        else
+          params << codegen(AST::Reference.new(receiver, receiver.location))
+        end
+      end
+
+      args.each_with_index do |arg, arg_no|
         value = codegen(arg)
 
         if arg.type.aggregate?
           # TODO: bitcast as integer if the struct fits in a register (data_layout.native_integers.max)
-          byval << arg_no
 
-          # pass an existing alloca if possible
+          # collect struct argument that must be passed byval:
+          byval << arg_no + (receiver ? 1 : 0)
+
+          # try to pass an existing alloca if we know about it...
           case arg
           when AST::Variable
-            @scope.get(arg.name) ||
+            if alloca = @scope.get(arg.name)
+              params << alloca
+            else
               raise CodegenError.new("using variable before definition: #{arg.name}")
+            end
           when AST::InstanceVariable
-            build_ivar(arg.name)
+            params << build_ivar(arg.name)
           else
-            # must store the value on the stack to pass it byval
+            # failed: we must store the value on the stack to pass it byval
             alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(arg.type), "")
             LibC.LLVMBuildStore(@builder, value, alloca)
-            alloca
+            params << alloca
           end
         else
-          # pass basic type directly (fits in register)
-          value
+          # pass basic/primitive type directly (it fits in a register)
+          params << value
         end
       end
 
       if type.aggregate?
         # TODO: bitcast as integer if the struct fits in a register (data_layout.native_integers.max)
 
+        # pass returned struct value... as the first argument (sret) which is a
+        # pointer to the caller stack allocated struct:
         sret ||= LibC.LLVMBuildAlloca(@builder, llvm_type(type), "")
-        args.unshift(sret)
+        params.unshift(sret)
       end
 
+      # finally, we can codegen the call:
       @debug.emit_location(location)
-      call = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
+      call = LibC.LLVMBuildCall(@builder, func, params, params.size, "")
 
+      # and set the sret/byval attributes:
       byval.each do |arg_no|
         LibC.LLVMAddCallSiteAttribute(call, (sret ? 2 : 1) + arg_no, attribute_ref("byval"))
       end
 
       if sret
         LibC.LLVMAddCallSiteAttribute(call, 1, attribute_ref("sret"))
+
+        # the call returns 'void', so the call result is actually 'sret':
         LibC.LLVMBuildLoad(@builder, sret, "")
       else
         call

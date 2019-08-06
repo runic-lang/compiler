@@ -54,6 +54,7 @@ module Runic
       abstract def with_lexical_block(lexical_block, &block)
       abstract def create_subprogram(node : AST::Function, func : LibC::LLVMValueRef)
       abstract def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
+      abstract def sret_variable(sret : LibC::LLVMValueRef, type : Type, location : Location)
       abstract def auto_variable(variable : AST::Variable, alloca : LibC::LLVMValueRef)
       abstract def emit_location(node : AST::Node)
       abstract def emit_location(location : Location)
@@ -76,6 +77,9 @@ module Runic
         end
 
         def create_subprogram(node : AST::Function, func : LibC::LLVMValueRef)
+        end
+
+        def sret_variable(sret : LibC::LLVMValueRef, type : Type, location : Location)
         end
 
         def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
@@ -213,6 +217,25 @@ module Runic
           end
 
           LibC.LLVMDIBuilderCreateSubroutineType(self, di_file(node.location), types, types.size, LibC::LLVMDIFlags::DIFlagZero)
+        end
+
+        # FIXME: that shouldn't exist but be an actual variable (anonymous or
+        #        explicit) whose alloca is the sret parameter
+        def sret_variable(sret : LibC::LLVMValueRef, type : Type, location : Location)
+          insert_declare_at_end(sret) do
+            LibC.LLVMDIBuilderCreateAutoVariable(
+              self,
+              @lexical_blocks.last? || compile_unit,
+              "sret",
+              "sret".bytesize,
+              di_file(location),
+              location.line,
+              di_type(type),
+              1, # AlwaysPreserve
+              LibC::LLVMDIFlags::DIFlagZero,
+              0  # AlignInBits
+            )
+          end
         end
 
         def parameter_variable(arg : AST::Variable, arg_no : Int32, alloca : LibC::LLVMValueRef)
