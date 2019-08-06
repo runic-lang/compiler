@@ -10,6 +10,11 @@ module Runic
         raise CodegenError.new("unsupported #{lhs.type} #{node.operator} #{node.rhs.type} assignment")
       end
 
+      if node.lhs.is_a?(AST::Call)
+        # assignment is a setter call:
+        return codegen(node.lhs)
+      end
+
       # avoid creating a temporary alloca when LHS can be used; this avoids
       # using 2 allocas + struct copy when initializing a struct on the stack:
       case n = node.rhs

@@ -111,4 +111,28 @@ class Runic::Codegen::StructuresTest < Runic::CodegenTest
     c.x + c.y + c.z
     RUNIC
   end
+
+  def test_setter_methods
+    assert_equal 321, execute(<<-RUNIC)
+    struct Bar
+      @value : i32
+
+      def initialize(value : i32)
+        @value = value
+      end
+
+      def value
+        @value
+      end
+
+      def value=(value : i32)
+        @value = value
+      end
+    end
+
+    bar = Bar(123)
+    bar.value = 321
+    bar.value
+    RUNIC
+  end
 end

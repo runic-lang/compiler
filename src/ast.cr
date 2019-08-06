@@ -594,7 +594,7 @@ module Runic
 
     class Call < Node
       property receiver : Node?
-      getter callee : String
+      property callee : String
       getter args : Array(Node)
       getter kwargs : Hash(String, Node)
       property prototype : Prototype?

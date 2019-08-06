@@ -166,6 +166,10 @@ module Runic
           else
             raise SemanticError.new("can't assign #{node.rhs.type} to #{lhs.pointee.type}", node.location)
           end
+        when AST::Call
+          lhs.callee = "#{lhs.callee}="
+          lhs.args << node.rhs
+          visit(lhs)
         else
           raise SemanticError.new("invalid assignment: only variables, instance variables and constants may be assigned a value", lhs.location)
         end

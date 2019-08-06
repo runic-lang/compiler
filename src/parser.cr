@@ -403,7 +403,7 @@ module Runic
           # TODO: detect whether we are in a dynamic context to forbid constant definitions
           loop do
             case lhs
-            when AST::Variable, AST::InstanceVariable
+            when AST::Call, AST::Variable, AST::InstanceVariable
               break
             when AST::Dereference
               case lhs.pointee
