@@ -276,24 +276,43 @@ module Runic
         end
 
         private def di_type(node : AST::Struct) : LibC::LLVMMetadataRef
-          @structs[node.name] ||= LibC.LLVMDIBuilderCreateStructType(
-            self,
-            compile_unit,
-            node.name,
-            node.name.bytesize,
-            di_file(node.location),
-            node.location.line,
-            codegen.sizeof(node) * 8,              # SizeInBits
-            0,                                     # AlignInBits
-            LibC::LLVMDIFlags::DIFlagZero,         # Flags
-            nil,                                   # DerivedFrom (?)
-            node.variables.map { |n| di_type(n) }, # Elements
-            node.variables.size,
-            0,                                     # RunTimeLang (optional)
-            nil,                                   # VTableHolder (?)
-            node.name,                             # UniqueId
-            node.name.bytesize
-          )
+          @structs[node.name] ||=
+            begin
+              elements = node.variables.map do |ivar|
+                LibC.LLVMDIBuilderCreateMemberType(
+                  self,
+                  @lexical_blocks.last? || compile_unit, # Scope
+                  ivar.name,                             # Name
+                  ivar.name.bytesize,                    # NameLen
+                  di_file(ivar.location),                # File
+                  ivar.location.line,                    # LineNo
+                  codegen.sizeof(ivar) * 8,              # SizeInBits
+                  0,                                     # AlignInBits
+                  codegen.offsetof(node, ivar) * 8,      # OffsetInBits
+                  LibC::LLVMDIFlags::DIFlagZero,         # Flags
+                  di_type(ivar.type)
+                )
+              end
+
+              LibC.LLVMDIBuilderCreateStructType(
+                self,
+                compile_unit,
+                node.name,
+                node.name.bytesize,
+                di_file(node.location),
+                node.location.line,
+                codegen.sizeof(node) * 8,       # SizeInBits
+                0,                              # AlignInBits
+                LibC::LLVMDIFlags::DIFlagZero,  # Flags
+                nil,                            # DerivedFrom (?)
+                elements,                       # Elements
+                elements.size,
+                0,                              # RunTimeLang (optional)
+                nil,                            # VTableHolder (?)
+                node.name,                      # UniqueId
+                node.name.bytesize
+              )
+            end
         end
 
         private def di_type(node : AST::Node) : LibC::LLVMMetadataRef

@@ -301,8 +301,35 @@ module Runic
       @llvm_types[name] ||= LibC.LLVMStructCreateNamed(@context, "struct.#{name}")
     end
 
+
     protected def sizeof(node : AST::Struct)
       LibC.LLVMABISizeOfType(target_data, llvm_type(node.name))
+    end
+
+    protected def sizeof(node : AST::Node)
+      LibC.LLVMABISizeOfType(target_data, llvm_type(node.type))
+    end
+
+    #protected def alignment(node : AST::Struct)
+    #  LibC.LLVMABIAlignmentOfType(target_data, llvm_type(node.name))
+    #end
+
+    #protected def alignment(node : AST::Node)
+    #  LibC.LLVMABIAlignmentOfType(target_data, llvm_type(node.type))
+    #end
+
+    protected def offsetof(node : AST::Struct, ivar : AST::InstanceVariable)
+      index = -1
+
+      node.variables.each_with_index do |v, i|
+        index = i if v.name == ivar.name
+      end
+
+      if index == -1
+        raise CodegenError.new("can't take offsetof of unknown instance variable '@#{ivar.name}' for struct #{node.name}")
+      end
+
+      LibC.LLVMOffsetOfElement(target_data, llvm_type(node.name), index)
     end
   end
 end
