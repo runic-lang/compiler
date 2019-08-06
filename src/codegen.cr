@@ -5,6 +5,7 @@ require "./codegen/literals"
 require "./codegen/operators"
 require "./codegen/pointers"
 require "./codegen/structures"
+require "./data_layout"
 require "./llvm"
 require "./errors"
 require "./scope"
@@ -59,12 +60,22 @@ module Runic
     end
 
 
+    def data_layout
+      @data_layout ||= DataLayout.from(@module)
+    end
+
     def data_layout=(layout)
+      @data_layout = @target_data = nil
       LibC.LLVMSetModuleDataLayout(@module, layout)
     end
 
     def target_triple=(triple)
+      @data_layout = @target_data = nil
       LibC.LLVMSetTarget(@module, triple)
+    end
+
+    private def target_data
+      @target_data ||= LibC.LLVMGetModuleDataLayout(@module)
     end
 
 
@@ -288,10 +299,6 @@ module Runic
 
     protected def sizeof(node : AST::Struct)
       LibC.LLVMABISizeOfType(target_data, llvm_type(node.name))
-    end
-
-    private def target_data
-      @target_data ||= LibC.LLVMGetModuleDataLayout(@module)
     end
   end
 end

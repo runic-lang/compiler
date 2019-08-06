@@ -1,6 +1,5 @@
 require "../codegen"
 require "../c/llvm/debug_info"
-require "../data_layout"
 
 module Runic
   DW_LANG_C = LibC::LLVMDWARFSourceLanguage.new(0x0001)
@@ -119,10 +118,6 @@ module Runic
           end.to_a
           metadata = LibC.LLVMMDNodeInContext(@context, refs, refs.size)
           LibC.LLVMAddNamedMetadataOperand(@module, name, metadata)
-        end
-
-        private def data_layout
-          @data_layout ||= DataLayout.from(@module)
         end
 
         def path=(path)
@@ -301,9 +296,9 @@ module Runic
             LibC.LLVMDIBuilderCreatePointerType(
               self,
               di_type(type.pointee_type),
-              data_layout.pointer_size_in_bits, # SizeInBits
-              0,                                # AlignInBits (optional)
-              0,                                # AddressSpace (optional)
+              codegen.data_layout.pointer_size_in_bits, # SizeInBits
+              0,                                        # AlignInBits (optional)
+              0,                                        # AddressSpace (optional)
               type.name,
               type.name.bytesize
             )
