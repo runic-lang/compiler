@@ -57,6 +57,7 @@ module Runic
 
       param_types = node.args.map_with_index do |arg, arg_no|
         if arg.type.aggregate?
+          # TODO: pass as integer if the struct fits in a register (data_layout.native_integers.max)
           byval << arg_no
           llvm_type("#{arg.type.name}*")
         else
@@ -66,6 +67,8 @@ module Runic
 
       return_type =
         if sret = node.type.aggregate?
+          # TODO: return as integer if the struct fits in a register (data_layout.native_integers.max)
+
           param_types.unshift(llvm_type("#{node.type.name}*"))
           llvm_type("void")
         else
@@ -91,6 +94,7 @@ module Runic
       # bind func params as named variables
       @scope.push(:function) do
         if node.type.aggregate?
+          # TODO: unless the struct fits in a register (data_layout.native_integers.max)
           sret = LibC.LLVMGetParam(func, 0)
         end
 
@@ -99,6 +103,8 @@ module Runic
           @debug.emit_location(arg)
 
           if arg.type.aggregate?
+            # TODO: bitcast from integer if the struct fits in a register (data_layout.native_integers.max)
+
             # arg is passed byval (use it directly):
             alloca = LibC.LLVMGetParam(func, arg_no)
           else
@@ -125,6 +131,7 @@ module Runic
         if !ret || node.void?
           LibC.LLVMBuildRetVoid(@builder)
         elsif sret
+          # TODO: unless the struct fits in a register (data_layout.native_integers.max)
           LibC.LLVMBuildStore(@builder, ret, sret)
           LibC.LLVMBuildRetVoid(@builder)
         else
@@ -195,6 +202,7 @@ module Runic
         value = codegen(arg)
 
         if arg.type.aggregate?
+          # TODO: bitcast as integer if the struct fits in a register (data_layout.native_integers.max)
           byval << arg_no
 
           # pass an existing alloca if possible
@@ -217,6 +225,8 @@ module Runic
       end
 
       if type.aggregate?
+        # TODO: bitcast as integer if the struct fits in a register (data_layout.native_integers.max)
+
         sret ||= LibC.LLVMBuildAlloca(@builder, llvm_type(type), "")
         args.unshift(sret)
       end

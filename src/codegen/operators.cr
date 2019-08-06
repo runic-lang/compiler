@@ -20,6 +20,7 @@ module Runic
             return LibC.LLVMBuildLoad(@builder, alloca, "") # return self
           end
         elsif n.type.aggregate?
+          # TODO: unless the struct fits in a register (data_layout.native_integers.max)
           if alloca = get_or_build_assignment_alloca(lhs)
             build_sret_call(n, alloca)
             return LibC.LLVMBuildLoad(@builder, alloca, "") # return sret
@@ -27,6 +28,7 @@ module Runic
         end
       when AST::Binary #, AST::Unary
         if n.type.aggregate?
+          # TODO: unless the struct fits in a register (data_layout.native_integers.max)
           if alloca = get_or_build_assignment_alloca(lhs)
             build_sret_call(n, alloca)
             return LibC.LLVMBuildLoad(@builder, alloca, "") # return sret
