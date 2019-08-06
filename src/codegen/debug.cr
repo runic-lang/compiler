@@ -102,11 +102,13 @@ module Runic
           @structs = {} of String => LibC::LLVMMetadataRef
 
           return if @level.none?
-          add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Warning.value, "Debug Info Version", LibC.LLVMDebugMetadataVersion())
+          add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Require.value, "Debug Info Version", LibC.LLVMDebugMetadataVersion())
 
-          # if darwin || android
-          #  add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Warning, "Dwarf Version", 2)
-          # end
+          #if darwin || android
+          #  add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Require.value, "Dwarf Version", 2)
+          #else
+            add_metadata("llvm.module.flags", LibC::LLVMModuleFlagBehavior::Require.value, "Dwarf Version", 4)
+          #end
         end
 
         private def add_metadata(name, *values)
@@ -172,37 +174,40 @@ module Runic
           flags = LibC::LLVMDIFlags::DIFlagPrototyped
           flags |= LibC::LLVMDIFlags::DIFlagMainSubprogram if node.name == "main"
 
-          LibC.LLVMDIBuilderCreateFunction(
+          subprogram = LibC.LLVMDIBuilderCreateFunction(
             self,
-            @lexical_blocks.last? || compile_unit, # scope
-            node.name,           # internal name
+            @lexical_blocks.last? || compile_unit, # scope   FIXME: ends up null?
+            node.name,                             # internal name
             node.name.bytesize,
-            node.name,           # mangled symbol
-            node.name.bytesize,
+            node.mangled_name,                     # mangled symbol
+            node.mangled_name.bytesize,
             di_file(node.location),
             node.location.line,
             create_function_type(node),
-            false,               # true=internal linkage
-            true,                # definition
+            false,                                 # true=internal linkage
+            true,                                  # definition
             node.location.line,
             flags,
             @optimized ? 1: 0
           )
+          LibC.LLVMSetSubprogram(func, subprogram)
+
+          subprogram
         end
 
         private def create_function_type(node : AST::Function)
           if @level.full?
             types = Array(LibC::LLVMMetadataRef).new(node.args.size + 1)
 
-            # return type is at index #0
-            if node.type.void?
-              types << LibC::LLVMMetadataRef.null
-            else
-              types << di_type(node.type)
+            if node.type.aggregate?
+              # TODO: unless the struct fits in a register
+              types << di_type(node.type) # sret
             end
 
             # followed by argument types (if any)
-            node.args.each { |arg| types << di_type(arg) }
+            node.args.each do |arg|
+              types << di_type(arg)
+            end
           else
             types = [] of LibC::LLVMMetadataRef
           end
@@ -239,7 +244,7 @@ module Runic
               di_type(variable),
               1, # AlwaysPreserve
               LibC::LLVMDIFlags::DIFlagZero,
-              0 # AlignInBits
+              0  # AlignInBits
             )
           end
         end
