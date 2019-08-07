@@ -520,7 +520,7 @@ module Runic
         @type = Type.new(type) if type
       end
 
-      def mangled_name
+      def symbol_name
         if @mangle
           Mangler.mangle(self)
         else
@@ -571,8 +571,8 @@ module Runic
         prototype.original_name
       end
 
-      def mangled_name
-        prototype.mangled_name
+      def symbol_name
+        prototype.symbol_name
       end
 
       def args
@@ -611,8 +611,8 @@ module Runic
         # can't be determined (need semantic analysis)
       end
 
-      def mangled_callee
-        @prototype.not_nil!.mangled_name
+      def symbol_name
+        @prototype.not_nil!.symbol_name
       end
 
       def to_s(io : IO)

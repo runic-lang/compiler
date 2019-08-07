@@ -21,7 +21,7 @@ module Runic
         end
       end
 
-      func = llvm_function(node.prototype, node.mangled_name)
+      func = llvm_function(node.prototype, node.symbol_name)
 
       if node.attribute?("primitive") || node.attribute?("inline")
         LibC.LLVMAddAttributeAtIndex(func, LibC::LLVMAttributeFunctionIndex, attribute_ref("alwaysinline"))
@@ -157,7 +157,7 @@ module Runic
       if node.constructor?
         _, alloca = build_stack_constructor(node)
         LibC.LLVMBuildLoad(@builder, alloca, "") # return self
-      elsif func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+      elsif func = LibC.LLVMGetNamedFunction(@module, node.symbol_name)
         build_call(func, node.type, nil, node.args, node.location)
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
@@ -176,7 +176,7 @@ module Runic
 
       @debug.emit_location(node)
 
-      if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+      if func = LibC.LLVMGetNamedFunction(@module, node.symbol_name)
         value = LibC.LLVMBuildCall(@builder, func, args, args.size, "")
         {value, args.first}
       else
@@ -185,7 +185,7 @@ module Runic
     end
 
     protected def build_sret_call(node : AST::Call, sret : LibC::LLVMValueRef)
-      if func = LibC.LLVMGetNamedFunction(@module, node.mangled_callee)
+      if func = LibC.LLVMGetNamedFunction(@module, node.symbol_name)
         build_call(func, node.type, nil, node.args, node.location, sret)
       else
         raise CodegenError.new("undefined function '#{node.callee}'")
@@ -193,7 +193,7 @@ module Runic
     end
 
     protected def build_sret_call(node : AST::Binary, sret : LibC::LLVMValueRef)
-      if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
+      if func = LibC.LLVMGetNamedFunction(@module, node.method.symbol_name)
         build_call(func, node.method.type, node.lhs, [node.rhs], node.location, sret)
       else
         raise CodegenError.new("undefined function '#{node.method.name}'")
@@ -201,7 +201,7 @@ module Runic
     end
 
     #protected def build_sret_call(node : AST::Unary, sret : LibC::LLVMValueRef)
-    #  if func = LibC.LLVMGetNamedFunction(@module, node.method.mangled_name)
+    #  if func = LibC.LLVMGetNamedFunction(@module, node.method.symbol_name)
     #    build_call(func, node.method.type, node.lhs, [] of AST::Node, node.location, sret)
     #  else
     #    raise CodegenError.new("undefined function '#{node.method.name}'")

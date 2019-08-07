@@ -183,8 +183,8 @@ module Runic
             @lexical_blocks.last? || compile_unit, # scope   FIXME: ends up null?
             node.name,                             # internal name
             node.name.bytesize,
-            node.mangled_name,                     # mangled symbol
-            node.mangled_name.bytesize,
+            node.symbol_name,                      # symbol (mangled or not)
+            node.symbol_name.bytesize,
             di_file(node.location),
             node.location.line,
             create_function_type(node),
