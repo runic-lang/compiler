@@ -21,11 +21,11 @@ class Runic::Codegen::LiteralsTest < Runic::CodegenTest
   end
 
   def test_strings
+    assert_equal "lorem ipsum", execute(%["lorem ipsum"])
+
     ptr = execute(%[a = "hello world"; a.to_unsafe])
     flunk unless ptr.is_a?(UInt8*)
     assert_equal "hello world".bytes.to_unsafe.to_slice(11), ptr.to_slice(11)
-
-    p execute(%["lorem ipsum"])
   end
 
   def test_constant_definition
