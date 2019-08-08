@@ -13,7 +13,16 @@ module Runic
       when AST::Alloca
         codegen(node.pointee)
       else
-        raise "BUG: unknown reference pointee #{pointee.class.name} (only variables an allocas are supported)"
+        # must store the expression in an alloca to pass its value by reference;
+        # this should only happen to pass 'self' in expressions such as `"hello".to_unsafe`
+        value = codegen(node.pointee)
+
+        @debug.emit_location(node)
+        alloca = LibC.LLVMBuildAlloca(@builder, llvm_type(node.pointee.type), "")
+        LibC.LLVMBuildStore(@builder, value, alloca)
+        alloca
+
+        #raise "BUG: unknown reference pointee #{pointee.class.name} (only variables and allocas are supported)"
       end
     end
 
