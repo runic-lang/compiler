@@ -447,14 +447,94 @@ module Runic
             skip # "
             break
           when '\\'
+            location = @location
             skip # \
-            str << consume if {'\\', '"'}.includes?(peek_char)
+            case peek_char
+            when 'a'  then skip; str << 0x07.unsafe_chr   # bell (BEL)
+            when 'b'  then skip; str << 0x08.unsafe_chr   # backspace (BS)
+            when 'e'  then skip; str << 0x1B.unsafe_chr   # escape (ESC)
+            when 'f'  then skip; str << 0x0C.unsafe_chr   # form feed (FF)
+            when 'n'  then skip; str << 0x0A.unsafe_chr   # newline (LF)
+            when 'r'  then skip; str << 0x0D.unsafe_chr   # carriage return (CR)
+            when 't'  then skip; str << 0x09.unsafe_chr   # horizontal tab (TAB)
+            when 'v'  then skip; str << 0x0B.unsafe_chr   # vertical tab (VT)
+            when '\\' then skip; str << 0x5C.unsafe_chr   # backslash
+            when '\'' then skip; str << 0x27.unsafe_chr   # single quote
+            when '"'  then skip; str << 0x22.unsafe_chr   # double quote
+            when '0', '1', '2', '3', '4', '5', '6', '7'   # octal bit pattern (1-3 octal digits)
+              str << consume_octal_codepoint(location)
+            when 'x'                                      # hexadecimal bit pattern (1-2 hexadecimal digits)
+              skip # x
+              str << consume_hexadecimal_codepoint(2) do
+                raise SyntaxError.new("invalid hexadecimal codepoint in string literal", location)
+              end
+            when 'u'                                      # unicode character(s) (1-6 hexadecimal digits)
+              skip # u
+              if peek_char == '{'
+                consume_unicode_codepoints { |char| str << char }
+              else
+                str << consume_unicode_codepoint(location)
+              end
+            else
+              raise SyntaxError.new("unknown escape sequence in string literal", location)
+            end
           when nil
             raise SyntaxError.new("unterminated string literal", @location)
           else
             str << consume
           end
         end
+      end
+    end
+
+    private def consume_octal_codepoint(location : Location) : Char
+      String.build(3) do |str|
+        3.times do
+          case peek_char
+          when '0', '1', '2', '3', '4', '5', '6', '7'
+            str << consume
+          else
+            break
+          end
+        end
+      end.to_i(8).unsafe_chr
+    rescue
+      raise SyntaxError.new("invalid octal codepoint in string literal", location)
+    end
+
+    private def consume_hexadecimal_codepoint(n : Int32) : Char
+      String.build(n) do |str|
+        n.times do
+          case peek_char
+          when '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+               'a', 'b', 'c', 'd', 'e', 'f',
+               'A', 'B', 'C', 'D', 'E', 'F'
+            str << consume
+          else
+            break
+          end
+        end
+      end.to_i(16).unsafe_chr
+    rescue
+      yield
+    end
+
+    private def consume_unicode_codepoint(location : Location) : Char
+      consume_hexadecimal_codepoint(6) do
+        raise SyntaxError.new("invalid unicode codepoint in string literal", location)
+      end
+    end
+
+    private def consume_unicode_codepoints : Nil
+      skip # {
+
+      loop do
+        skip_whitespace(semicolon: false)
+        if peek_char == '}'
+          skip # }
+          break
+        end
+        yield consume_unicode_codepoint(@location)
       end
     end
 

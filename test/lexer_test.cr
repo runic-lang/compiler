@@ -187,13 +187,65 @@ module Runic
 
     def test_strings
       assert_next :string, "foobar", %("foobar")
-      assert_next :string, "keep line\n feeds\n\n", %("keep line\n feeds\n\n")
-      assert_next :string, "remove escapes", %("remove \\escapes")
-      assert_next :string, "keep \\backslashes\\", %("keep \\\\backslashes\\\\")
+      assert_next :string, "keeps \escapes", %("keeps \\escapes")
+
+      assert_next :string, "keeps line\n feed characters\r\n",
+        %("keeps line\n feed characters\r\n")
+
+      assert_next :string, "transforms escaped line\n characters\r\n",
+        %("transforms escaped line\\n characters\\r\\n")
+
+      assert_next :string, "transforms \\backslashes\\",
+        %("transforms \\\\backslashes\\\\")
+
       assert_next :string, %(nested "quotes"), %("nested \\"quotes\\"")
 
       ex = assert_raises(SyntaxError) { lex(%("unterminated)).next }
       assert_match "unterminated string literal", ex.message
+
+      {
+        {"a",  0x07}, # bell (BEL)
+        {"b",  0x08}, # backspace (BS)
+        {"e",  0x1B}, # escape (ESC)
+        {"f",  0x0C}, # form feed (FF)
+        {"n",  0x0A}, # newline (LF)
+        {"r",  0x0D}, # carriage return (CR)
+        {"t",  0x09}, # horizontal tab (TAB)
+        {"v",  0x0B}, # vertical tab (VT)
+        {"\\", 0x5C}, # backslash
+        {"'",  0x27}, # single quote
+        {"\"", 0x22}, # double quote
+      }.each do |(char, codepoint)|
+        assert_next :string, codepoint.unsafe_chr.to_s, "\"\\#{char}\""
+      end
+
+      # octal codepoints:
+      (0o0..0o777).each do |ord|
+        if ord < 8
+          assert_next :string, ord.unsafe_chr.to_s, %("\\0#{ord.to_s(8)}")
+          assert_next :string, ord.unsafe_chr.to_s, %("\\00#{ord.to_s(8)}")
+        end
+        assert_next :string, ord.unsafe_chr.to_s, %("\\#{ord.to_s(8)}")
+      end
+
+      # hexadecimal codepoints:
+      (0x0..0xff).each do |ord|
+        if ord < 16
+          assert_next :string, ord.unsafe_chr.to_s, %("\\x0#{ord.to_s(16)}")
+        end
+        assert_next :string, ord.unsafe_chr.to_s, %("\\x#{ord.to_s(16)}")
+      end
+
+      # unicode codepoints:
+      assert_next :string, "\u0000", %("\\u0")
+      assert_next :string, "\u0000", %("\\u00")
+      assert_next :string, "\u0000", %("\\u000")
+      assert_next :string, "\u0000", %("\\u0000")
+      assert_next :string, "\u0000", %("\\u00000")
+      assert_next :string, "\u0000", %("\\u000000")
+      assert_next :string, "\u{10ffff}", %("\\u10ffff")
+      assert_next :string, "\u{10ffff}", %("\\u10FFFF")
+      assert_next :string, "\u{0 1 12 123 123a 123af}", %("\\u{0 01 012 0123 0123a 0123AF}")
     end
 
     def test_attributes
