@@ -4,7 +4,7 @@ module Runic
       def initialize(@output : String)
       end
 
-      abstract def generate(program : Program) : Nil
+      abstract def generate(program : Program)
     end
   end
 end

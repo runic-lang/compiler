@@ -44,7 +44,7 @@ module Runic
         @type = Type.new(type) if type
       end
 
-      private abstract def resolve_type : Type
+      abstract def resolve_type
 
       {% for method in %w(primitive void bool integer unsigned signed float) %}
         def {{method.id}}?
@@ -420,7 +420,7 @@ module Runic
         self.type = type if type
       end
 
-      def resolve_type
+      private def resolve_type
         @default.try(&.type?)
       end
     end
@@ -436,7 +436,7 @@ module Runic
         self.type = type if type
       end
 
-      def resolve_type
+      private def resolve_type
         # can't be determined (need semantic analysis)
       end
     end
@@ -526,7 +526,7 @@ module Runic
         expressions.size
       end
 
-      def resolve_type
+      private def resolve_type
         expressions.last?.try(&.type?)
       end
     end
@@ -565,7 +565,7 @@ module Runic
         min..max
       end
 
-      def resolve_type
+      private def resolve_type
         # extern: unreachable
       end
 
@@ -613,7 +613,7 @@ module Runic
         OPERATORS::ALL.includes?(prototype.original_name)
       end
 
-      def resolve_type
+      private def resolve_type
         prototype.type? || body.type?
       end
     end
@@ -633,7 +633,7 @@ module Runic
       def initialize(@receiver, @callee, @args, @kwargs, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         # can't be determined (need semantic analysis)
       end
 
@@ -671,7 +671,7 @@ module Runic
       def initialize(@condition, @body, @alternative, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         # could be determined, but we postpone to semantic analysis
       end
     end
@@ -683,7 +683,7 @@ module Runic
       def initialize(@condition, @body, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         # could be determined, but we postpone to semantic analysis
         # currently sets it to "void" until we support nilables
       end
@@ -696,7 +696,7 @@ module Runic
       def initialize(@condition, @body, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         "void"
       end
     end
@@ -708,7 +708,7 @@ module Runic
       def initialize(@condition, @body, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         "void"
       end
     end
@@ -720,7 +720,7 @@ module Runic
       def initialize(@conditions, @body, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         body.last?.try(&.type)
       end
     end
@@ -733,7 +733,7 @@ module Runic
       def initialize(@value, @cases, @alternative, @location)
       end
 
-      def resolve_type
+      private def resolve_type
         # could be determined, but postpone to semantic analysis
       end
     end
@@ -751,7 +751,7 @@ module Runic
         @locations = [@location]
       end
 
-      def resolve_type
+      private def resolve_type
         # N/A
       end
     end
@@ -806,7 +806,7 @@ module Runic
         end
       end
 
-      def resolve_type
+      private def resolve_type
         # N/A
       end
     end
