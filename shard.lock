@@ -6,5 +6,5 @@ shards:
 
   minitest:
     github: ysbaddaden/minitest.cr
-    version: 0.4.3
+    version: 0.5.1
 

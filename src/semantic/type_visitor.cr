@@ -70,6 +70,8 @@ module Runic
           elsif literal.is_a?(AST::Float)
             literal.type = type
           end
+        else
+          # shut up, crystal
         end
 
         literal

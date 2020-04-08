@@ -42,6 +42,8 @@ module LLVM
       llvm_init PowerPC
     when .starts_with?("sparcs")
       llvm_init Sparc
+    else
+      # shut up, crystal
     end
   end
 

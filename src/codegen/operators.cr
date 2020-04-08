@@ -39,6 +39,8 @@ module Runic
             return LibC.LLVMBuildLoad(@builder, alloca, "") # return sret
           end
         end
+      else
+        # shut up, crystal
       end
 
       rhs = codegen(node.rhs)
@@ -66,10 +68,11 @@ module Runic
       when AST::InstanceVariable
         build_ivar(node.name)
       when AST::Dereference
-        case pointee = node.pointee
-        when AST::Variable
+        if (pointee = node.pointee).is_a?(AST::Variable)
           LibC.LLVMBuildLoad(@builder, @scope.get(pointee.name), "")
         end
+      else
+        # shut up, crystal
       end
     end
 
@@ -118,6 +121,8 @@ module Runic
           LibC.LLVMBuildAdd(@builder, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFAdd(@builder, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -129,6 +134,8 @@ module Runic
           LibC.LLVMBuildSub(@builder, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFSub(@builder, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -140,14 +147,15 @@ module Runic
           LibC.LLVMBuildMul(@builder, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFMul(@builder, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
 
     private def codegen_exponentiation(node : AST::Binary)
       codegen_operation(node) do |type, lhs, rhs|
-        case type
-        when .float?
+        if type.float?
           LibC.LLVMBuildCall(@builder, llvm_intrinsic("pow", type), [lhs, rhs], 2, "")
         end
       end
@@ -170,6 +178,8 @@ module Runic
           LibC.LLVMBuildSRem(@builder, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFRem(@builder, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -213,6 +223,8 @@ module Runic
           LibC.LLVMBuildLShr(@builder, lhs, rhs, "")
         when .integer?
           LibC.LLVMBuildAShr(@builder, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -224,6 +236,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntEQ, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealOEQ, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -235,6 +249,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntNE, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealONE, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -248,6 +264,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntSLT, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealOLT, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -261,6 +279,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntSLE, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealOLE, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -274,6 +294,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntSGT, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealOGT, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -287,6 +309,8 @@ module Runic
           LibC.LLVMBuildICmp(@builder, LibC::LLVMIntPredicate::IntSGE, lhs, rhs, "")
         when .float?
           LibC.LLVMBuildFCmp(@builder, LibC::LLVMRealPredicate::RealOGE, lhs, rhs, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -363,6 +387,8 @@ module Runic
           LibC.LLVMBuildNeg(@builder, expression, "")
         when .float?
           LibC.LLVMBuildFNeg(@builder, expression, "")
+        else
+          raise "unreachable"
         end
       end
     end
@@ -384,8 +410,7 @@ module Runic
 
     private def codegen_bitwise_not(node : AST::Unary)
       codegen_operation(node) do |type, expression|
-        case type
-        when .integer?
+        if type.integer?
           LibC.LLVMBuildNot(@builder, expression, "")
         end
       end

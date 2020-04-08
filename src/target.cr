@@ -85,6 +85,8 @@ module Runic
         flags << "WIN32" if environment == "msvc" || environment == "gnu"
       when "ios"
         flags << "DARWIN"
+      else
+        # shut up, crystal
       end
 
       unless environment.empty?
@@ -99,6 +101,8 @@ module Runic
           flags << "ANDROID"
         when "cygnus"
           flags << "UNIX"
+        else
+          # shut up, crystal
         end
       end
 

@@ -81,7 +81,7 @@ module Runic
       end
 
       true
-    rescue Errno
+    rescue File::NotFoundError
       false
     end
 

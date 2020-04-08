@@ -69,6 +69,8 @@ module Runic
           when 3
             assert_type "u64", node
             assert_type "u64", node.as(AST::Assignment).rhs  # 'a' is shadowed again
+          else
+             raise "unreachable"
           end
         end
       end

@@ -88,6 +88,8 @@ module Runic
         end
       when .float?
         LibC.LLVMBuildFPToUI(@builder, value, llvm_type(dst_type), "")
+      else
+        raise "unreachable"
       end
     end
 
@@ -109,6 +111,8 @@ module Runic
         end
       when .float?
         LibC.LLVMBuildFPToSI(@builder, value, llvm_type(dst_type), "")
+      else
+        raise "unreachable"
       end
     end
 
@@ -126,6 +130,8 @@ module Runic
         else
           LibC.LLVMBuildFPTrunc(@builder, value, llvm_type(dst_type), "")
         end
+      else
+        raise "unreachable"
       end
     end
 
@@ -140,6 +146,8 @@ module Runic
         LibC.LLVMBuildSDiv(@builder, lhs, rhs, "")
       when .float?
         LibC.LLVMBuildFDiv(@builder, lhs, rhs, "")
+      else
+        raise "unreachable"
       end
     end
 

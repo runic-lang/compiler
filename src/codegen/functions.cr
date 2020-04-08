@@ -307,10 +307,11 @@ module Runic
           builtin_truncate("self", node.type)
 
         when "to_unsafe"
-          case node.name
-          when "String::to_unsafe"
+          if node.name == "String::to_unsafe"
             LibC.LLVMBuildLoad(@builder, @scope.get("self"), "self")
           end
+        else
+          # shut up, crystal
         end
       raise "unknown primitive function '#{node.name}'" unless result
       result

@@ -215,6 +215,8 @@ module Runic
         case char
         when '0'..'9', 'a'..'f', 'A'..'F'
           str << consume
+        else
+          # shut up, crystal
         end
       end
       raise SyntaxError.new("expected hexadecimal number", @location) if str.bytesize == 2
@@ -227,6 +229,8 @@ module Runic
         case char
         when '0'..'7'
           str << consume
+        else
+          # shut up, crystal
         end
       end
       raise SyntaxError.new("expected octal number", @location) if str.bytesize == 2
@@ -239,6 +243,8 @@ module Runic
         case char
         when '0', '1'
           str << consume
+        else
+          # shut up, crystal
         end
       end
       raise SyntaxError.new("expected binary number", @location) if str.bytesize == 2
@@ -295,6 +301,8 @@ module Runic
             # operator
             break
           end
+        else
+          # shut up, crystal
         end
       end
     end
@@ -346,6 +354,8 @@ module Runic
 
         NUMBER_SUFFIXES[suffix]? ||
           raise SyntaxError.new("invalid type suffix: #{suffix}", location)
+      else
+        # shut up crystal
       end
     end
 

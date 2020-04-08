@@ -209,6 +209,7 @@ module Runic
         when "i32"  then compare("0x7fffffff", downcase: true)
         when "i64"  then compare("0x7fffffffffffffff", downcase: true)
         when "i128" then compare("0x7fffffffffffffffffffffffffffffff", downcase: true)
+        else             # shut up, crystal
         end
       end
 
@@ -224,6 +225,7 @@ module Runic
         when "i32"  then @value.size <= 2+31
         when "i64"  then @value.size <= 2+63
         when "i128" then @value.size <= 2+127
+        else             # shut up, crystal
         end
       end
 
@@ -239,6 +241,7 @@ module Runic
         when "u32"  then compare(MAX_OCTAL_UINT32)
         when "u64"  then compare(MAX_OCTAL_UINT64)
         when "u128" then compare(MAX_OCTAL_UINT128)
+        else             # shut up, crystal
         end
       end
 
@@ -254,6 +257,7 @@ module Runic
         when "u32"  then compare(MAX_UINT32)
         when "u64"  then compare(MAX_UINT64)
         when "u128" then compare(MAX_UINT128)
+        else             # shut up, crystal
         end
       end
 

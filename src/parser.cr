@@ -195,6 +195,7 @@ module Runic
       when "int"   then type = "i32"
       when "uint"  then type = "u32"
       when "float" then type = "f64"
+      else # shut up, crystal
       end
 
       if peek.value == "*"
@@ -322,6 +323,8 @@ module Runic
           when ","
             skip
             skip_linefeed
+          else
+            # shut up, crystal
           end
         end
       end
@@ -409,12 +412,16 @@ module Runic
               case lhs.pointee
               when AST::Variable, AST::InstanceVariable
                 break
+              else
+                # shut up, crystal
               end
             when AST::Constant
               if @top_level_expressions && binary_operator.value == "="
                 value = parse_unary
                 return AST::ConstantDefinition.new(lhs.name, value, binary_operator.location)
               end
+            else
+              # shut up, crystal
             end
             raise SyntaxError.new("only variables may be assigned a value in a dynamic context", binary_operator.location)
           end

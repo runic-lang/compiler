@@ -112,6 +112,8 @@ module Runic
           element[1..-1].split(':') { |s| @native_integers << s.to_i }
         when 'S'
           @stack_natural_align = in_bytes(element[1..-1])
+        else
+          # shut up, crystal
         end
       end
     end
@@ -123,6 +125,7 @@ module Runic
       when "m" then @mangling = Mangling::Mips
       when "w" then @mangling = Mangling::WinCOFF
       when "x" then @mangling = Mangling::WinCOFFX86
+      else          # shut up, crystal
       end
     end
 
